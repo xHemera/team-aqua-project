@@ -1,0 +1,76 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: aqua-frontend
+    working_dir: /app
+    command:
+      - sh
+      - -c
+      - |
+        corepack enable && pnpm install && pnpm dev --hostname 0.0.0.0 --port 3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    environment:
+      NODE_ENV: development
+      CHOKIDAR_USEPOLLING: "true"
+    depends_on:
+      - backend
+      - game-engine
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aqua-backend
+    working_dir: /app
+    command:
+      - sh
+      - -c
+      - |
+        if [ -f package.json ]; then
+          corepack enable && pnpm install && (pnpm dev || pnpm start || npm run dev || npm start)
+        else
+          echo "Backend vide: conteneur en attente."
+          tail -f /dev/null
+        fi
+    ports:
+      - "${BACKEND_PORT:-4001}:4000"
+    volumes:
+      - ./backend:/app
+      - backend_node_modules:/app/node_modules
+    environment:
+      NODE_ENV: development
+
+  game-engine:
+    build:
+      context: ./game-engine
+      dockerfile: Dockerfile
+    container_name: aqua-game-engine
+    working_dir: /app
+    command:
+      - sh
+      - -c
+      - |
+        if [ -f package.json ]; then
+          corepack enable && pnpm install && (pnpm dev || pnpm start || npm run dev || npm start)
+        else
+          echo "Game-engine vide: conteneur en attente."
+          tail -f /dev/null
+        fi
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./game-engine:/app
+      - game_engine_node_modules:/app/node_modules
+    environment:
+      NODE_ENV: development
+
+volumes:
+  frontend_node_modules:
+  backend_node_modules:
+  game_engine_node_modules:

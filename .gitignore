@@ -1,0 +1,19 @@
+# Dependencies
+**/node_modules/
+
+# Package manager stores
+frontend/.pnpm-store/
+**/.pnpm-store/
+
+# Build outputs
+frontend/.next/
+**/dist/
+**/build/
+
+# Env files
+.env
+.env.*
+
+# OS / editor
+.DS_Store
+.vscode/
