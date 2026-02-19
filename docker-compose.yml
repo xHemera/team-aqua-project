@@ -1,4 +1,21 @@
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: aqua-db-temp
+    environment:
+      POSTGRES_DB: aqua_temp
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d aqua_temp"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   frontend:
     build:
       context: ./frontend
@@ -9,18 +26,32 @@ services:
       - sh
       - -c
       - |
-        corepack enable && pnpm install && pnpm dev --hostname 0.0.0.0 --port 3000
+        deps_hash="$$(sha256sum package.json pnpm-lock.yaml | sha256sum | awk '{print $$1}')"
+        if [ ! -f node_modules/.deps-hash ] || [ "$$(cat node_modules/.deps-hash)" != "$$deps_hash" ]; then
+          pnpm install --frozen-lockfile --prefer-offline
+          echo "$$deps_hash" > node_modules/.deps-hash
+        fi
+        pnpm auth:migrate
+        pnpm dev --hostname 0.0.0.0 --port 3000
     ports:
       - "3000:3000"
     volumes:
       - ./frontend:/app
       - frontend_node_modules:/app/node_modules
+      - frontend_pnpm_store:/pnpm/store
     environment:
       NODE_ENV: development
       CHOKIDAR_USEPOLLING: "true"
+      BETTER_AUTH_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: dev-secret-change-me-please-at-least-32-characters
+      BETTER_AUTH_DATABASE_URL: postgres://postgres:postgres@db:5432/aqua_temp
     depends_on:
-      - backend
-      - game-engine
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
+      game-engine:
+        condition: service_started
 
   backend:
     build:
@@ -33,7 +64,16 @@ services:
       - -c
       - |
         if [ -f package.json ]; then
-          corepack enable && pnpm install && (pnpm dev || pnpm start || npm run dev || npm start)
+          if [ ! -f node_modules/.modules.yaml ]; then
+            if [ -f pnpm-lock.yaml ]; then
+              pnpm install --frozen-lockfile --prefer-offline
+            else
+              pnpm install --prefer-offline
+            fi
+          fi
+          pnpm prisma:generate
+          pnpm prisma:push
+          (pnpm dev || pnpm start || npm run dev || npm start)
         else
           echo "Backend vide: conteneur en attente."
           tail -f /dev/null
@@ -43,8 +83,14 @@ services:
     volumes:
       - ./backend:/app
       - backend_node_modules:/app/node_modules
+      - backend_pnpm_store:/pnpm/store
     environment:
       NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/aqua_temp?schema=public
+      PORT: 4000
+    depends_on:
+      db:
+        condition: service_healthy
 
   game-engine:
     build:
@@ -57,7 +103,14 @@ services:
       - -c
       - |
         if [ -f package.json ]; then
-          corepack enable && pnpm install && (pnpm dev || pnpm start || npm run dev || npm start)
+          if [ ! -f node_modules/.modules.yaml ]; then
+            if [ -f pnpm-lock.yaml ]; then
+              pnpm install --frozen-lockfile --prefer-offline
+            else
+              pnpm install --prefer-offline
+            fi
+          fi
+          (pnpm dev || pnpm start || npm run dev || npm start)
         else
           echo "Game-engine vide: conteneur en attente."
           tail -f /dev/null
@@ -67,10 +120,14 @@ services:
     volumes:
       - ./game-engine:/app
       - game_engine_node_modules:/app/node_modules
+      - game_engine_pnpm_store:/pnpm/store
     environment:
       NODE_ENV: development
 
 volumes:
   frontend_node_modules:
+  frontend_pnpm_store:
   backend_node_modules:
+  backend_pnpm_store:
   game_engine_node_modules:
+  game_engine_pnpm_store:

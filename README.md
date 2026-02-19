@@ -1,43 +1,57 @@
 # team-aqua-project
-ft_transcendance at 42 le Havre. Made with love
 
-## Docker (3 conteneurs)
+Projet simplifié pour rester lisible et léger.
 
-La stack Docker démarre 3 services:
+## Architecture
 
-- `frontend` (Next.js) sur le port `3000`
-- `backend` sur le port `4001` (conteneur `4000`)
-- `game-engine` sur le port `5000`
+- `frontend`: Next.js + Better Auth
+- `backend`: Express + Prisma
+- `db`: PostgreSQL temporaire (éphémère)
+- `game-engine`: service placeholder
 
-### Lancer
-
-```bash
-docker compose up --build
-```
-
-Pour forcer un autre port backend côté hôte:
-
-```bash
-BACKEND_PORT=4010 docker compose up --build
-```
-
-### Démarrer en arrière-plan
+## Démarrage
 
 ```bash
 docker compose up --build -d
 ```
 
-### Logs
+Ports:
+
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:4001/health`
+- DB: `localhost:5432`
+
+## Commandes utiles
 
 ```bash
 docker compose logs -f
-```
-
-### Arrêter
-
-```bash
 docker compose down
 ```
 
-> `backend` et `game-engine` restent actifs même si les dossiers sont vides.
-> Dès qu'un `package.json` est ajouté dans ces dossiers, le conteneur tentera de lancer automatiquement `pnpm dev`/`pnpm start` (ou `npm run dev`/`npm start`).
+Prisma backend:
+
+```bash
+docker compose exec backend pnpm prisma:studio
+docker compose exec backend pnpm prisma:push
+```
+
+Better Auth frontend:
+
+```bash
+cd frontend
+pnpm auth:migrate
+```
+
+## Variables d'environnement
+
+- Frontend: voir `frontend/.env.example`
+- Backend: voir `backend/.env.example`
+
+## Nettoyage local (taille)
+
+Pour supprimer caches et dépendances locales générées:
+
+```bash
+rm -rf frontend/node_modules frontend/.next frontend/.pnpm-store
+rm -rf backend/node_modules backend/.pnpm-store backend/dist
+```
