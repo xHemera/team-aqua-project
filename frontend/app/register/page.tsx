@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 
-export default function LoginPage() {
+export default function RegisterPage() {
+  const [pseudo, setPseudo] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
@@ -14,15 +16,21 @@ export default function LoginPage() {
     setLoading(true);
     setMessage("");
 
-    const { error } = await authClient.signIn.email({
+    if (password !== confirmPassword) {
+      setMessage("Les mots de passe ne correspondent pas");
+      setLoading(false);
+      return;
+    }
+
+    const { error } = await authClient.signUp.email({
       email,
       password,
     });
 
     if (error) {
-      setMessage(error.message ?? "Erreur de connexion");
+      setMessage(error.message ?? "Erreur d'inscription");
     } else {
-      setMessage("Connexion réussie");
+      setMessage("Inscription réussie");
     }
 
     setLoading(false);
@@ -66,10 +74,23 @@ export default function LoginPage() {
           <div className="relative z-10">
           <div className="text-center">
             <h1 className="text-3xl font-bold text-white">Pokémon TCG</h1>
-            <p className="text-gray-300 mt-2">Connexion</p>
+            <p className="text-gray-300 mt-2">Inscription</p>
           </div>
 
           <form onSubmit={onSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-200 mb-2">
+                Pseudo
+              </label>
+              <input
+                type="text"
+                value={pseudo}
+                onChange={(e) => setPseudo(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-200 mb-2">
                 Email
@@ -96,12 +117,25 @@ export default function LoginPage() {
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-200 mb-2">
+                Confirmer le mot de passe
+              </label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            </div>
+
             <button
               type="submit"
               disabled={loading}
               className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Connexion..." : "Se connecter"}
+              {loading ? "Chargement..." : "S'inscrire"}
             </button>
 
             {message && (
@@ -113,9 +147,9 @@ export default function LoginPage() {
 
           <div className="text-center mt-4">
             <p className="text-gray-300">
-              Pas encore de compte ?{" "}
-              <a href="/register" className="text-blue-400 font-semibold hover:text-blue-300 underline">
-                S'inscrire
+              Vous avez déjà un compte ?{" "}
+              <a href="/" className="text-blue-400 font-semibold hover:text-blue-300 underline">
+                Se connecter
               </a>
             </p>
           </div>
