@@ -17,3 +17,6 @@ frontend/.next/
 # OS / editor
 .DS_Store
 .vscode/
+
+
+package-lock.json
