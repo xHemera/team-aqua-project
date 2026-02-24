@@ -1,31 +1,20 @@
-export default function Home() {
+export default async function Home() {
+  const response = await fetch('http://localhost:3000/api/users', {
+    cache: 'no-store',
+  });
+  const users = await response.json();
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col justify-center gap-6 px-6">
-      <h1 className="text-3xl font-semibold">Team Aqua Project</h1>
-      <p className="text-zinc-600 dark:text-zinc-300">
-        Frontend minimal avec Better Auth et page de connexion.
-      </p>
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <a
-          href="/login"
-          className="rounded border px-4 py-2 text-center"
-        >
-          Aller à la connexion
-        </a>
-        <a
-          href="http://localhost:4001/health"
-          className="rounded border px-4 py-2 text-center"
-        >
-          Backend health
-        </a>
-        <a
-          href="http://localhost:5432"
-          className="rounded border px-4 py-2 text-center"
-        >
-          DB (port 5432)
-        </a>
-      </div>
-      <p className="text-sm text-zinc-500">Stack Docker: frontend, backend, db, game-engine.</p>
-    </main>
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center -mt-16">
+      <h1 className="text-4xl font-bold mb-8 font-[family-name:var(--font-geist-sans)] text-[#333333]">
+        Superblog
+      </h1>
+      <ol className="list-decimal list-inside font-[family-name:var(--font-geist-sans)]">
+        {users.map((user) => (
+          <li key={user.id} className="mb-2">
+            {user.name}
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }

@@ -4,54 +4,69 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
-model users {
+model Users {
   id        Int     	@id @default(autoincrement())
   createdAt DateTime	@default(now())
-  email     String?
+  email     String		@unique
   username  String		@unique
-  role      String?
+  role      String
   image     String?
+  decks		Decks[]
 }
 
-model friends {
+model Friends {
 	first_friend_id		Int @id
 	second_friend_id	Int?
-	request_sent			Boolean
-	created_at				DateTime @default(now())
+	request_sent		Boolean
+	created_at			DateTime @default(now())
 }
 
-model decks {
-	id				Int     @id @default(autoincrement())
-	title			String?
-	image			String?
-	body			String?
+model Decks {
+	id			Int     @id @default(autoincrement())
+	title		String?
+	image		String?
+	body		String?
+	cards		Cards[]
 	createdAt	DateTime @default(now())
+	userId		Int?
+	user		Users?	@relation(fields: [userId], references: [id])
 }
 
-model messages {
+model Messages {
 	inbox_id			Int	@id
 	user_id				Int?
 	message				String?
 	createdAt			DateTime @default(now())
 }
 
-model inbox {
-	id								Int	@id @default(autoincrement())
-	inboxuid					String?
+model Inbox {
+	id					Int	@id @default(autoincrement())
+	inboxuid			String?
 	last_sent_user_id	String?
-	createdAt					DateTime @default(now())
+	createdAt			DateTime @default(now())
 }
 
-model inbox_users {
-	id					Int	@id @default(autoincrement())
+model Inbox_users {
+	id				Int	@id @default(autoincrement())
 	inbox_id		Int?
 	user_id			Int?
 }
 
-model event_users {
-	event_id		Int @id
-	user_id			Int?
+model Cards {
+	id			Int	@id @default(autoincrement())
+	type		String
+	element		String?
+	hp			Int?
+	name		String
+	cap1		String?
+	cap2		String?
+	prize		Int?
+	retreat		Int?
+	weakness	String?
+	resist		String?
+	deckId		Int?
+	deck		Decks?	@relation(fields: [deckId], references: [id])
 }
+
