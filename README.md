@@ -45,7 +45,7 @@ Projet web moderne avec :
 
 1. **Cloner le projet**
 ```bash
-git clone <url-du-repo>
+git clone git@github.com:xHemera/team-aqua-project.git
 cd team-aqua-project
 ```
 
