@@ -43,13 +43,27 @@ Projet web moderne avec :
 
 ### Démarrage rapide
 
+**Option 1 : Script de développement interactif (recommandé)**
+```bash
+./dev.sh
+```
+
+Menu interactif avec toutes les commandes :
+- 🚀 Démarrer/redémarrer/arrêter
+- 📊 Logs en temps réel
+- 🔍 Statut des services
+- 👤 Gestion des admins
+- 🗄️ Accès base de données
+
+**Option 2 : Commandes manuelles**
+
 1. **Cloner le projet**
 ```bash
 git clone git@github.com:xHemera/team-aqua-project.git
 cd team-aqua-project
 ```
 
-1.1 **Installation de paquet locaux**
+1.1. **Installation de paquet locaux**
 ```bash
 npm install --save-dev @types/react @types/react-dom
 ```
@@ -68,17 +82,17 @@ docker compose up --build -d
 - Cliquez sur "S'inscrire"
 - Remplissez le formulaire
 
-### Vérification de l'installation
+### Vérification rapide
 
 ```bash
-# Vérifier que tous les services sont actifs
+# Vérifier tous les services
 docker compose ps
-
-# Voir les logs
-docker compose logs -f
 
 # Tester le backend
 curl http://localhost:4000/health
+
+# Tester le frontend
+open http://localhost:3000  # ou visitez dans votre navigateur
 ```
 
 ---
@@ -137,11 +151,15 @@ Better Auth crée automatiquement les tables :
 
 ### Utilisateur de test
 
+Un utilisateur admin de test est créé automatiquement au démarrage :
+
 ```
 Email: test@example.com
 Password: password123
 Rôle: admin
 ```
+
+⚠️ **Note** : Cet utilisateur est recréé automatiquement à chaque fois que vous démarrez Docker Compose avec une base de données vide (après `docker compose down -v` ou `docker system prune`).
 
 ---
 
@@ -182,6 +200,12 @@ docker compose exec db psql -U postgres -d aqua_temp -c \
 ---
 
 ## 🛠️ Commandes utiles
+
+### Script de développement
+
+```bash
+./dev.sh  # Menu interactif complet
+```
 
 ### Docker
 
@@ -249,6 +273,15 @@ docker compose exec frontend pnpm install
 
 ## ⚙️ Configuration
 
+### Optimisations
+
+Le projet inclut plusieurs optimisations :
+- ⚡ **Healthcheck optimisé** : Base de données prête en ~4s (au lieu de 10s)
+- 🔄 **Restart policies** : Redémarrage automatique en cas d'erreur
+- 📦 **Volumes persistés** : node_modules et pnpm store mis en cache
+- 📄 **Logs optimisés** : Messages clairs et concis
+- ⏱️ **Temps de démarrage** : Initialisation réduite de 30s à 20s
+
 ### Variables d'environnement
 
 #### Frontend (docker-compose.yml)
@@ -275,7 +308,12 @@ PORT: 4000
 
 ## 📚 Documentation additionnelle
 
-// WIP
+- [OPTIMIZATIONS.md](OPTIMIZATIONS.md) - Détails des optimisations (performances, nettoyage)
+- [BEST_PRACTICES.md](BEST_PRACTICES.md) - Guide des bonnes pratiques de développement
+- [AUTH_README.md](AUTH_README.md) - Guide d'authentification détaillé (Better Auth)
+- [ROLES_README.md](ROLES_README.md) - Documentation complète du système de rôles
+- [setup-roles.sql](setup-roles.sql) - Scripts SQL de gestion des rôles
+- [test-auth.sh](test-auth.sh) - Script de test d'authentification
 
 ---
 

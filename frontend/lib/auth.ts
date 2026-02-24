@@ -22,6 +22,15 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  user: {
+    additionalFields: {
+      role: {
+        type: "string",
+        defaultValue: "user",
+        input: false,
+      },
+    },
+  },
   secret:
     process.env.BETTER_AUTH_SECRET ??
     "dev-secret-change-me-please-at-least-32-characters",
