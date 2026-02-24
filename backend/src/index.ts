@@ -1,20 +1,13 @@
 import "dotenv/config";
-import express from "express";
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import express, { Request, Response } from "express";
+import prisma from "../lib/prisma.js";
 
 const app = express();
-
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-});
-
-const prisma = new PrismaClient({
-  adapter,
-});
 const port = Number(process.env.PORT ?? 4000);
 
-app.get("/health", async (_req, res) => {
+app.use(express.json());
+
+app.get("/health", async (_req: Request, res: Response) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
     res.json({ status: "ok", db: "up" });
@@ -23,7 +16,7 @@ app.get("/health", async (_req, res) => {
   }
 });
 
-app.get("/api/users", async (_req, res) => {
+app.get("/api/users", async (_req: Request, res: Response) => {
   try {
     const users = await prisma.users.findMany();
     res.json(users);
@@ -35,7 +28,7 @@ app.get("/api/users", async (_req, res) => {
 
 app.listen(port, () => {
   console.log(`Backend running on port ${port}`);
-}).on("error", (error) => {
+}).on("error", (error: Error) => {
   console.error("Server error:", error);
   process.exit(1);
 });
