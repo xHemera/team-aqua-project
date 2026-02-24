@@ -1,9 +1,12 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import absol from "../images/absol.png";
 
 export default function Home() {
+  const [showPopup, setShowPopup] = useState(false);
+
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
       <div 
@@ -25,6 +28,26 @@ export default function Home() {
           100% {
             background-position: 0% 50%;
           }
+        }
+        @keyframes dot-pulse {
+          0%, 20% {
+            opacity: 0.4;
+          }
+          50% {
+            opacity: 1;
+          }
+          100% {
+            opacity: 0.4;
+          }
+        }
+        .dot-1 {
+          animation: dot-pulse 1.4s infinite 0s;
+        }
+        .dot-2 {
+          animation: dot-pulse 1.4s infinite 0.2s;
+        }
+        .dot-3 {
+          animation: dot-pulse 1.4s infinite 0.4s;
         }
       `}</style>
       {/* Header */}
@@ -89,6 +112,7 @@ export default function Home() {
               style={{ clipPath: 'polygon(4% 0, 96% 0, 100% 50%, 96% 100%, 4% 100%, 0 50%)' }}
             >
               <button
+                onClick={() => setShowPopup(true)}
                 className="w-full bg-gradient-to-r from-gray-400 via-gray-300 to-gray-400 text-gray-800 font-black text-4xl py-5 px-8 uppercase tracking-wide"
                 style={{ clipPath: 'polygon(4% 0, 96% 0, 100% 50%, 96% 100%, 4% 100%, 0 50%)' }}
               >
@@ -98,6 +122,28 @@ export default function Home() {
           </div>
         </div>
       </main>
+
+      {/* Popup Modal */}
+      {showPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gradient-to-br from-gray-300 to-gray-200 p-8 rounded-lg shadow-2xl max-w-sm w-full mx-4">
+            <div className="flex flex-col gap-4">
+              <h2 className="text-xl font-black text-gray-800 mb-4 uppercase tracking-wide">
+                En recherche de joueur
+                <span className="dot-1">.</span>
+                <span className="dot-2">.</span>
+                <span className="dot-3">.</span>
+              </h2>
+              <button
+                onClick={() => setShowPopup(false)}
+                className="bg-gray-500 text-gray-800 font-bold text-lg py-3 px-4 rounded-lg hover:scale-105 transition-transform uppercase"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

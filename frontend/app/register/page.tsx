@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
+import logo from "../images/logo.png";
 
 export default function RegisterPage() {
   const [pseudo, setPseudo] = useState("");
@@ -37,7 +39,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden">
+    <main className="relative flex py-12 items-center justify-center min-h-screen overflow-hidden">
       <div 
         className="absolute inset-0"
         style={{
@@ -59,73 +61,70 @@ export default function RegisterPage() {
           }
         }
       `}</style>
-      <div className="w-full max-w-md p-8 relative z-10">
-        <div 
-          className="rounded-lg shadow-xl p-8 border-4 border-gray-600 relative overflow-hidden"
-        >
-          <div 
-            className="absolute inset-0 z-0"
-            style={{
-              background: 'linear-gradient(45deg, #0f172a, #1e293b, #334155, #475569, #334155, #1e293b, #0f172a)',
-              backgroundSize: '400% 400%',
-              animation: 'gradient-shift 15s ease infinite'
-            }}
+      <div className="flex flex-col items-center justify-center w-full relative z-10 px-4">
+        <div className="mb-8 w-full max-w-md py-4">
+          <Image
+            src={logo}
+            alt="Logo"
+            width={500}
+            height={250}
+            className="mx-auto"
           />
-          <div className="relative z-10">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-white">Pokémon TCG</h1>
-            <p className="text-gray-300 mt-2">Inscription</p>
-          </div>
-
+        </div>
+        <div className="w-full max-w-md">
           <form onSubmit={onSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-200 mb-2">
-                Pseudo
-              </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
+                <i className="fa-solid fa-user"></i>
+              </div>
               <input
                 type="text"
                 value={pseudo}
                 onChange={(e) => setPseudo(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Pseudo"
+                className="w-full bg-gray-900 bg-opacity-70 text-gray-200 placeholder-gray-400 py-3 pl-12 pr-4 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
                 required
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-200 mb-2">
-                Email
-              </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
+                <i className="fa-regular fa-user"></i>
+              </div>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Email"
+                className="w-full bg-gray-900 bg-opacity-70 text-gray-200 placeholder-gray-400 py-3 pl-12 pr-4 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
                 required
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-200 mb-2">
-                Mot de passe
-              </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
+                <i className="fa-solid fa-lock"></i>
+              </div>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Password"
+                className="w-full bg-gray-900 bg-opacity-70 text-gray-200 placeholder-gray-400 py-3 pl-12 pr-4 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
                 required
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-200 mb-2">
-                Confirmer le mot de passe
-              </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
+                <i className="fa-solid fa-lock"></i>
+              </div>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Confirmer le mot de passe"
+                className="w-full bg-gray-900 bg-opacity-70 text-gray-200 placeholder-gray-400 py-3 pl-12 pr-4 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
                 required
               />
             </div>
@@ -133,7 +132,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Chargement..." : "S'inscrire"}
             </button>
@@ -144,16 +143,6 @@ export default function RegisterPage() {
               </p>
             )}
           </form>
-
-          <div className="text-center mt-4">
-            <p className="text-gray-300">
-              Vous avez déjà un compte ?{" "}
-              <a href="/" className="text-blue-400 font-semibold hover:text-blue-300 underline">
-                Se connecter
-              </a>
-            </p>
-          </div>
-          </div>
         </div>
       </div>
     </main>
