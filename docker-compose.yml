@@ -25,13 +25,7 @@ services:
     command:
       - sh
       - -c
-      - |
-        deps_hash="$$(sha256sum package.json pnpm-lock.yaml | sha256sum | awk '{print $$1}')"
-        if [ ! -f node_modules/.deps-hash ] || [ "$$(cat node_modules/.deps-hash)" != "$$deps_hash" ]; then
-          pnpm install --frozen-lockfile --prefer-offline
-          echo "$$deps_hash" > node_modules/.deps-hash
-        fi
-        pnpm auth:migrate
+      - pnpm auth:migrate
         pnpm dev --hostname 0.0.0.0 --port 3000
     ports:
       - "3000:3000"
@@ -72,14 +66,14 @@ services:
             fi
           fi
           pnpm prisma:generate
-          pnpm prisma:push
+          pnpm prisma migrate dev --name init
           (pnpm dev || pnpm start || npm run dev || npm start)
         else
           echo "Backend vide: conteneur en attente."
           tail -f /dev/null
         fi
     ports:
-      - "${BACKEND_PORT:-4001}:4000"
+      - "4000:4000"
     volumes:
       - ./backend:/app
       - backend_node_modules:/app/node_modules
