@@ -1,9 +1,11 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import ectoplasme from "../images/tony.jpg";
 
 export default function GamePage() {
+	const [showMenu, setShowMenu] = useState(false);
 	const Bench = Array.from({ length: 1 }, (_, i) => i);
 	const Prize = Array.from({ length: 6 }, (_, i) => i);
 	const Hand = Array.from({ length: 1 }, (_, i) => i);
@@ -23,8 +25,16 @@ export default function GamePage() {
 			{/* Main Content */}
 			<main className="flex-1 relative">
 				<div className="absolute inset-0 bg-black/40 shadow-2xl border border-white/20 overflow-hidden">
+					{/* Menu Button */}
+					<button
+						onClick={() => setShowMenu(true)}
+						className="absolute top-1/2 -translate-y-1/2 right-4 w-10 h-10 bg-black/60 hover:bg-black/80 rounded-lg border border-white/10 flex items-center justify-center text-white font-bold text-xl transition-colors"
+					>
+						<i className="fa-solid fa-gear"></i>
+					</button>
+
 					{/* Opponent Header */}
-					<div className="absolute top-4 right-6 flex items-center gap-3 bg-black/60 px-4 py-2 rounded-full border border-white/10">
+					<div className="absolute top-4 right-16 flex items-center gap-3 bg-black/60 px-4 py-2 rounded-full border border-white/10">
 						<div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-200 to-gray-500 shadow-inner"></div>
 						<div className="text-white font-bold">sunmiaou</div>
 					</div>
@@ -179,6 +189,28 @@ export default function GamePage() {
 					</div>
 				</div>
 			</main>
+
+			{/* Menu Popup */}
+			{showMenu && (
+				<div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50">
+					<div className="bg-gradient-to-br from-gray-800 to-gray-900 p-8 rounded-2xl shadow-2xl border border-white/20">
+						<div className="flex flex-col gap-4 min-w-[200px]">
+							<button
+								onClick={() => setShowMenu(false)}
+								className="bg-gray-600 hover:bg-gray-500 text-white font-bold text-lg py-3 px-6 rounded-lg transition-colors uppercase"
+							>
+								Resume
+							</button>
+							<button
+								onClick={() => window.location.href = '/home'}
+								className="bg-red-600 hover:bg-red-500 text-white font-bold text-lg py-3 px-6 rounded-lg transition-colors uppercase"
+							>
+								Forfait
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }
