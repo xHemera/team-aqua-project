@@ -68,7 +68,7 @@ services:
       dockerfile: Dockerfile
     container_name: aqua-game-engine
     working_dir: /app
-    command: sh -c "if [ -f package.json ]; then pnpm install --frozen-lockfile --prefer-offline && pnpm dev; else echo 'Game-engine: waiting for code...'; tail -f /dev/null; fi"
+    command: sh -c "if [ -f package.json ]; then pnpm install --frozen-lockfile --prefer-offline && pnpm dev; else echo 'Game-engine waiting for code'; tail -f /dev/null; fi"
     ports:
       - "5000:5000"
     volumes:
