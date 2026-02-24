@@ -18,7 +18,12 @@ app.get("/health", async (_req: Request, res: Response) => {
 
 app.get("/api/users", async (_req: Request, res: Response) => {
   try {
-    const users = await prisma.users.findMany();
+    // Utiliser une requête SQL brute pour interroger la table 'user' de Better-auth
+    const users = await prisma.$queryRaw`
+      SELECT id, name, email, "emailVerified", "createdAt", role
+      FROM "user"
+      ORDER BY "createdAt" DESC
+    `;
     res.json(users);
   } catch (error) {
     console.error("Error fetching users:", error);
