@@ -7,7 +7,51 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Ping {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
+model users {
+  id        Int     	@id @default(autoincrement())
+  createdAt DateTime	@default(now())
+  email     String?
+  username  String		@unique
+  role      String?
+  image     String?
+}
+
+model friends {
+	first_friend_id		Int @id
+	second_friend_id	Int?
+	request_sent			Boolean
+	created_at				DateTime @default(now())
+}
+
+model decks {
+	id				Int     @id @default(autoincrement())
+	title			String?
+	image			String?
+	body			String?
+	createdAt	DateTime @default(now())
+}
+
+model messages {
+	inbox_id			Int	@id
+	user_id				Int?
+	message				String?
+	createdAt			DateTime @default(now())
+}
+
+model inbox {
+	id								Int	@id @default(autoincrement())
+	inboxuid					String?
+	last_sent_user_id	String?
+	createdAt					DateTime @default(now())
+}
+
+model inbox_users {
+	id					Int	@id @default(autoincrement())
+	inbox_id		Int?
+	user_id			Int?
+}
+
+model event_users {
+	event_id		Int @id
+	user_id			Int?
 }

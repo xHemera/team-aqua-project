@@ -25,8 +25,16 @@ services:
     command:
       - sh
       - -c
-      - pnpm auth:migrate
-        pnpm dev --hostname 0.0.0.0 --port 3000
+      - |
+        if [ -f package.json ]; then
+          if [ ! -f node_modules/.deps-hash ] || [ "$(cat node_modules/.deps-hash)" != "$(sha256sum package.json pnpm-lock.yaml | sha256sum | awk '{print $1}')" ]; then
+            pnpm install --frozen-lockfile --prefer-offline
+            sha256sum package.json pnpm-lock.yaml | sha256sum | awk '{print $1}' > node_modules/.deps-hash
+          fi
+          pnpm auth:migrate && pnpm dev --hostname 0.0.0.0 --port 3000
+        else
+          tail -f /dev/null
+        fi
     ports:
       - "3000:3000"
     volumes:
@@ -80,7 +88,7 @@ services:
       - backend_pnpm_store:/pnpm/store
     environment:
       NODE_ENV: development
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/aqua_temp?schema=public
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/aqua_temp
       PORT: 4000
     depends_on:
       db:
