@@ -2,6 +2,7 @@ services:
   db:
     image: postgres:16-alpine
     container_name: aqua-db-temp
+    restart: unless-stopped
     environment:
       POSTGRES_DB: aqua_temp
       POSTGRES_USER: postgres
@@ -12,15 +13,17 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d aqua_temp"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+      interval: 3s
+      timeout: 2s
+      retries: 5
+      start_period: 5s
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: aqua-frontend
+    restart: unless-stopped
     working_dir: /app
     command: sh -c "pnpm install --frozen-lockfile --prefer-offline && pnpm auth:migrate && pnpm dev --hostname 0.0.0.0"
     ports:
@@ -46,8 +49,9 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: aqua-backend
+    restart: unless-stopped
     working_dir: /app
-    command: sh -c "pnpm install --frozen-lockfile --prefer-offline && pnpm prisma generate && pnpm dev"
+    command: sh init.sh
     ports:
       - "4000:4000"
     volumes:
@@ -67,6 +71,7 @@ services:
       context: ./game-engine
       dockerfile: Dockerfile
     container_name: aqua-game-engine
+    restart: unless-stopped
     working_dir: /app
     command: sh -c "if [ -f package.json ]; then pnpm install --frozen-lockfile --prefer-offline && pnpm dev; else echo 'Game-engine waiting for code'; tail -f /dev/null; fi"
     ports:

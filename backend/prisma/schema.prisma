@@ -34,6 +34,22 @@ model Decks {
 	user		Users?	@relation(fields: [userId], references: [id])
 }
 
+model Cards {
+	id			Int	@id @default(autoincrement())
+	type		String
+	element		String?
+	hp			Int?
+	name		String
+	cap1		String?
+	cap2		String?
+	prize		Int?
+	retreat		Int?
+	weakness	String?
+	resist		String?
+	deckId		Int?
+	deck		Decks?	@relation(fields: [deckId], references: [id])
+}
+
 model Messages {
 	inbox_id			Int	@id
 	user_id				Int?
@@ -53,20 +69,3 @@ model Inbox_users {
 	inbox_id		Int?
 	user_id			Int?
 }
-
-model Cards {
-	id			Int	@id @default(autoincrement())
-	type		String
-	element		String?
-	hp			Int?
-	name		String
-	cap1		String?
-	cap2		String?
-	prize		Int?
-	retreat		Int?
-	weakness	String?
-	resist		String?
-	deckId		Int?
-	deck		Decks?	@relation(fields: [deckId], references: [id])
-}
-
