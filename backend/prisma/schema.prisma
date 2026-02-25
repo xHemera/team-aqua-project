@@ -14,13 +14,18 @@ model Users {
   role      String
   image     String?
   decks		Decks[]
+  friends	Friends[]
+  inboxUser	Inbox_users[]
+  messages	Messages[]
+  inbox		Inbox[]
 }
 
 model Friends {
-	first_friend_id		Int @id
-	second_friend_id	Int?
+	friendIds			Int[]
+	userId				Int @id
 	request_sent		Boolean
 	created_at			DateTime @default(now())
+	user				Users?	@relation(fields: [userId], references: [id])
 }
 
 model Decks {
@@ -51,21 +56,29 @@ model Cards {
 }
 
 model Messages {
-	inbox_id			Int	@id
-	user_id				Int?
-	message				String?
-	createdAt			DateTime @default(now())
+	inbox_id	Int	@id
+	user_id		Int?
+	message		String?
+	createdAt	DateTime @default(now())
+	user		Users? @relation(fields: [user_id], references: [id])
+	inbox		Inbox? @relation(fields: [inbox_id], references: [id])
 }
 
 model Inbox {
 	id					Int	@id @default(autoincrement())
 	inboxuid			String?
-	last_sent_user_id	String?
+	last_message		String?
+	last_sent_user_id	Int
 	createdAt			DateTime @default(now())
+	inboxUser			Inbox_users[]
+	messages			Messages[]
+	user				Users? @relation(fields: [last_sent_user_id], references: [id])
 }
 
 model Inbox_users {
 	id				Int	@id @default(autoincrement())
-	inbox_id		Int?
-	user_id			Int?
+	inbox_id		Int
+	user_id			Int
+	user			Users? @relation(fields: [user_id], references: [id])
+	inbox			Inbox? @relation(fields: [inbox_id], references: [id])
 }

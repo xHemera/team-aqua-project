@@ -63,12 +63,16 @@ start_services() {
     print_success "Services démarrés"
     print_info "Frontend: http://localhost:3000"
     print_info "Backend: http://localhost:4000/health"
+    docker compose -f docker-compose.yml exec -T backend npx prisma generate
+    docker compose -f docker-compose.yml exec backend npx prisma migrate dev --name init --url "postgresql://postgres:postgres@db:5432/aqua_temp"
 }
 
 # Redémarrer les services
 restart_services() {
     print_header "Redémarrage des services"
     docker compose restart
+    docker compose -f docker-compose.yml exec -T backend npx prisma generate
+    docker compose -f docker-compose.yml exec backend npx prisma migrate dev --name init --url "postgresql://postgres:postgres@db:5432/aqua_temp"
     print_success "Services redémarrés"
 }
 
