@@ -8,10 +8,11 @@ const alder = "https://archives.bulbagarden.net/media/upload/e/e8/Spr_B2W2_Alder
 
 export default function Home() {
   const [showPopup, setShowPopup] = useState(false);
-  const [selectedDeck, setSelectedDeck] = useState("Flygon");
+  const [selectedDeck, setSelectedDeck] = useState("Flygoon");
   const [showDeckDropdown, setShowDeckDropdown] = useState(false);
+  const [showNotification, setShowNotification] = useState(true);
   
-  const decks = ["Flygon", "Ceruledge", "Toxtricity", "Zacian"];
+  const decks = ["Flygoon", "Ceruledge", "Toxtricity", "Zacian"];
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
@@ -46,6 +47,19 @@ export default function Home() {
             opacity: 0.4;
           }
         }
+        @keyframes slide-in {
+          from {
+            transform: translateX(-100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        .animate-slide-in {
+          animation: slide-in 0.3s ease-out;
+        }
         .dot-1 {
           animation: dot-pulse 1.4s infinite 0s;
         }
@@ -60,21 +74,76 @@ export default function Home() {
       {/* Background sections that fill entire screen including header */}
       <div className="absolute inset-0 flex">
         {/* Left Side Background */}
-        <div className="flex-1 bg-gradient-to-br from-gray-300 to-gray-200"></div>
-
-        {/* Right Side Background */}
-        <div className="flex-1 relative overflow-hidden">
+        <div
+          className="flex-1 relative overflow-hidden"
+          style={{ clipPath: "polygon(0 0, 100% 0, 70% 100%, 0 100%)" }}
+        >
           <div
             className="absolute inset-0"
             style={{
-              background:
-                "linear-gradient(45deg, #000000, #1a1a1a, #333333, #4d4d4d, #333333, #1a1a1a, #000000)",
-              backgroundSize: "400% 400%",
-              animation: "gradient-shift 15s ease infinite",
+              backgroundImage: 'url("/images/ectoplasme.jpg")',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              filter: 'blur(14px)',
+              transform: 'scale(1.08)',
+            }}
+          />
+          {/* Left fade to hide clip edge */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(110deg, transparent 0%, transparent 85%, rgba(0,0,0,0.5) 100%)',
             }}
           />
         </div>
+
+        {/* Right Side Background */}
+        <div
+          className="flex-1 relative overflow-hidden"
+          style={{ clipPath: "polygon(30% 0, 100% 0, 100% 100%, 0 100%)" }}
+        >
+          <div
+            className="absolute inset-0"
+            style={{
+              background: "#2a2a2a",
+            }}
+          />
+        </div>
+
+        {/* Smooth Blend Between Sides */}
+        <div
+          className="pointer-events-none absolute inset-y-0 left-[37%] w-[32vw]"
+          style={{
+            background: 'linear-gradient(90deg, transparent 0%, #2a2a2a 50%, #2a2a2a 100%)',
+            transform: 'skewX(-6deg)',
+            transformOrigin: 'center',
+          }}
+        />
       </div>
+
+      {/* Notification Bar - Top Left */}
+      {showNotification && (
+        <div className="fixed top-4 left-4 z-50 animate-slide-in">
+          <div className="rounded-2xl shadow-2xl border-2 border-[#a99bff] overflow-hidden w-[380px] max-w-[90vw]">
+            {/* Top part - Violet */}
+            <div className="bg-[#8e82ff] px-3  flex items-center justify-between">
+              <div className="text-white font-bold text-base">@sunmiaou</div>
+              <button
+                onClick={() => setShowNotification(false)}
+                className="text-white hover:text-gray-200 transition-colors text-2xl font-bold leading-none"
+              >
+                ×
+              </button>
+            </div>
+            {/* Separator line */}
+            <div className="w-full h-[2px] bg-black"></div>
+            {/* Bottom part - Black */}
+            <div className="bg-black px-4 py-4">
+              <div className="text-white text-sm leading-tight">Viens sur mon ile, j'ai pleins de petites filles a te donner</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <header className="flex items-center justify-end px-8 py-4 bg-transparent relative z-10">
@@ -98,13 +167,6 @@ export default function Home() {
           </a>
         </div>
       </header>
-
-      {/* Angled Divider - Full Height */}
-      <div
-        className="fixed top-0 bottom-0 left-1/2 -translate-x-1/2 w-32 bg-gradient-to-br from-white via-gray-350 to-gray-700 transform -skew-x-6 shadow-xl pointer-events-none"
-        style={{ zIndex: 5, height: '100vh' }}
-        aria-hidden="true"
-      ></div>
 
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center relative z-10">
