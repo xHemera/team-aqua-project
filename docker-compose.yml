@@ -38,6 +38,7 @@ services:
       BETTER_AUTH_URL: http://localhost:3000
       BETTER_AUTH_SECRET: dev-secret-change-me-please-at-least-32-characters
       BETTER_AUTH_DATABASE_URL: postgres://postgres:postgres@db:5432/aqua_temp
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/aqua_temp
     depends_on:
       db:
         condition: service_healthy
