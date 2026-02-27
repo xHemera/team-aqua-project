@@ -3,17 +3,26 @@
 import Image from "next/image";
 import { useState } from "react";
 import flygon from "../images/flygon.png";
+import ceruledge from "../images/ceruledge.png";
+import toxtricity from "../images/toxtricity.png";
+import zacian from "../images/zacian.png";
 
 const alder = "https://archives.bulbagarden.net/media/upload/e/e8/Spr_B2W2_Alder.png";
 
+const deckImages: Record<string, string> = {
+  "Flygon": flygon,
+  "Ceruledge": ceruledge,
+  "Toxtricity": toxtricity,
+  "Zacian": zacian,
+};
+
 export default function Home() {
   const [showPopup, setShowPopup] = useState(false);
-  const [selectedDeck, setSelectedDeck] = useState("Flygoon");
+  const [selectedDeck, setSelectedDeck] = useState("Flygon");
   const [showDeckDropdown, setShowDeckDropdown] = useState(false);
   const [showNotification, setShowNotification] = useState(true);
   
-  const decks = ["Flygoon", "Ceruledge", "Toxtricity", "Zacian"];
-
+  const decks = ["Flygon", "Ceruledge", "Toxtricity", "Zacian"];
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
       <div 
@@ -188,8 +197,8 @@ export default function Home() {
                 style={{ imageRendering: 'pixelated' }}
                 priority
               />
-              <div className="bg-[#8e82ff] bg-opacity-75 bg-gradient-to-r px-8 py-3 border-3 border-[#a99bff] rounded-lg shadow-lg">
-                <span className="text-white font-bold text-lg">Pseudo</span>
+              <div className="bg-[#8e82ff] bg-opacity-75 bg-gradient-to-r px-8 py-3 border-3 border-[#a99bff] rounded-lg shadow-lg hover:bg-opacity-90 hover:scale-110 transition-all cursor-pointer">
+                <a href="/profile" className="text-white font-bold text-lg hover:text-gray-200">Pseudo</a>
               </div>
             </div>
           </div>
@@ -227,11 +236,11 @@ export default function Home() {
             >
               <div className="w-35 h-35 flex items-center justify-start overflow-visible -ml-8 mr-1 relative z-10 -translate-y-5">
                 <Image
-                  src={flygon}
-                  alt="Flygon"
+                  src={deckImages[selectedDeck] || flygon}
+                  alt={selectedDeck}
                   width={800}
                   height={800}
-                  className="w-30 h-30 object-contain"
+                  className="w-30 h-30 object-contain transition-all"
                   style={{ 
                     imageRendering: 'pixelated',
                     filter: 'brightness(1) contrast(1.5) saturate(1)'
@@ -259,10 +268,17 @@ export default function Home() {
                       setSelectedDeck(deck);
                       setShowDeckDropdown(false);
                     }}
-                    className="w-full flex items-center gap-3 px-6 py-3 text-white hover:bg-gray-600 transition-colors"
+                    className="w-full flex items-center gap-3 px-6 py-3 text-white hover:bg-gray-600/50 transition-colors"
                   >
-                    <div className="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center">
-                      🐉
+                    <div className="w-10 h-10 flex items-center justify-center overflow-hidden">
+                      <Image
+                        src={deckImages[deck] || flygon}
+                        alt={deck}
+                        width={60}
+                        height={60}
+                        className="w-10 h-10 object-contain"
+                        style={{ imageRendering: 'pixelated' }}
+                      />
                     </div>
                     <span className="font-bold text-lg">{deck}</span>
                   </button>

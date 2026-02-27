@@ -43,9 +43,11 @@ export default function RegisterPage() {
       <div 
         className="absolute inset-0"
         style={{
-          background: 'linear-gradient(45deg, #000000, #1a1a1a, #333333, #4d4d4d, #333333, #1a1a1a, #000000)',
-          backgroundSize: '400% 400%',
-          animation: 'gradient-shift 15s ease infinite'
+          backgroundImage: 'url("/images/ectoplasme.jpg")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
+          filter: 'brightness(1.5) contrast(2)'
         }}
       />
       <style jsx>{`
