@@ -53,7 +53,7 @@ export default function LoginPage() {
       }
     } else {
       // Mode connexion
-      const { error } = await authClient.signIn.email({
+      const { data, error } = await authClient.signIn.email({
         email,
         password,
       });
@@ -62,7 +62,8 @@ export default function LoginPage() {
         setMessage(error.message ?? "Erreur de connexion");
       } else {
         setMessage("Connexion réussie !");
-        setTimeout(() => router.push("/home"), 500);
+        const pseudo = data?.user?.name || "utilisateur";
+        setTimeout(() => router.push(`/${pseudo}`), 500);
       }
     }
 

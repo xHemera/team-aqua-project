@@ -1,7 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
 import flygon from "../images/flygon.png";
 import ceruledge from "../images/ceruledge.png";
 import toxtricity from "../images/toxtricity.png";
@@ -17,12 +19,34 @@ const deckImages: Record<string, string> = {
 };
 
 export default function Home() {
+  const router = useRouter();
   const [showPopup, setShowPopup] = useState(false);
   const [selectedDeck, setSelectedDeck] = useState("Flygon");
   const [showDeckDropdown, setShowDeckDropdown] = useState(false);
   const [showNotification, setShowNotification] = useState(true);
+  const [userPseudo, setUserPseudo] = useState<string | null>(null);
   
   const decks = ["Flygon", "Ceruledge", "Toxtricity", "Zacian"];
+  
+  useEffect(() => {
+    const getUserData = async () => {
+      const { data } = await authClient.getSession();
+      if (data?.user?.name) {
+        setUserPseudo(data.user.name);
+      }
+    };
+    getUserData();
+  }, []);
+  
+  const handleProfileClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    const { data } = await authClient.getSession();
+    if (data?.user?.name) {
+      router.push(`/${data.user.name}`);
+    } else {
+      router.push("/not-connected");
+    }
+  };
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
       <div 
@@ -171,7 +195,7 @@ export default function Home() {
           </a>
           
           {/* Settings Icon */}
-          <a href="/profile" className="w-16 h-16 bg-gray-600 rounded-xl flex items-center justify-center border-2 border-gray-500 hover:bg-gray-500 transition-colors shadow-lg">
+          <a href="/profile" onClick={handleProfileClick} className="w-16 h-16 bg-gray-600 rounded-xl flex items-center justify-center border-2 border-gray-500 hover:bg-gray-500 transition-colors shadow-lg">
             <i className="fa-solid fa-user-gear text-white text-2xl"></i>
           </a>
         </div>
@@ -198,7 +222,7 @@ export default function Home() {
                 priority
               />
               <div className="bg-[#8e82ff] bg-opacity-75 bg-gradient-to-r px-8 py-3 border-3 border-[#a99bff] rounded-lg shadow-lg hover:bg-opacity-90 hover:scale-110 transition-all cursor-pointer">
-                <a href="/profile" className="text-white font-bold text-lg hover:text-gray-200">Pseudo</a>
+                <a href="/profile" onClick={handleProfileClick} className="text-white font-bold text-lg hover:text-gray-200">{userPseudo || "Pseudo"}</a>
               </div>
             </div>
           </div>
