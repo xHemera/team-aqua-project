@@ -2,40 +2,44 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import ectoplasme from "../images/tony.jpg";
 
+// Plateau de jeu (maquette statique) + menu pause
 export default function GamePage() {
 	const [showMenu, setShowMenu] = useState(false);
+	// Collections de slots pour afficher les zones du plateau
 	const Bench = Array.from({ length: 1 }, (_, i) => i);
 	const Prize = Array.from({ length: 6 }, (_, i) => i);
 	const Hand = Array.from({ length: 1 }, (_, i) => i);
 
 	return (
-		<div className="min-h-screen flex flex-col relative overflow-hidden">
-			<div className="absolute inset-0 -z-10">
-				<Image
-					src={ectoplasme}
-					alt="Background"
-					fill
-					className="object-cover"
-					priority
-				/>
-			</div>
+		<div className="relative isolate min-h-screen flex flex-col overflow-hidden text-white">
+			{/* Fond global */}
+			<div
+				className="absolute inset-0 z-0"
+				style={{
+					backgroundImage: "var(--site-bg-image)",
+					backgroundSize: "cover",
+					backgroundPosition: "center",
+					filter: "blur(10px)",
+					transform: "scale(1.08)",
+				}}
+			/>
+			<div className="absolute inset-0 z-[1] bg-black/25" />
             
-			{/* Main Content */}
-			<main className="flex-1 relative">
-				<div className="absolute inset-0 bg-black/40 shadow-2xl border border-white/20 overflow-hidden">
+			{/* Plateau principal */}
+			<main className="flex-1 relative z-10">
+				<div className="absolute inset-0 overflow-hidden rounded-3xl border border-[#3c3650] bg-[#15131d]/85 shadow-2xl backdrop-blur-md">
 					{/* Menu Button */}
 					<button
 						onClick={() => setShowMenu(true)}
-						className="absolute top-1/2 -translate-y-1/2 right-4 w-10 h-10 bg-black/60 hover:bg-black/80 rounded-lg border border-white/10 flex items-center justify-center text-white font-bold text-xl transition-colors"
+						className="absolute top-1/2 right-4 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg border border-[#3c3650] bg-[#242033] text-xl font-bold text-white transition-colors hover:bg-[#302a45]"
 					>
 						<i className="fa-solid fa-gear"></i>
 					</button>
 
 					{/* Opponent Header */}
-					<div className="absolute top-4 right-16 flex items-center gap-3 bg-black/60 px-4 py-2 rounded-full border border-white/10">
-						<div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-200 to-gray-500 shadow-inner"></div>
+					<div className="absolute top-4 right-16 flex items-center gap-3 rounded-full border border-[#3c3650] bg-[#242033] px-4 py-2">
+						<div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#b4a8ff] to-[#5f538f] shadow-inner"></div>
 						<div className="text-white font-bold">sunmiaou</div>
 					</div>
 
@@ -48,7 +52,7 @@ export default function GamePage() {
 								return (
 									<div
 										key={`left-prize-${slot}`}
-										className="w-20 h-28 rounded-xl bg-gray-900/70 border border-white/10 shadow-lg"
+										className="h-28 w-20 rounded-xl border border-[#3c3650] bg-[#242033] shadow-lg"
 										style={{
 											marginLeft: col === 1 ? "-40px" : "0px",
 											marginTop: row > 0 ? "-20px" : "0px",
@@ -69,7 +73,7 @@ export default function GamePage() {
 								return (
 									<div
 										key={`right-prize-${slot}`}
-										className="w-20 h-28 rounded-xl bg-gray-900/70 border border-white/10 shadow-lg"
+										className="h-28 w-20 rounded-xl border border-[#3c3650] bg-[#242033] shadow-lg"
 										style={{
 											marginLeft: col === 1 ? "-40px" : "0px",
 											marginTop: row > 0 ? "-20px" : "0px",
@@ -86,7 +90,7 @@ export default function GamePage() {
 						{Bench.map((slot) => (
 							<div
 								key={`top-pokemon-${slot}`}
-								className="w-32 h-45 rounded-xl bg-gray-900/70 border border-white/10 shadow-lg"
+								className="h-45 w-32 rounded-xl border border-[#3c3650] bg-[#242033] shadow-lg"
 							></div>
 						))}
 					</div>
@@ -96,7 +100,7 @@ export default function GamePage() {
 						{Bench.map((slot) => (
 							<div
 								key={`bottom-pokemon-${slot}`}
-								className="w-32 h-45 rounded-xl bg-gray-900/70 border border-white/10 shadow-lg"
+								className="h-45 w-32 rounded-xl border border-[#3c3650] bg-[#242033] shadow-lg"
 							></div>
 						))}
 					</div>
@@ -106,7 +110,7 @@ export default function GamePage() {
 						{Bench.map((slot) => (
 							<div
 								key={`top-bench-${slot}`}
-								className="w-170 h-35 rounded-xl bg-gray-900/70 border border-white/10 shadow-lg"
+								className="h-35 w-170 rounded-xl border border-[#3c3650] bg-[#242033] shadow-lg"
 							></div>
 						))}
 					</div>
@@ -116,7 +120,7 @@ export default function GamePage() {
 						{Bench.map((slot) => (
 							<div
 								key={`bottom-bench-${slot}`}
-								className="w-170 h-35 rounded-xl bg-gray-900/70 border border-white/10 shadow-lg"
+								className="h-35 w-170 rounded-xl border border-[#3c3650] bg-[#242033] shadow-lg"
 							></div>
 						))}
 					</div>
@@ -127,7 +131,7 @@ export default function GamePage() {
 						{Hand.map((slot) => (
 							<div
 								key={`top-hand-${slot}`}
-								className="w-200 h-15 rounded-xl bg-gray-900/70 border border-white/10 shadow-lg"
+								className="h-15 w-200 rounded-xl border border-[#3c3650] bg-[#242033] shadow-lg"
 							></div>
 						))}
 					</div>
@@ -137,7 +141,7 @@ export default function GamePage() {
 						{Hand.map((slot) => (
 							<div
 								key={`top-deck-${slot}`}
-								className="w-28.5 h-40 rounded-xl bg-gray-900/70 border border-white/10 shadow-lg"
+								className="h-40 w-28.5 rounded-xl border border-[#3c3650] bg-[#242033] shadow-lg"
 							></div>
 						))}
 					</div>
@@ -147,7 +151,7 @@ export default function GamePage() {
 						{Hand.map((slot) => (
 							<div
 								key={`top-discard-${slot}`}
-								className="w-28.5 h-40 rounded-xl bg-gray-900/70 border border-white/10 shadow-lg"
+								className="h-40 w-28.5 rounded-xl border border-[#3c3650] bg-[#242033] shadow-lg"
 							></div>
 						))}
 					</div>
@@ -157,7 +161,7 @@ export default function GamePage() {
 						{Hand.map((slot) => (
 							<div
 								key={`bottom-hand-${slot}`}
-								className="w-200 h-30 rounded-xl bg-gray-900/70 border border-white/10 shadow-lg"
+								className="h-30 w-200 rounded-xl border border-[#3c3650] bg-[#242033] shadow-lg"
 							></div>
 						))}
 					</div>
@@ -167,7 +171,7 @@ export default function GamePage() {
 						{Hand.map((slot) => (
 							<div
 								key={`bottom-deck-${slot}`}
-								className="w-28.5 h-40 rounded-xl bg-gray-900/70 border border-white/10 shadow-lg"
+								className="h-40 w-28.5 rounded-xl border border-[#3c3650] bg-[#242033] shadow-lg"
 							></div>
 						))}
 					</div>
@@ -177,33 +181,33 @@ export default function GamePage() {
 						{Hand.map((slot) => (
 							<div
 								key={`bottom-discard-${slot}`}
-								className="w-28.5 h-40 rounded-xl bg-gray-900/70 border border-white/10 shadow-lg"
+								className="h-40 w-28.5 rounded-xl border border-[#3c3650] bg-[#242033] shadow-lg"
 							></div>
 						))}
 					</div>
 
 					{/* Player Tag */}
-					<div className="absolute bottom-6 left-6 flex items-center gap-3 bg-black/60 px-4 py-2 rounded-full border border-white/10">
-						<div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-100 to-gray-500 shadow-inner"></div>
+					<div className="absolute bottom-6 left-6 flex items-center gap-3 rounded-full border border-[#3c3650] bg-[#242033] px-4 py-2">
+						<div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#b4a8ff] to-[#5f538f] shadow-inner"></div>
 						<div className="text-white font-bold">xHemera_</div>
 					</div>
 				</div>
 			</main>
 
-			{/* Menu Popup */}
+			{/* Popup pause / abandon */}
 			{showMenu && (
-				<div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50">
-					<div className="bg-gradient-to-br from-gray-800 to-gray-900 p-8 rounded-2xl shadow-2xl border border-white/20">
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
+					<div className="rounded-2xl border border-[#3c3650] bg-[#15131d] p-8 shadow-2xl">
 						<div className="flex flex-col gap-4 min-w-[200px]">
 							<button
 								onClick={() => setShowMenu(false)}
-								className="bg-gray-600 hover:bg-gray-500 text-white font-bold text-lg py-3 px-6 rounded-lg transition-colors uppercase"
+								className="rounded-lg border border-[#3c3650] bg-[#242033] px-6 py-3 text-lg font-bold uppercase text-white transition-colors hover:bg-[#302a45]"
 							>
 								Resume
 							</button>
 							<button
 								onClick={() => window.location.href = '/home'}
-								className="bg-red-600 hover:bg-red-500 text-white font-bold text-lg py-3 px-6 rounded-lg transition-colors uppercase"
+								className="rounded-lg border border-red-400/80 bg-red-500/90 px-6 py-3 text-lg font-bold uppercase text-white transition-colors hover:bg-red-500"
 							>
 								Forfait
 							</button>

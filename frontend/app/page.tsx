@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import logo from "./images/logo.png";
 
+// Page d'entrée: connexion + création de compte (mode toggle)
 export default function LoginPage() {
+  // États de formulaire
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -36,7 +38,7 @@ export default function LoginPage() {
     setMessage("");
 
     if (isRegisterMode) {
-      // Mode inscription
+      // Inscription d'un nouvel utilisateur
       const { error } = await authClient.signUp.email({
         name,
         email,
@@ -52,8 +54,8 @@ export default function LoginPage() {
         setName("");
       }
     } else {
-      // Mode connexion
-      const { error } = await authClient.signIn.email({
+      // Connexion d'un utilisateur existant
+      const { data, error } = await authClient.signIn.email({
         email,
         password,
       });
@@ -62,7 +64,8 @@ export default function LoginPage() {
         setMessage(error.message ?? "Erreur de connexion");
       } else {
         setMessage("Connexion réussie !");
-        setTimeout(() => router.push("/home"), 500);
+        const pseudo = data?.user?.name || "utilisateur";
+        setTimeout(() => router.push(`/${pseudo}`), 500);
       }
     }
 
@@ -70,30 +73,22 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="relative flex py-12 items-center justify-center min-h-screen overflow-hidden">
+    <main className="relative isolate flex min-h-screen items-center justify-center overflow-hidden px-4 py-10 text-white">
+      {/* Fond global du site */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 z-0"
         style={{
-          background: 'linear-gradient(45deg, #000000, #1a1a1a, #333333, #4d4d4d, #333333, #1a1a1a, #000000)',
-          backgroundSize: '400% 400%',
-          animation: 'gradient-shift 15s ease infinite'
+          backgroundImage: "var(--site-bg-image)",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          filter: "blur(12px)",
+          transform: "scale(1.08)",
         }}
       />
-      <style jsx>{`
-        @keyframes gradient-shift {
-          0% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-          100% {
-            background-position: 0% 50%;
-          }
-        }
-      `}</style>
-      <div className="flex flex-col items-center justify-center w-full relative z-10 px-4">
-        <div className="mb-4 w-full max-w-md py-4">
+      <div className="absolute inset-0 z-[1] bg-black/35" />
+      {/* Carte auth */}
+      <div className="relative z-10 w-full max-w-md rounded-3xl border border-[#3c3650] bg-[#15131d]/85 p-6 shadow-2xl backdrop-blur-md sm:p-8">
+        <div className="mb-4 w-full py-2">
           <Image
             src={logo}
             alt="Logo"
@@ -102,7 +97,7 @@ export default function LoginPage() {
             className="mx-auto"
           />
         </div>
-        <div className="w-full max-w-md">
+        <div className="w-full">
             <form onSubmit={onSubmit} className="space-y-4">
               {isRegisterMode && (
                 <div className="relative">
@@ -114,7 +109,7 @@ export default function LoginPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Nom"
-                    className="w-full bg-gray-900 bg-opacity-70 text-gray-200 placeholder-gray-400 py-3 pl-12 pr-4 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+                    className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[#8e82ff] focus:outline-none"
                     required
                   />
                 </div>
@@ -129,7 +124,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Email"
-                  className="w-full bg-gray-900 bg-opacity-70 text-gray-200 placeholder-gray-400 py-3 pl-12 pr-4 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+                  className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[#8e82ff] focus:outline-none"
                   required
                 />
               </div>
@@ -143,7 +138,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Mot de passe"
-                  className="w-full bg-gray-900 bg-opacity-70 text-gray-200 placeholder-gray-400 py-3 pl-12 pr-4 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+                  className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[#8e82ff] focus:outline-none"
                   required
                   minLength={8}
                 />
@@ -156,7 +151,7 @@ export default function LoginPage() {
                     setIsRegisterMode(!isRegisterMode);
                     setMessage("");
                   }}
-                  className="bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-lg font-semibold transition-colors"
+                  className="rounded-xl border border-[#3c3650] bg-[#302a45] py-3 font-semibold text-gray-100 transition-colors hover:bg-[#3a3355]"
                 >
                   {isRegisterMode ? "Se connecter" : "S'inscrire"}
                 </button>
@@ -164,7 +159,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-xl border border-[#b4a8ff]/70 bg-[#8e82ff] py-3 font-semibold text-white transition-colors hover:bg-[#7d71ec] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {loading ? "..." : (isRegisterMode ? "Créer un compte" : "Connexion")}
                 </button>
