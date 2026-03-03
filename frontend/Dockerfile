@@ -12,8 +12,10 @@ WORKDIR /app
 
 COPY package.json pnpm-lock.yaml ./
 
+RUN corepack enable
+
+RUN pnpm install --frozen-lockfile --ignore-scripts=false
+
+COPY prisma ./prisma
+
 COPY . .
-
-EXPOSE 3000
-
-CMD ["pnpm", "dev"]
