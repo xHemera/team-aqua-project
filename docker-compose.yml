@@ -25,7 +25,13 @@ services:
     container_name: aqua-frontend
     restart: unless-stopped
     working_dir: /app
-    command: sh -c "pnpm install --frozen-lockfile --ignore-scripts=false && pnpm prisma generate && pnpm auth:migrate && pnpm dev --hostname 0.0.0.0"
+    command: >
+      sh -c "
+      pnpm install --frozen-lockfile --ignore-scripts=false --prod=false &&
+      pnpm prisma generate &&
+      pnpm auth:migrate &&
+      pnpm dev --hostname 0.0.0.0
+      "
     ports:
       - "3000:3000"
     volumes:
