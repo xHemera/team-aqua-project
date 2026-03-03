@@ -62,13 +62,15 @@ start_services() {
     docker compose up --build -d
     print_success "Services démarrés"
     print_info "Frontend: http://localhost:3000"
-    print_info "Backend: http://localhost:4000/health"
+    print_info "websockets: http://localhost:4000/health"
+    docker compose -f docker-compose.yml exec frontend npx prisma migrate dev --name init --url "postgresql://postgres:postgres@db:5432/aqua_temp"
 }
 
 # Redémarrer les services
 restart_services() {
     print_header "Redémarrage des services"
     docker compose restart
+    docker compose -f docker-compose.yml exec frontend npx add prisma migrate dev --name init --url "postgresql://postgres:postgres@db:5432/aqua_temp"
     print_success "Services redémarrés"
 }
 
@@ -96,7 +98,7 @@ show_logs() {
     print_header "Logs des services"
     echo "1. Tous"
     echo "2. Frontend"
-    echo "3. Backend"
+    echo "3. websockets"
     echo "4. Database"
     echo "5. Game Engine"
     read -p "Service: " service_choice
@@ -104,7 +106,7 @@ show_logs() {
     case $service_choice in
         1) docker compose logs -f ;;
         2) docker compose logs frontend -f ;;
-        3) docker compose logs backend -f ;;
+        3) docker compose logs websockets -f ;;
         4) docker compose logs db -f ;;
         5) docker compose logs game-engine -f ;;
         *) print_error "Choix invalide" ;;
@@ -118,11 +120,11 @@ check_status() {
     echo ""
     
     # Tester les endpoints
-    print_info "Test du backend..."
+    print_info "Test du websockets..."
     if curl -s http://localhost:4000/health > /dev/null 2>&1; then
-        print_success "Backend: OK"
+        print_success "websockets: OK"
     else
-        print_error "Backend: KO"
+        print_error "websockets: KO"
     fi
     
     print_info "Test du frontend..."
@@ -159,7 +161,7 @@ create_admin() {
 test_services() {
     print_header "Test des services"
     
-    echo "Backend Health:"
+    echo "websockets Health:"
     curl -s http://localhost:4000/health | jq '.' 2>/dev/null || curl -s http://localhost:4000/health
     
     echo ""

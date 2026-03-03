@@ -18,7 +18,7 @@
 
 Projet web moderne avec :
 - **Frontend** : Next.js 16 + TailwindCSS + Better Auth
-- **Backend** : Express + Prisma + PostgreSQL
+- **websockets** : Express + Prisma + PostgreSQL
 - **Authentification** : Better Auth avec gestion de sessions
 - **Gestion de rôles** : Système admin/utilisateur
 - **Containerisation** : Docker Compose pour l'environnement complet
@@ -39,7 +39,7 @@ Projet web moderne avec :
 ### Prérequis
 
 - [Docker](https://www.docker.com/) et Docker Compose
-- Ports disponibles : 3000 (frontend), 4000 (backend), 5432 (database)
+- Ports disponibles : 3000 (frontend), 4000 (websockets), 5432 (database)
 
 ### Démarrage rapide
 
@@ -75,7 +75,7 @@ docker compose up --build -d
 
 3. **Accéder à l'application**
 - Frontend : [http://localhost:3000](http://localhost:3000)
-- Backend API : [http://localhost:4000/health](http://localhost:4000/health)
+- websockets API : [http://localhost:4000/health](http://localhost:4000/health)
 
 4. **Créer votre compte**
 - Ouvrez http://localhost:3000
@@ -88,7 +88,7 @@ docker compose up --build -d
 # Vérifier tous les services
 docker compose ps
 
-# Tester le backend
+# Tester le websockets
 curl http://localhost:4000/health
 
 # Tester le frontend
@@ -110,7 +110,7 @@ team-aqua-project/
 │   └── lib/
 │       ├── auth.ts            # Configuration Better Auth
 │       └── auth-client.ts     # Client Better Auth
-├── backend/           # Express + Prisma (port 4000)
+├── websockets/           # Express + Prisma (port 4000)
 │   ├── src/
 │   │   └── index.ts           # API REST
 │   ├── lib/
@@ -126,7 +126,7 @@ team-aqua-project/
 | Service | Port | Description |
 |---------|------|-------------|
 | `frontend` | 3000 | Application Next.js |
-| `backend` | 4000 | API Express |
+| `websockets` | 4000 | API Express |
 | `db` | 5432 | PostgreSQL 16 |
 | `game-engine` | 5000 | Service en attente |
 
@@ -224,10 +224,10 @@ docker compose logs -f
 
 # Logs d'un service spécifique
 docker compose logs frontend -f
-docker compose logs backend -f
+docker compose logs websockets -f
 
 # Redémarrer un service
-docker compose restart backend
+docker compose restart websockets
 ```
 
 ### Base de données
@@ -246,17 +246,17 @@ docker compose exec db pg_dump -U postgres aqua_temp > backup.sql
 docker compose exec -T db psql -U postgres -d aqua_temp < backup.sql
 ```
 
-### Backend (Prisma)
+### websockets (Prisma)
 
 ```bash
 # Ouvrir Prisma Studio
-docker compose exec backend pnpm prisma:studio
+docker compose exec websockets pnpm prisma:studio
 
 # Pousser le schéma vers la DB
-docker compose exec backend pnpm prisma:push
+docker compose exec websockets pnpm prisma:push
 
 # Générer le client Prisma
-docker compose exec backend pnpm prisma generate
+docker compose exec websockets pnpm prisma generate
 ```
 
 ### Frontend (Better Auth)
@@ -291,7 +291,7 @@ BETTER_AUTH_SECRET: dev-secret-change-me-please-at-least-32-characters
 BETTER_AUTH_DATABASE_URL: postgres://postgres:postgres@db:5432/aqua_temp
 ```
 
-#### Backend (docker-compose.yml)
+#### websockets (docker-compose.yml)
 ```yaml
 DATABASE_URL: postgresql://postgres:postgres@db:5432/aqua_temp
 PORT: 4000
@@ -300,7 +300,7 @@ PORT: 4000
 ### Ports utilisés
 
 - **3000** : Frontend Next.js
-- **4000** : Backend Express
+- **4000** : websockets Express
 - **5000** : Game engine
 - **5432** : PostgreSQL
 
@@ -328,7 +328,7 @@ docker compose down -v
 
 # Nettoyer les caches locaux
 rm -rf frontend/node_modules frontend/.next frontend/.pnpm-store
-rm -rf backend/node_modules backend/.pnpm-store backend/dist
+rm -rf websockets/node_modules websockets/.pnpm-store websockets/dist
 
 # Nettoyer les images Docker
 docker system prune -a

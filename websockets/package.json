@@ -1,5 +1,5 @@
 {
-  "name": "backend",
+  "name": "websockets",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -14,14 +14,16 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.4.1",
     "@prisma/client": "^7.4.1",
-    "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "pg": "^8.11.3"
+    "pg": "^8.11.3",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^25.3.0",
     "@types/pg": "^8.11.0",
+    "dotenv": "^16.4.5",
     "prisma": "^7.4.1",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3"

@@ -7,4 +7,6 @@ RUN corepack enable && corepack prepare pnpm@10.30.0 --activate
 
 WORKDIR /app
 
-EXPOSE 5000
+COPY . .
+
+EXPOSE 4000

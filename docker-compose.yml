@@ -25,7 +25,13 @@ services:
     container_name: aqua-frontend
     restart: unless-stopped
     working_dir: /app
-    command: sh -c "pnpm install --frozen-lockfile --prefer-offline && pnpm auth:migrate && pnpm dev --hostname 0.0.0.0"
+    command: >
+      sh -c "
+      pnpm install --frozen-lockfile --ignore-scripts=false --prod=false &&
+      pnpm prisma generate &&
+      pnpm auth:migrate &&
+      pnpm dev --hostname 0.0.0.0
+      "
     ports:
       - "3000:3000"
     volumes:
@@ -38,24 +44,27 @@ services:
       BETTER_AUTH_URL: http://localhost:3000
       BETTER_AUTH_SECRET: dev-secret-change-me-please-at-least-32-characters
       BETTER_AUTH_DATABASE_URL: postgres://postgres:postgres@db:5432/aqua_temp
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/aqua_temp
     depends_on:
       db:
         condition: service_healthy
-      backend:
+      websockets:
         condition: service_started
 
-  backend:
+  websockets:
     build:
-      context: ./backend
+      context: ./websockets
       dockerfile: Dockerfile
-    container_name: aqua-backend
+    container_name: aqua-websockets
     restart: unless-stopped
     working_dir: /app
-    command: sh init.sh
+    stdin_open: true
+    tty: true
+    command: sh
     ports:
       - "4000:4000"
     volumes:
-      - ./backend:/app
+      - ./websockets:/app
       - backend_node_modules:/app/node_modules
       - backend_pnpm_store:/pnpm/store
     environment:
@@ -65,23 +74,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-
-  game-engine:
-    build:
-      context: ./game-engine
-      dockerfile: Dockerfile
-    container_name: aqua-game-engine
-    restart: unless-stopped
-    working_dir: /app
-    command: sh -c "if [ -f package.json ]; then pnpm install --frozen-lockfile --prefer-offline && pnpm dev; else echo 'Game-engine waiting for code'; tail -f /dev/null; fi"
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./game-engine:/app
-      - game_engine_node_modules:/app/node_modules
-      - game_engine_pnpm_store:/pnpm/store
-    environment:
-      NODE_ENV: development
 
 volumes:
   postgres_data:

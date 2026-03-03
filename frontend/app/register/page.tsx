@@ -30,6 +30,7 @@ export default function RegisterPage() {
     }
 
     const { error } = await authClient.signUp.email({
+      name: "",
       email,
       password,
       name: pseudo,

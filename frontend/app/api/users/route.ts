@@ -1,6 +1,6 @@
 export async function GET() {
   try {
-    const response = await fetch('http://backend:4000/api/users', {
+    const response = await fetch('http://websockets:4000/api/users', {
       cache: 'no-store',
     });
 
