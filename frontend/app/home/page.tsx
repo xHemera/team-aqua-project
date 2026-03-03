@@ -1,33 +1,37 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import flygon from "../images/flygon.png";
-import ceruledge from "../images/ceruledge.png";
-import toxtricity from "../images/toxtricity.png";
-import zacian from "../images/zacian.png";
+import flygon from "../images/flygon-icon.png";
+import ceruledge from "../images/ceruledge-icon.png";
+import toxtricity from "../images/toxtricity-icon.png";
+import zacian from "../images/zacian-icon.png";
 
 const alder = "https://archives.bulbagarden.net/media/upload/e/e8/Spr_B2W2_Alder.png";
 
 const deckImages: Record<string, string> = {
-  "Flygon": flygon,
-  "Ceruledge": ceruledge,
-  "Toxtricity": toxtricity,
-  "Zacian": zacian,
+  "Flygon": flygon.src,
+  "Ceruledge": ceruledge.src,
+  "Toxtricity": toxtricity.src,
+  "Zacian": zacian.src,
 };
 
+// Page principale: navigation rapide, lancement de partie et sélection de deck
 export default function Home() {
   const router = useRouter();
+  // États UI de la page
   const [showPopup, setShowPopup] = useState(false);
   const [selectedDeck, setSelectedDeck] = useState("Flygon");
   const [showDeckDropdown, setShowDeckDropdown] = useState(false);
   const [showNotification, setShowNotification] = useState(true);
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
+  const deckMenuRef = useRef<HTMLDivElement | null>(null);
   
   const decks = ["Flygon", "Ceruledge", "Toxtricity", "Zacian"];
   
+  // Récupère le pseudo de la session pour l'afficher sur la home
   useEffect(() => {
     const getUserData = async () => {
       const { data } = await authClient.getSession();
@@ -37,7 +41,31 @@ export default function Home() {
     };
     getUserData();
   }, []);
+
+  // Gère la fermeture du menu deck au clic extérieur / touche Escape
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (deckMenuRef.current && !deckMenuRef.current.contains(event.target as Node)) {
+        setShowDeckDropdown(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowDeckDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
   
+  // Redirige vers la page profil réelle de l'utilisateur connecté
   const handleProfileClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     const { data } = await authClient.getSession();
@@ -48,27 +76,9 @@ export default function Home() {
     }
   };
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden">
-      <div 
-        className="absolute inset-0 -z-10"
-        style={{
-          background: 'linear-gradient(45deg, #0a0a0a, #1a1a1a, #333333, #666666, #999999, #cccccc, #e0e0e0)',
-          backgroundSize: '400% 400%',
-          animation: 'gradient-shift 15s ease infinite'
-        }}
-      />
+    <div className="relative isolate min-h-screen overflow-hidden text-white">
+      {/* Animations locales de notification et loader */}
       <style jsx>{`
-        @keyframes gradient-shift {
-          0% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-          100% {
-            background-position: 0% 50%;
-          }
-        }
         @keyframes dot-pulse {
           0%, 20% {
             opacity: 0.4;
@@ -104,54 +114,20 @@ export default function Home() {
         }
       `}</style>
       
-      {/* Background sections that fill entire screen including header */}
-      <div className="absolute inset-0 flex">
-        {/* Left Side Background */}
+      {/* Fond global */}
+      <div className="absolute inset-0">
         <div
-          className="flex-1 relative overflow-hidden"
-          style={{ clipPath: "polygon(0 0, 100% 0, 70% 100%, 0 100%)" }}
-        >
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage: 'url("/images/ectoplasme.jpg")',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              filter: 'blur(14px)',
-              transform: 'scale(1.08)',
-            }}
-          />
-          {/* Left fade to hide clip edge */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background: 'linear-gradient(110deg, transparent 0%, transparent 85%, rgba(0,0,0,0.5) 100%)',
-            }}
-          />
-        </div>
-
-        {/* Right Side Background */}
-        <div
-          className="flex-1 relative overflow-hidden"
-          style={{ clipPath: "polygon(30% 0, 100% 0, 100% 100%, 0 100%)" }}
-        >
-          <div
-            className="absolute inset-0"
-            style={{
-              background: "#2a2a2a",
-            }}
-          />
-        </div>
-
-        {/* Smooth Blend Between Sides */}
-        <div
-          className="pointer-events-none absolute inset-y-0 left-[37%] w-[32vw]"
+          className="absolute inset-0"
           style={{
-            background: 'linear-gradient(90deg, transparent 0%, #2a2a2a 50%, #2a2a2a 100%)',
-            transform: 'skewX(-6deg)',
-            transformOrigin: 'center',
+            backgroundImage: "var(--site-bg-image)",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            filter: "blur(10px)",
+            transform: "scale(1.08)",
           }}
         />
+
+        <div className="absolute inset-0 z-[1] bg-black/25" />
       </div>
 
       {/* Notification Bar - Top Left */}
@@ -179,15 +155,15 @@ export default function Home() {
       )}
 
       {/* Header */}
-      <header className="flex items-center justify-end px-8 py-4 bg-transparent relative z-10">
-        <div className="flex gap-4 px-4 py-3 rounded-2xl border-2 border-[#363242] bg-gray-900/30 backdrop-blur-sm shadow-xl">
+      <header className="relative z-10 mx-auto flex w-full max-w-[92rem] items-center justify-end px-4 py-4 sm:px-8 sm:py-6">
+        <div className="flex gap-4 rounded-2xl border border-[#3c3650] bg-[#15131d]/85 px-4 py-3 shadow-2xl backdrop-blur-md">
           {/* Decks Icon */}
-          <a href="/decks" className="w-16 h-16 bg-gray-600 rounded-xl flex items-center justify-center border-2 border-gray-500 hover:bg-gray-500 transition-colors shadow-lg">
+          <a href="/decks" className="w-16 h-16 bg-[#242033] rounded-xl flex items-center justify-center border border-[#3c3650] hover:bg-[#302a45] transition-colors shadow-lg">
             <i className="fa-solid fa-box-archive text-white text-2xl"></i>
           </a>
           
           {/* Social/Chat Icon with notification */}
-          <a href="/social" className="w-16 h-16 bg-gray-600 rounded-xl flex items-center justify-center border-2 border-gray-500 hover:bg-gray-500 transition-colors shadow-lg relative">
+          <a href="/social" className="w-16 h-16 bg-[#242033] rounded-xl flex items-center justify-center border border-[#3c3650] hover:bg-[#302a45] transition-colors shadow-lg relative">
             <i className="fa-regular fa-comment-dots text-white text-2xl"></i>
             <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
               1
@@ -195,14 +171,14 @@ export default function Home() {
           </a>
           
           {/* Settings Icon */}
-          <a href="/profile" onClick={handleProfileClick} className="w-16 h-16 bg-gray-600 rounded-xl flex items-center justify-center border-2 border-gray-500 hover:bg-gray-500 transition-colors shadow-lg">
+          <a href="/profile" onClick={handleProfileClick} className="w-16 h-16 bg-[#242033] rounded-xl flex items-center justify-center border border-[#3c3650] hover:bg-[#302a45] transition-colors shadow-lg">
             <i className="fa-solid fa-user-gear text-white text-2xl"></i>
           </a>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 flex items-center justify-center relative z-10">
+      {/* Zone centrale (CTA Play + sélecteur deck) */}
+      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-116px)] w-full max-w-[92rem] flex-1 items-center justify-center px-4 pb-4 sm:px-8 sm:pb-6">
         
         <div className="absolute inset-0 flex pointer-events-none">
           {/* Left Side - Illustration */}
@@ -252,29 +228,34 @@ export default function Home() {
             </div>
           </div>
           
-          {/* Deck Selector Dropdown */}
-          <div className="relative">
+          {/* Sélecteur de deck utilisé pour la prochaine partie */}
+          <div ref={deckMenuRef} className="relative w-[18rem]">
             <button
               onClick={() => setShowDeckDropdown(!showDeckDropdown)}
-              className="flex items-center bg-gray-600 text-white pl-1 pr-2 py-0.5 rounded-lg border-2 border-gray-800 shadow-lg hover:bg-gray-500 transition-colors min-w-[220px] h-18"
+              className="flex h-16 w-full items-center gap-3 rounded-2xl border border-[#3c3650] bg-[#15131d]/90 px-3 text-white shadow-xl transition-colors hover:bg-[#211d2e]"
+              aria-haspopup="listbox"
+              aria-expanded={showDeckDropdown}
             >
-              <div className="w-35 h-35 flex items-center justify-start overflow-visible -ml-8 mr-1 relative z-10 -translate-y-5">
+              <div className="flex h-12 w-12 items-center justify-center">
                 <Image
-                  src={deckImages[selectedDeck] || flygon}
+                  src={deckImages[selectedDeck] || flygon.src}
                   alt={selectedDeck}
-                  width={800}
-                  height={800}
-                  className="w-30 h-30 object-contain transition-all"
-                  style={{ 
+                  width={52}
+                  height={52}
+                  className="h-12 w-12 object-contain transition-all"
+                  style={{
                     imageRendering: 'pixelated',
                     filter: 'brightness(1) contrast(1.5) saturate(1)'
                   }}
                   priority
                 />
               </div>
-              <span className="flex-1 text-center font-bold text-3xl mx-1 -translate-x-4">{selectedDeck}</span>
+              <div className="flex flex-1 flex-col items-start leading-tight">
+                <span className="text-xs uppercase tracking-[0.14em] text-gray-400">Deck sélectionné</span>
+                <span className="text-lg font-bold text-white">{selectedDeck}</span>
+              </div>
               <svg
-                className={`w-5 h-5 ml-3 transition-transform ${showDeckDropdown ? 'rotate-180' : ''}`}
+                className={`h-5 w-5 text-gray-300 transition-transform ${showDeckDropdown ? 'rotate-180' : ''}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -284,7 +265,7 @@ export default function Home() {
             </button>
             
             {showDeckDropdown && (
-              <div className="absolute bottom-full mb-2 w-full bg-gray-700 rounded-lg shadow-xl overflow-hidden z-30">
+              <div className="absolute bottom-[calc(100%+0.55rem)] z-30 w-full rounded-2xl border border-[#3c3650] bg-[#15131d] p-2 shadow-2xl">
                 {decks.map((deck) => (
                   <button
                     key={deck}
@@ -292,19 +273,26 @@ export default function Home() {
                       setSelectedDeck(deck);
                       setShowDeckDropdown(false);
                     }}
-                    className="w-full flex items-center gap-3 px-6 py-3 text-white hover:bg-gray-600/50 transition-colors"
+                    role="option"
+                    aria-selected={selectedDeck === deck}
+                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
+                      selectedDeck === deck
+                        ? "bg-[#8e82ff]/25 text-white"
+                        : "text-gray-200 hover:bg-[#242033]"
+                    }`}
                   >
-                    <div className="w-10 h-10 flex items-center justify-center overflow-hidden">
+                    <div className="flex h-10 w-10 items-center justify-center">
                       <Image
-                        src={deckImages[deck] || flygon}
+                        src={deckImages[deck] || flygon.src}
                         alt={deck}
-                        width={60}
-                        height={60}
-                        className="w-10 h-10 object-contain"
+                        width={40}
+                        height={40}
+                        className="h-10 w-10 object-contain"
                         style={{ imageRendering: 'pixelated' }}
                       />
                     </div>
-                    <span className="font-bold text-lg">{deck}</span>
+                    <span className="flex-1 font-semibold text-base">{deck}</span>
+                    {selectedDeck === deck && <i className="fa-solid fa-check text-[#b4a8ff]"></i>}
                   </button>
                 ))}
               </div>

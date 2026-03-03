@@ -1,60 +1,52 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
+// Page placeholder des decks
 export default function DecksPage() {
+  const router = useRouter();
+
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden">
-      <div 
-        className="absolute inset-0 -z-10"
+    <main className="relative isolate min-h-screen overflow-hidden text-white">
+      {/* Fond global */}
+      <div
+        className="absolute inset-0 z-0"
         style={{
-          background: 'linear-gradient(45deg, #0a0a0a, #1a1a1a, #333333, #666666, #999999, #cccccc, #e0e0e0)',
-          backgroundSize: '400% 400%',
-          animation: 'gradient-shift 15s ease infinite'
+          backgroundImage: "var(--site-bg-image)",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          filter: "blur(10px)",
+          transform: "scale(1.08)",
         }}
       />
-      <style jsx>{`
-        @keyframes gradient-shift {
-          0% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-          100% {
-            background-position: 0% 50%;
-          }
-        }
-      `}</style>
-      {/* Header */}
-      <header className="flex items-center px-8 py-2 bg-gradient-to-r from-black to-gray-400 shadow-lg">
-        <nav
-          className="flex gap-6 text-white font-black text-xl uppercase tracking-wider italic"
-          style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
-        >
-          <a href="/home" className="hover:text-gray-400 transition-colors">
-            HOME
-          </a>
-          <a href="/decks" className="hover:text-gray-400 transition-colors relative">
-            DECKS
-            <div className="absolute top-8.5 bottom-1 left-0 right-0 h-1 bg-gray-400 rounded-full shadow-lg shadow-yellow-400/60"></div>
-          </a>
-          <a href="/profile" className="hover:text-gray-400 transition-colors">
-            PROFILE
-          </a>
-          <a href="/social" className="hover:text-gray-400 transition-colors">
-            SOCIAL
-          </a>
-        </nav>
-      </header>
+      <div className="absolute inset-0 z-[1] bg-black/25" />
 
-      {/* Separator Line */}
-      <div className="h-0.5 bg-gradient-to-r from-gray-400 via-white to-gray-400 shadow-md"></div>
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-6 sm:px-8 sm:py-8">
+        <header className="mb-6 flex items-center justify-end gap-3">
+          <button
+            onClick={() => router.push("/home")}
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-gray-500/80 bg-gray-700/80 text-white shadow-lg transition-colors hover:bg-gray-600"
+            aria-label="Retour à l'accueil"
+          >
+            <i className="fa-solid fa-house"></i>
+          </button>
+          <button
+            onClick={() => router.push("/social")}
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#b4a8ff]/60 bg-[#1f1b2d]/90 text-white shadow-lg transition-colors hover:bg-[#2b2540]"
+            aria-label="Aller au social"
+          >
+            <i className="fa-regular fa-comment-dots"></i>
+          </button>
+        </header>
 
-      {/* Main Content */}
-      <main className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-lg bg-white/90 rounded-xl shadow-xl p-8 text-center">
-          <p className="text-2xl font-black text-gray-900">Work in progress</p>
-        </div>
-      </main>
-    </div>
+        <section className="flex-1 rounded-3xl border border-[#3c3650] bg-[#15131d]/85 p-8 shadow-2xl backdrop-blur-md">
+          {/* Contenu temporaire */}
+          <h1 className="mb-4 text-3xl font-bold tracking-tight">Decks</h1>
+          <div className="rounded-2xl border border-[#3c3650] bg-[#242033] p-10 text-center">
+            <p className="text-2xl font-bold text-gray-100">Work in progress</p>
+          </div>
+        </section>
+      </div>
+    </main>
   );
 }

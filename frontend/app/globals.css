@@ -3,6 +3,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --site-bg-image: url("/images/ectoplasme.jpg");
 }
 
 @theme inline {
@@ -31,7 +32,10 @@ body::before {
   content: "";
   position: fixed;
   inset: 0;
-  background: url("./images/ectoplasme.jpg") center / cover no-repeat;
+  background-image: var(--site-bg-image);
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
   filter: blur(16px);
   transform: scale(1.08);
   z-index: -1;
