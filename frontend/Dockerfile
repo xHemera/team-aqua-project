@@ -1,5 +1,6 @@
 FROM node:20-alpine
 
+ENV CI=true
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 
@@ -9,8 +10,10 @@ RUN corepack enable && corepack prepare pnpm@10.30.0 --activate
 
 WORKDIR /app
 
-COPY .env .env
+COPY package.json pnpm-lock.yaml ./
 
-RUN pnpm prisma generate
+COPY . .
 
 EXPOSE 3000
+
+CMD ["pnpm", "dev"]
