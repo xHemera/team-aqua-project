@@ -1,0 +1,140 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Friends {
+  friendIds    Int[]
+  userId       String    @id
+  request_sent Boolean
+  created_at   DateTime @default(now())
+  user         User?   @relation(fields: [userId], references: [id])
+}
+
+model Decks {
+  id        String    @id
+  title     String?
+  image     String?
+  body      String?
+  cards     Cards[]
+  createdAt DateTime @default(now())
+  userId    String?
+  user      User?   @relation(fields: [userId], references: [id])
+}
+
+model Cards {
+  id       String    @id
+  type     String
+  element  String?
+  hp       Int?
+  name     String
+  cap1     String?
+  cap2     String?
+  prize    Int?
+  retreat  Int?
+  weakness String?
+  resist   String?
+  deckId   String?
+  deck     Decks?  @relation(fields: [deckId], references: [id])
+}
+
+model Messages {
+  id        String    @id
+  user_id   String
+  inbox_id  String
+  message   String?
+  createdAt DateTime @default(now())
+  user      User?   @relation(fields: [user_id], references: [id])
+  inbox     Inbox?   @relation(fields: [inbox_id], references: [id])
+}
+
+model Inbox {
+  id       			String    @id
+  inboxuid          String?
+  last_message      String?
+  last_sent_user_id String
+  createdAt         DateTime      @default(now())
+  inboxUser         Inbox_users[]
+  messages          Messages[]
+  user              User?        @relation(fields: [last_sent_user_id], references: [id])
+}
+
+model Inbox_users {
+  id		    String    @id
+  inbox_id	String
+  user_id   String
+  user		  User? @relation(fields: [user_id], references: [id])
+  inbox		  Inbox? @relation(fields: [inbox_id], references: [id])
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  decks         Decks[]
+  friends       Friends[]
+  inboxUser     Inbox_users[]
+  messages      Messages[]
+  inbox         Inbox[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}

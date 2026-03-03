@@ -2,39 +2,30 @@ services:
   db:
     image: postgres:16-alpine
     container_name: aqua-db-temp
+    restart: unless-stopped
     environment:
       POSTGRES_DB: aqua_temp
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
-    tmpfs:
-      - /var/lib/postgresql/data
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d aqua_temp"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+      interval: 3s
+      timeout: 2s
+      retries: 5
+      start_period: 5s
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: aqua-frontend
+    restart: unless-stopped
     working_dir: /app
-    command:
-      - sh
-      - -c
-      - |
-        if [ -f package.json ]; then
-          if [ ! -f node_modules/.deps-hash ] || [ "$(cat node_modules/.deps-hash)" != "$(sha256sum package.json pnpm-lock.yaml | sha256sum | awk '{print $1}')" ]; then
-            pnpm install --frozen-lockfile --prefer-offline
-            sha256sum package.json pnpm-lock.yaml | sha256sum | awk '{print $1}' > node_modules/.deps-hash
-          fi
-          pnpm auth:migrate && pnpm dev --hostname 0.0.0.0 --port 3000
-        else
-          tail -f /dev/null
-        fi
+    command: sh -c "pnpm install --frozen-lockfile --ignore-scripts=false && pnpm prisma generate && pnpm auth:migrate && pnpm dev --hostname 0.0.0.0"
     ports:
       - "3000:3000"
     volumes:
@@ -47,43 +38,27 @@ services:
       BETTER_AUTH_URL: http://localhost:3000
       BETTER_AUTH_SECRET: dev-secret-change-me-please-at-least-32-characters
       BETTER_AUTH_DATABASE_URL: postgres://postgres:postgres@db:5432/aqua_temp
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/aqua_temp
     depends_on:
       db:
         condition: service_healthy
-      backend:
-        condition: service_started
-      game-engine:
+      websockets:
         condition: service_started
 
-  backend:
+  websockets:
     build:
-      context: ./backend
+      context: ./websockets
       dockerfile: Dockerfile
-    container_name: aqua-backend
+    container_name: aqua-websockets
+    restart: unless-stopped
     working_dir: /app
-    command:
-      - sh
-      - -c
-      - |
-        if [ -f package.json ]; then
-          if [ ! -f node_modules/.modules.yaml ]; then
-            if [ -f pnpm-lock.yaml ]; then
-              pnpm install --frozen-lockfile --prefer-offline
-            else
-              pnpm install --prefer-offline
-            fi
-          fi
-          pnpm prisma generate
-          pnpm prisma migrate dev --name init
-          (pnpm dev || pnpm start || npm run dev || npm start)
-        else
-          echo "Backend vide: conteneur en attente."
-          tail -f /dev/null
-        fi
+    stdin_open: true
+    tty: true
+    command: sh
     ports:
       - "4000:4000"
     volumes:
-      - ./backend:/app
+      - ./websockets:/app
       - backend_node_modules:/app/node_modules
       - backend_pnpm_store:/pnpm/store
     environment:
@@ -94,39 +69,8 @@ services:
       db:
         condition: service_healthy
 
-  game-engine:
-    build:
-      context: ./game-engine
-      dockerfile: Dockerfile
-    container_name: aqua-game-engine
-    working_dir: /app
-    command:
-      - sh
-      - -c
-      - |
-        if [ -f package.json ]; then
-          if [ ! -f node_modules/.modules.yaml ]; then
-            if [ -f pnpm-lock.yaml ]; then
-              pnpm install --frozen-lockfile --prefer-offline
-            else
-              pnpm install --prefer-offline
-            fi
-          fi
-          (pnpm dev || pnpm start || npm run dev || npm start)
-        else
-          echo "Game-engine vide: conteneur en attente."
-          tail -f /dev/null
-        fi
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./game-engine:/app
-      - game_engine_node_modules:/app/node_modules
-      - game_engine_pnpm_store:/pnpm/store
-    environment:
-      NODE_ENV: development
-
 volumes:
+  postgres_data:
   frontend_node_modules:
   frontend_pnpm_store:
   backend_node_modules:

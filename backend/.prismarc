@@ -1,5 +1,0 @@
-{
-  "datasource": {
-    "url": "postgresql://postgres:postgres@db:5432/aqua_temp"
-  }
-}
