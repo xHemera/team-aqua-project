@@ -76,7 +76,6 @@ services:
 
 volumes:
   postgres_data:
-  frontend_node_modules:
   frontend_pnpm_store:
   backend_node_modules:
   backend_pnpm_store:
