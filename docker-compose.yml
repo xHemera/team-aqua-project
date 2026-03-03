@@ -27,7 +27,7 @@ services:
     working_dir: /app
     command: >
       sh -c "
-      pnpm install --frozen-lockfile --ignore-scripts=false --prod=false &&
+      pnpm install --frozen-lockfile --ignore-scripts=false &&
       pnpm prisma generate &&
       pnpm auth:migrate &&
       pnpm dev --hostname 0.0.0.0
@@ -36,7 +36,6 @@ services:
       - "3000:3000"
     volumes:
       - ./frontend:/app
-      - frontend_node_modules:/app/node_modules
       - frontend_pnpm_store:/pnpm/store
     environment:
       NODE_ENV: development
@@ -65,7 +64,6 @@ services:
       - "4000:4000"
     volumes:
       - ./websockets:/app
-      - backend_node_modules:/app/node_modules
       - backend_pnpm_store:/pnpm/store
     environment:
       NODE_ENV: development
