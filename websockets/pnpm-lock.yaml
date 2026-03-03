@@ -15,7 +15,7 @@ importers:
         specifier: ^7.4.1
         version: 7.4.1(prisma@7.4.1(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
       express:
-        specifier: ^4.19.2
+        specifier: '4'
         version: 4.22.1
       pg:
         specifier: ^8.11.3
