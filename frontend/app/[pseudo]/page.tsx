@@ -220,9 +220,7 @@ export default function ProfilePage() {
           transform: "scale(1.08)",
         }}
       />
-
       <div className="absolute inset-0 z-[1] bg-black/25" />
-
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[92rem] flex-col px-4 py-4 sm:px-8 sm:py-6">
         <header className="mb-5 flex items-center justify-end gap-3">
           <button

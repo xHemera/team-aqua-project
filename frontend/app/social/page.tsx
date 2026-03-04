@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { socket } from "../../socket";
 
 const alder = "https://archives.bulbagarden.net/media/upload/e/e8/Spr_B2W2_Alder.png";
 const cynthia = "https://archives.bulbagarden.net/media/upload/8/83/Spr_B2W2_Cynthia.png";
@@ -52,6 +53,37 @@ const buildAttachmentFromFile = (file: File): Attachment => ({
 });
 
 export default function SocialPage() {
+
+  const [isConnected, setIsConnected] = useState(false);
+    const [transport, setTransport] = useState("N/A");
+  
+    useEffect(() => {
+      if (socket.connected) {
+        onConnect();
+      }
+  
+      function onConnect() {
+        setIsConnected(true);
+        setTransport(socket.io.engine.transport.name);
+  
+        socket.io.engine.on("upgrade", (transport) => {
+          setTransport(transport.name);
+        });
+      }
+  
+      function onDisconnect() {
+        setIsConnected(false);
+        setTransport("N/A");
+      }
+  
+      socket.on("connect", onConnect);
+      socket.on("disconnect", onDisconnect);
+  
+      return () => {
+        socket.off("connect", onConnect);
+        socket.off("disconnect", onDisconnect);
+      };
+    }, []);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
@@ -281,7 +313,10 @@ export default function SocialPage() {
               </button>
             </div>
           </aside>
-
+          <div>
+            <p>Status: { isConnected ? "connected" : "disconnected" }</p>
+            <p>Transport: { transport }</p>
+          </div>
           <section className="flex min-h-0 flex-col">
             <header className="flex items-center justify-between border-b border-[#3c3650] bg-[#242033] px-5 py-4">
               <div className="flex items-center gap-3">
