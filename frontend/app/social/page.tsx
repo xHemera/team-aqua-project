@@ -54,36 +54,39 @@ const buildAttachmentFromFile = (file: File): Attachment => ({
 
 export default function SocialPage() {
 
+  //tests websockets
   const [isConnected, setIsConnected] = useState(false);
-    const [transport, setTransport] = useState("N/A");
+  const [transport, setTransport] = useState("N/A");
   
-    useEffect(() => {
-      if (socket.connected) {
-        onConnect();
-      }
-  
-      function onConnect() {
-        setIsConnected(true);
-        setTransport(socket.io.engine.transport.name);
-  
-        socket.io.engine.on("upgrade", (transport) => {
-          setTransport(transport.name);
-        });
-      }
-  
-      function onDisconnect() {
-        setIsConnected(false);
-        setTransport("N/A");
-      }
-  
-      socket.on("connect", onConnect);
-      socket.on("disconnect", onDisconnect);
-  
-      return () => {
-        socket.off("connect", onConnect);
-        socket.off("disconnect", onDisconnect);
-      };
-    }, []);
+  useEffect(() => {
+    if (socket.connected) {
+      onConnect();
+    }
+
+    function onConnect() {
+      setIsConnected(true);
+      setTransport(socket.io.engine.transport.name);
+
+      socket.io.engine.on("upgrade", (transport) => {
+        setTransport(transport.name);
+      });
+    }
+
+    function onDisconnect() {
+      setIsConnected(false);
+      setTransport("N/A");
+    }
+
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+
+    return () => {
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+    };
+  }, []);
+  //fin tests websockets
+
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
