@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import logo from "./images/logo.png";
+import logo from "./public/logo.png";
 
 // Page d'entrée: connexion + création de compte (mode toggle)
 export default function LoginPage() {

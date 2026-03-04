@@ -4,14 +4,14 @@ import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import flygon from "../images/flygon-icon.png";
-import ceruledge from "../images/ceruledge-icon.png";
-import toxtricity from "../images/toxtricity-icon.png";
-import zacian from "../images/zacian-icon.png";
+import flygon from "../public/decks/flygon-icon.png";
+import ceruledge from "../public/decks/ceruledge-icon.png";
+import toxtricity from "../public/decks/toxtricity-icon.png";
+import zacian from "../public/decks/zacian-icon.png";
 
 const alder = "https://archives.bulbagarden.net/media/upload/e/e8/Spr_B2W2_Alder.png";
 
-const deckImages: Record<string, string> = {
+const deckpublic: Record<string, string> = {
   "Flygon": flygon.src,
   "Ceruledge": ceruledge.src,
   "Toxtricity": toxtricity.src,
@@ -27,6 +27,7 @@ export default function Home() {
   const [showDeckDropdown, setShowDeckDropdown] = useState(false);
   const [showNotification, setShowNotification] = useState(true);
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
+  const [avatar, setAvatar] = useState(alder);
   const deckMenuRef = useRef<HTMLDivElement | null>(null);
   
   const decks = ["Flygon", "Ceruledge", "Toxtricity", "Zacian"];
@@ -40,6 +41,24 @@ export default function Home() {
       }
     };
     getUserData();
+
+    // Charge l'avatar depuis localStorage
+    const savedAvatar = localStorage.getItem("avatar");
+    if (savedAvatar) {
+      setAvatar(savedAvatar);
+    }
+
+    // Écoute les changements de localStorage (entre onglets ou après modification)
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === "avatar" && event.newValue) {
+        setAvatar(event.newValue);
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
   }, []);
 
   // Gère la fermeture du menu deck au clic extérieur / touche Escape
@@ -189,8 +208,8 @@ export default function Home() {
           <div className="flex-1 min-h-full flex items-center left-30 justify-end relative pointer-events-auto">
             <div className="relative z-10 flex flex-col items-center gap-4 mr-8">
               <Image
-                src={alder}
-                alt="Alder"
+                src={avatar}
+                alt="Avatar"
                 width={360}
                 height={360}
                 className="w-250 max-w-[60%] h-auto drop-shadow-2xl"
@@ -238,7 +257,7 @@ export default function Home() {
             >
               <div className="flex h-12 w-12 items-center justify-center">
                 <Image
-                  src={deckImages[selectedDeck] || flygon.src}
+                  src={deckpublic[selectedDeck] || flygon.src}
                   alt={selectedDeck}
                   width={52}
                   height={52}
@@ -283,7 +302,7 @@ export default function Home() {
                   >
                     <div className="flex h-10 w-10 items-center justify-center">
                       <Image
-                        src={deckImages[deck] || flygon.src}
+                        src={deckpublic[deck] || flygon.src}
                         alt={deck}
                         width={40}
                         height={40}
