@@ -57,13 +57,11 @@ services:
     container_name: aqua-websockets
     restart: unless-stopped
     working_dir: /app
-    stdin_open: true
-    tty: true
-    command: sh
     ports:
       - "4000:4000"
     volumes:
       - ./websockets:/app
+      - /app/node_modules
       - backend_pnpm_store:/pnpm/store
     environment:
       NODE_ENV: development

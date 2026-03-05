@@ -98,9 +98,8 @@ show_logs() {
     print_header "Logs des services"
     echo "1. Tous"
     echo "2. Frontend"
-    echo "3. websockets"
+    echo "3. Websockets"
     echo "4. Database"
-    echo "5. Game Engine"
     read -p "Service: " service_choice
     
     case $service_choice in
@@ -108,7 +107,6 @@ show_logs() {
         2) docker compose logs frontend -f ;;
         3) docker compose logs websockets -f ;;
         4) docker compose logs db -f ;;
-        5) docker compose logs game-engine -f ;;
         *) print_error "Choix invalide" ;;
     esac
 }
