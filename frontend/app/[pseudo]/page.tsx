@@ -12,6 +12,7 @@ import zacian from "../images/zacian-icon.png";
 const alder = "https://archives.bulbagarden.net/media/upload/e/e8/Spr_B2W2_Alder.png";
 
 // Historique mock affiché dans la section profil
+
 const matchHistory = [
   {
     result: "Victoire",

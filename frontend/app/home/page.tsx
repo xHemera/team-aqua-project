@@ -22,40 +22,6 @@ const deckImages: Record<string, string> = {
 // Page principale: navigation rapide, lancement de partie et sélection de deck
 export default function Home() {
 
-  //tests websockets
-    const [isConnected, setIsConnected] = useState(false);
-    const [transport, setTransport] = useState("N/A");
-
-    useEffect(() => {
-      if (socket.connected) {
-        onConnect();
-      }
-  
-      function onConnect() {
-        setIsConnected(true);
-        setTransport(socket.io.engine.transport.name);
-  
-        socket.io.engine.on("upgrade", (transport) => {
-          setTransport(transport.name);
-        });
-      }
-  
-      function onDisconnect() {
-        setIsConnected(false);
-        setTransport("N/A");
-      }
-  
-      socket.on("connect", onConnect);
-      socket.on("disconnect", onDisconnect);
-  
-      return () => {
-        socket.off("connect", onConnect);
-        socket.off("disconnect", onDisconnect);
-      };
-    }, []);
-    //fin tests websockets
-
-
   const router = useRouter();
   // États UI de la page
   const [showPopup, setShowPopup] = useState(false);
@@ -183,7 +149,7 @@ export default function Home() {
             <div className="w-full h-[2px] bg-black"></div>
             {/* Bottom part - Black */}
             <div className="bg-black px-4 py-4">
-              <div className="text-white text-sm leading-tight">Texte kids friendly</div>
+              <div className="text-white text-sm leading-tight">Je viens faire 15h de logtime</div>
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import logo from "./images/logo.png";
+import { socket } from "../socket"
 
 // Page d'entrée: connexion + création de compte (mode toggle)
 export default function LoginPage() {
@@ -15,7 +16,10 @@ export default function LoginPage() {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [message, setMessage] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [transport, setTransport] = useState("N/A");
   const router = useRouter();
+
 
   //Vérifier si l'utilisateur est déjà connecté
   useEffect(() => {
@@ -67,6 +71,36 @@ export default function LoginPage() {
         const pseudo = data?.user?.name || "utilisateur";
         setTimeout(() => router.push(`/${pseudo}`), 500);
       }
+
+      //tests websockets
+      useEffect(() => {
+        if (socket.connected) {
+          onConnect();
+        }
+
+        function onConnect() {
+          setIsConnected(true);
+          setTransport(socket.io.engine.transport.name);
+
+          socket.io.engine.on("upgrade", (transport) => {
+            setTransport(transport.name);
+          });
+        }
+
+        function onDisconnect() {
+          setIsConnected(false);
+          setTransport("N/A");
+        }
+
+        socket.on("connect", onConnect);
+        socket.on("disconnect", onDisconnect);
+
+        return () => {
+          socket.off("connect", onConnect);
+          socket.off("disconnect", onDisconnect);
+        };
+      }, []);
+      //fin tests websockets
     }
 
     setLoading(false);
