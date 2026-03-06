@@ -8,6 +8,7 @@ import flygon from "../images/flygon-icon.png";
 import ceruledge from "../images/ceruledge-icon.png";
 import toxtricity from "../images/toxtricity-icon.png";
 import zacian from "../images/zacian-icon.png";
+import { socket } from "../../socket";
 
 const alder = "https://archives.bulbagarden.net/media/upload/e/e8/Spr_B2W2_Alder.png";
 
@@ -20,6 +21,41 @@ const deckImages: Record<string, string> = {
 
 // Page principale: navigation rapide, lancement de partie et sélection de deck
 export default function Home() {
+
+  //tests websockets
+    const [isConnected, setIsConnected] = useState(false);
+    const [transport, setTransport] = useState("N/A");
+
+    useEffect(() => {
+      if (socket.connected) {
+        onConnect();
+      }
+  
+      function onConnect() {
+        setIsConnected(true);
+        setTransport(socket.io.engine.transport.name);
+  
+        socket.io.engine.on("upgrade", (transport) => {
+          setTransport(transport.name);
+        });
+      }
+  
+      function onDisconnect() {
+        setIsConnected(false);
+        setTransport("N/A");
+      }
+  
+      socket.on("connect", onConnect);
+      socket.on("disconnect", onDisconnect);
+  
+      return () => {
+        socket.off("connect", onConnect);
+        socket.off("disconnect", onDisconnect);
+      };
+    }, []);
+    //fin tests websockets
+
+
   const router = useRouter();
   // États UI de la page
   const [showPopup, setShowPopup] = useState(false);
@@ -126,7 +162,6 @@ export default function Home() {
             transform: "scale(1.08)",
           }}
         />
-
         <div className="absolute inset-0 z-[1] bg-black/25" />
       </div>
 
@@ -148,7 +183,7 @@ export default function Home() {
             <div className="w-full h-[2px] bg-black"></div>
             {/* Bottom part - Black */}
             <div className="bg-black px-4 py-4">
-              <div className="text-white text-sm leading-tight">Viens sur mon ile, j'ai pleins de petites filles a te donner</div>
+              <div className="text-white text-sm leading-tight">Texte kids friendly</div>
             </div>
           </div>
         </div>

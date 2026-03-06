@@ -17,7 +17,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // Vérifier si l'utilisateur est déjà connecté
+  //Vérifier si l'utilisateur est déjà connecté
   useEffect(() => {
     const checkSession = async () => {
       try {
