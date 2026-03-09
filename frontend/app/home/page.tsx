@@ -4,18 +4,14 @@ import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import flygon from "../public/decks/flygon-icon.png";
-import ceruledge from "../public/decks/ceruledge-icon.png";
-import toxtricity from "../public/decks/toxtricity-icon.png";
-import zacian from "../public/decks/zacian-icon.png";
 
 const alder = "https://archives.bulbagarden.net/media/upload/e/e8/Spr_B2W2_Alder.png";
 
 const deckpublic: Record<string, string> = {
-  "Flygon": flygon.src,
-  "Ceruledge": ceruledge.src,
-  "Toxtricity": toxtricity.src,
-  "Zacian": zacian.src,
+  "Flygon": "/decks/flygon-icon.png",
+  "Ceruledge": "/decks/ceruledge-icon.png",
+  "Toxtricity": "/decks/toxtricity-icon.png",
+  "Zacian": "/decks/zacian-icon.png",
 };
 
 // Page principale: navigation rapide, lancement de partie et sélection de deck

@@ -3,34 +3,102 @@
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import flygon from "../public/decks/flygon-icon.png";
-import ceruledge from "../public/decks/ceruledge-icon.png";
-import toxtricity from "../public/decks/toxtricity-icon.png";
-import zacian from "../public/decks/zacian-icon.png";
 
 const deckImages: Record<string, string> = {
-  Flygon: flygon.src,
-  Ceruledge: ceruledge.src,
-  Toxtricity: toxtricity.src,
-  Zacian: zacian.src,
+  Flygon: "/decks/flygon-icon.png",
+  Ceruledge: "/decks/ceruledge-icon.png",
+  Toxtricity: "/decks/toxtricity-icon.png",
+  Zacian: "/decks/zacian-icon.png",
 };
 
 type Card = {
   id: string;
   name: string;
   count: number;
+  imageExists?: boolean;
 };
 
 type DeckData = {
   cards: Card[];
 };
 
+const cardFileBases = [
+  "absol",
+  "alcremie",
+  "brock's_scouting",
+  "ceruledge",
+  "charcadet",
+  "darkness_energy",
+  "dawn",
+  "drayton",
+  "dusk_ball",
+  "energy_recycler",
+  "energy_retrieval",
+  "fighting_energy",
+  "fighting_gong",
+  "fire_energy",
+  "firebreather",
+  "flygon",
+  "gligar",
+  "gliscor",
+  "grimsley's_move",
+  "hilda",
+  "iris's_fighting_spirit",
+  "krokorok",
+  "krookodile",
+  "lillie's_determination",
+  "milcery",
+  "mimikyu",
+  "moltres",
+  "premium_power_pro",
+  "psychic_energy",
+  "rare_candy",
+  "sandile",
+  "switch",
+  "toxel",
+  "toxtricity",
+  "trapinch",
+  "ultra_ball",
+  "vibrava",
+  "wondrous_patch",
+  "zacian",
+] as const;
+
+// Fonction pour normaliser le nom de la carte en nom de fichier
+const normalizeCardName = (name: string): string => {
+  return name
+    .toLowerCase()
+    .replace(/\.png$/i, "") // Supprimer .png s'il est présent
+    .replace(/\s+/g, "_");
+};
+
+const canonicalizeCardName = (name: string): string => {
+  return normalizeCardName(name)
+    .replace(/[’']/g, "")
+    .replace(/[^a-z0-9_]/g, "");
+};
+
+const cardNameMap: Record<string, string> = Object.fromEntries(
+  cardFileBases.map((base) => [canonicalizeCardName(base), base])
+);
+
+const resolveCardFilename = (name: string): string => {
+  return cardNameMap[canonicalizeCardName(name)] || normalizeCardName(name);
+};
+
+const isValidCardName = (name: string): boolean => {
+  return Boolean(cardNameMap[canonicalizeCardName(name)]);
+};
+
 // Page des decks
 export default function DecksPage() {
   const router = useRouter();
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
+  const [previewCard, setPreviewCard] = useState<{ name: string; filename: string } | null>(null);
   const [decks, setDecks] = useState<Record<string, DeckData>>({});
   const [newCardName, setNewCardName] = useState("");
+  const [cardError, setCardError] = useState("");
+  const [invalidCards, setInvalidCards] = useState<Set<string>>(new Set());
 
   const deckList = [
     { name: "Flygon", icon: deckImages.Flygon },
@@ -67,6 +135,13 @@ export default function DecksPage() {
 
   const addCard = (deckName: string) => {
     if (!newCardName.trim()) return;
+
+    if (!isValidCardName(newCardName)) {
+      setCardError("Cette carte n'existe pas");
+      return;
+    }
+
+    setCardError("");
 
     const currentDeck = decks[deckName] || { cards: [] };
     const total = getTotalCards(deckName);
@@ -110,6 +185,23 @@ export default function DecksPage() {
       }
       saveDeck(deckName, currentDeck);
     }
+  };
+
+  const incrementCard = (deckName: string, cardId: string) => {
+    const currentDeck = decks[deckName];
+    if (!currentDeck) return;
+
+    const total = getTotalCards(deckName);
+    if (total >= 60) {
+      alert("Deck is full! Maximum 60 cards.");
+      return;
+    }
+
+    const card = currentDeck.cards.find((item) => item.id === cardId);
+    if (!card) return;
+
+    card.count += 1;
+    saveDeck(deckName, currentDeck);
   };
 
   return (
@@ -196,7 +288,7 @@ export default function DecksPage() {
           onClick={() => setSelectedDeck(null)}
         >
           <div
-            className="w-full max-w-2xl rounded-3xl border border-[#3c3650] bg-[#15131d] shadow-2xl"
+            className="w-full max-w-7xl rounded-3xl border border-[#3c3650] bg-[#15131d] shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-[#3c3650] px-6 py-4">
@@ -209,7 +301,7 @@ export default function DecksPage() {
               </button>
             </div>
 
-            <div className="p-6 max-h-[60vh] overflow-y-auto">
+            <div className="p-6 max-h-[90vh] overflow-y-auto">
               <div className="mb-6">
                 <div className="mb-2 text-sm text-gray-400">
                   Cards: {getTotalCards(selectedDeck)}/60
@@ -226,33 +318,68 @@ export default function DecksPage() {
               {decks[selectedDeck]?.cards.length > 0 ? (
                 <div className="mb-6">
                   <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
-                    {decks[selectedDeck]?.cards.map((card) => (
-                      <div
-                        key={card.id}
-                        className="relative group cursor-pointer"
-                        onClick={() => removeCard(selectedDeck, card.id)}
-                      >
-                        <div className="relative overflow-hidden rounded-lg border border-[#3c3650] bg-[#242033] aspect-[2.5/3.5] hover:border-[#8e82ff]/60 transition-all">
-                          {/* Image de la carte */}
-                          <div className="w-full h-full bg-gradient-to-br from-[#8e82ff]/20 to-[#3c3650] flex items-center justify-center relative">
-                            <div className="text-center p-2">
-                              <p className="text-xs text-white font-semibold truncate">{card.name}</p>
-                              <p className="text-[10px] text-gray-400 mt-1">Click to remove</p>
+                    {decks[selectedDeck]?.cards.map((card) => {
+                      const normalized = resolveCardFilename(card.name);
+                      const hasError = invalidCards.has(card.id);
+                      return (
+                        <div
+                          key={card.id}
+                          className="relative group"
+                        >
+                          <div className="relative overflow-hidden rounded-lg border border-[#3c3650] bg-[#242033] aspect-[2.5/3.5] hover:border-[#8e82ff]/60 transition-all">
+                            {/* Image de la carte */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!hasError) {
+                                  setPreviewCard({ name: card.name, filename: normalized });
+                                }
+                              }}
+                              className="w-full h-full bg-gradient-to-br from-[#8e82ff]/20 to-[#3c3650] flex items-center justify-center relative overflow-hidden"
+                            >
+                              {hasError ? (
+                                <p className="text-xs text-red-500 text-center p-2">Cette carte n'existe pas</p>
+                              ) : (
+                                <img
+                                  src={`/cards/${encodeURIComponent(normalized)}.png`}
+                                  alt={card.name}
+                                  className="w-full h-full object-cover"
+                                  onError={() => {
+                                    setInvalidCards(prev => new Set([...prev, card.id]));
+                                  }}
+                                />
+                              )}
+                            </button>
+                            
+                            {/* Badge de quantité */}
+                            <div className="absolute -top-1 -right-1 w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg border border-red-400">
+                              {card.count}
+                            </div>
+
+                            {/* Contrôles + / - */}
+                            <div className="absolute bottom-1 left-1 right-1 flex items-center justify-between gap-1">
+                              <button
+                                type="button"
+                                onClick={() => removeCard(selectedDeck, card.id)}
+                                className="flex h-7 w-7 items-center justify-center rounded-md border border-red-400/70 bg-red-500/90 text-white transition-colors hover:bg-red-600"
+                                aria-label={`Retirer une copie de ${card.name}`}
+                              >
+                                −
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => incrementCard(selectedDeck, card.id)}
+                                disabled={getTotalCards(selectedDeck) >= 60}
+                                className="flex h-7 w-7 items-center justify-center rounded-md border border-emerald-400/70 bg-emerald-500/90 text-white transition-colors hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                aria-label={`Ajouter une copie de ${card.name}`}
+                              >
+                                +
+                              </button>
                             </div>
                           </div>
-                          
-                          {/* Badge de quantité */}
-                          <div className="absolute -top-1 -right-1 w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg border border-red-400">
-                            {card.count}
-                          </div>
-
-                          {/* Hover overlay */}
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <i className="fa-solid fa-trash text-red-400 text-lg"></i>
-                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               ) : (
@@ -263,11 +390,14 @@ export default function DecksPage() {
 
               {/* Ajouter une carte */}
               <div className="border-t border-[#3c3650] pt-4">
-                <div className="flex gap-2">
+                <div className="flex gap-2 mb-2">
                   <input
                     type="text"
                     value={newCardName}
-                    onChange={(e) => setNewCardName(e.target.value)}
+                    onChange={(e) => {
+                      setNewCardName(e.target.value);
+                      if (cardError) setCardError("");
+                    }}
                     onKeyPress={(e) => {
                       if (e.key === "Enter") {
                         addCard(selectedDeck);
@@ -285,9 +415,24 @@ export default function DecksPage() {
                     Add
                   </button>
                 </div>
+                {cardError && <p className="text-xs text-red-500 mt-1">{cardError}</p>}
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {previewCard && (
+        <div
+          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setPreviewCard(null)}
+        >
+          <img
+            src={`/cards/${encodeURIComponent(previewCard.filename)}.png`}
+            alt={previewCard.name}
+            className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </main>

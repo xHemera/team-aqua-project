@@ -4,10 +4,6 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
-import flygon from "../public/decks/flygon-icon.png";
-import ceruledge from "../public/decks/ceruledge-icon.png";
-import toxtricity from "../public/decks/toxtricity-icon.png";
-import zacian from "../public/decks/zacian-icon.png";
 
 const alder = "https://archives.bulbagarden.net/media/upload/e/e8/Spr_B2W2_Alder.png";
 const cynthia = "https://archives.bulbagarden.net/media/upload/8/83/Spr_B2W2_Cynthia.png";
@@ -55,10 +51,10 @@ const matchHistory = [
 ];
 
 const deckpublic: Record<string, string> = {
-  Flygon: flygon.src,
-  Ceruledge: ceruledge.src,
-  Toxtricity: toxtricity.src,
-  Zacian: zacian.src,
+  Flygon: "/decks/flygon-icon.png",
+  Ceruledge: "/decks/ceruledge-icon.png",
+  Toxtricity: "/decks/toxtricity-icon.png",
+  Zacian: "/decks/zacian-icon.png",
 };
 
 const defaultBanner = "https://www.katebackdrop.fr/cdn/shop/files/B4035519.jpg?v=1710741683&width=600"
