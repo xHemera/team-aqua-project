@@ -14,19 +14,49 @@ const deckpublic: Record<string, string> = {
   "Zacian": "/decks/zacian-icon.png",
 };
 
+const defaultDecks = ["Flygon", "Ceruledge", "Toxtricity", "Zacian"];
+
 // Page principale: navigation rapide, lancement de partie et sélection de deck
 export default function Home() {
   const router = useRouter();
   // États UI de la page
   const [showPopup, setShowPopup] = useState(false);
   const [selectedDeck, setSelectedDeck] = useState("Flygon");
+  const [availableDecks, setAvailableDecks] = useState<string[]>(defaultDecks);
   const [showDeckDropdown, setShowDeckDropdown] = useState(false);
   const [showNotification, setShowNotification] = useState(true);
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
   const [avatar, setAvatar] = useState(alder);
   const deckMenuRef = useRef<HTMLDivElement | null>(null);
-  
-  const decks = ["Flygon", "Ceruledge", "Toxtricity", "Zacian"];
+
+  const loadDecksFromStorage = () => {
+    const savedDecksRaw = localStorage.getItem("decks");
+    const savedSelectedDeck = localStorage.getItem("selectedDeck");
+
+    if (!savedDecksRaw) {
+      setAvailableDecks(defaultDecks);
+      setSelectedDeck(savedSelectedDeck && defaultDecks.includes(savedSelectedDeck) ? savedSelectedDeck : "Flygon");
+      return;
+    }
+
+    const parsedDecks = JSON.parse(savedDecksRaw) as Record<string, { cards: Array<unknown> }>;
+    const deckNames = Object.keys(parsedDecks);
+
+    if (deckNames.length === 0) {
+      setAvailableDecks([]);
+      setSelectedDeck("");
+      return;
+    }
+
+    setAvailableDecks(deckNames);
+
+    if (savedSelectedDeck && deckNames.includes(savedSelectedDeck)) {
+      setSelectedDeck(savedSelectedDeck);
+      return;
+    }
+
+    setSelectedDeck(deckNames[0]);
+  };
   
   // Récupère le pseudo de la session pour l'afficher sur la home
   useEffect(() => {
@@ -44,10 +74,16 @@ export default function Home() {
       setAvatar(savedAvatar);
     }
 
+    loadDecksFromStorage();
+
     // Écoute les changements de localStorage (entre onglets ou après modification)
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === "avatar" && event.newValue) {
         setAvatar(event.newValue);
+      }
+
+      if (event.key === "decks" || event.key === "selectedDeck") {
+        loadDecksFromStorage();
       }
     };
 
@@ -56,6 +92,12 @@ export default function Home() {
       window.removeEventListener("storage", handleStorageChange);
     };
   }, []);
+
+  useEffect(() => {
+    if (selectedDeck) {
+      localStorage.setItem("selectedDeck", selectedDeck);
+    }
+  }, [selectedDeck]);
 
   // Gère la fermeture du menu deck au clic extérieur / touche Escape
   useEffect(() => {
@@ -253,7 +295,7 @@ export default function Home() {
             >
               <div className="flex h-12 w-12 items-center justify-center">
                 <Image
-                  src={deckpublic[selectedDeck] || flygon.src}
+                  src={deckpublic[selectedDeck] || deckpublic.Flygon}
                   alt={selectedDeck}
                   width={52}
                   height={52}
@@ -267,7 +309,7 @@ export default function Home() {
               </div>
               <div className="flex flex-1 flex-col items-start leading-tight">
                 <span className="text-xs uppercase tracking-[0.14em] text-gray-400">Deck sélectionné</span>
-                <span className="text-lg font-bold text-white">{selectedDeck}</span>
+                <span className="text-lg font-bold text-white">{selectedDeck || "Aucun deck"}</span>
               </div>
               <svg
                 className={`h-5 w-5 text-gray-300 transition-transform ${showDeckDropdown ? 'rotate-180' : ''}`}
@@ -281,7 +323,7 @@ export default function Home() {
             
             {showDeckDropdown && (
               <div className="absolute bottom-[calc(100%+0.55rem)] z-30 w-full rounded-2xl border border-[#3c3650] bg-[#15131d] p-2 shadow-2xl">
-                {decks.map((deck) => (
+                {availableDecks.map((deck) => (
                   <button
                     key={deck}
                     onClick={() => {
@@ -298,7 +340,7 @@ export default function Home() {
                   >
                     <div className="flex h-10 w-10 items-center justify-center">
                       <Image
-                        src={deckpublic[deck] || flygon.src}
+                        src={deckpublic[deck] || deckpublic.Flygon}
                         alt={deck}
                         width={40}
                         height={40}
@@ -310,6 +352,9 @@ export default function Home() {
                     {selectedDeck === deck && <i className="fa-solid fa-check text-[#b4a8ff]"></i>}
                   </button>
                 ))}
+                {availableDecks.length === 0 && (
+                  <div className="px-3 py-2 text-sm text-gray-400">Aucun deck disponible</div>
+                )}
               </div>
             )}
           </div>

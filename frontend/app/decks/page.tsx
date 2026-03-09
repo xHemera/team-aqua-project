@@ -96,22 +96,39 @@ export default function DecksPage() {
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [previewCard, setPreviewCard] = useState<{ name: string; filename: string } | null>(null);
   const [decks, setDecks] = useState<Record<string, DeckData>>({});
-  const [newCardName, setNewCardName] = useState("");
-  const [cardError, setCardError] = useState("");
-  const [invalidCards, setInvalidCards] = useState<Set<string>>(new Set());
-
-  const deckList = [
+  const [deckList, setDeckList] = useState<Array<{ name: string; icon: string }>>([
     { name: "Flygon", icon: deckImages.Flygon },
     { name: "Ceruledge", icon: deckImages.Ceruledge },
     { name: "Toxtricity", icon: deckImages.Toxtricity },
     { name: "Zacian", icon: deckImages.Zacian },
-  ];
+  ]);
+  const [newCardName, setNewCardName] = useState("");
+  const [cardError, setCardError] = useState("");
+  const [invalidCards, setInvalidCards] = useState<Set<string>>(new Set());
+  const [isRenamingDeck, setIsRenamingDeck] = useState(false);
+  const [deckNameDraft, setDeckNameDraft] = useState("");
+  const [deckNameError, setDeckNameError] = useState("");
+
+  const getDeckIcon = (deckName: string) => {
+    return deckImages[deckName] || deckImages.Flygon;
+  };
 
   // Charger les decks depuis localStorage
   useEffect(() => {
     const saved = localStorage.getItem("decks");
     if (saved) {
-      setDecks(JSON.parse(saved));
+      const parsedDecks: Record<string, DeckData> = JSON.parse(saved);
+      setDecks(parsedDecks);
+
+      const savedDeckNames = Object.keys(parsedDecks);
+      if (savedDeckNames.length > 0) {
+        setDeckList(
+          savedDeckNames.map((name) => ({
+            name,
+            icon: getDeckIcon(name),
+          }))
+        );
+      }
     } else {
       // Initialiser les decks vides
       const newDecks: Record<string, DeckData> = {};
@@ -204,6 +221,96 @@ export default function DecksPage() {
     saveDeck(deckName, currentDeck);
   };
 
+  const addNewDeck = () => {
+    let index = 1;
+    let deckName = `New Deck ${index}`;
+
+    while (decks[deckName]) {
+      index += 1;
+      deckName = `New Deck ${index}`;
+    }
+
+    const updatedDecks = { ...decks, [deckName]: { cards: [] } };
+    setDecks(updatedDecks);
+    localStorage.setItem("decks", JSON.stringify(updatedDecks));
+
+    setDeckList((prev) => [...prev, { name: deckName, icon: deckImages.Flygon }]);
+  };
+
+  const openDeckPopup = (deckName: string) => {
+    setSelectedDeck(deckName);
+    setIsRenamingDeck(false);
+    setDeckNameDraft(deckName);
+    setDeckNameError("");
+  };
+
+  const closeDeckPopup = () => {
+    setSelectedDeck(null);
+    setIsRenamingDeck(false);
+    setDeckNameDraft("");
+    setDeckNameError("");
+  };
+
+  const renameSelectedDeck = () => {
+    if (!selectedDeck) return;
+
+    const nextName = deckNameDraft.trim();
+    if (!nextName) {
+      setDeckNameError("Le nom du deck ne peut pas être vide");
+      return;
+    }
+
+    if (nextName === selectedDeck) {
+      setIsRenamingDeck(false);
+      setDeckNameError("");
+      return;
+    }
+
+    if (decks[nextName]) {
+      setDeckNameError("Un deck avec ce nom existe déjà");
+      return;
+    }
+
+    const previousName = selectedDeck;
+    const updatedDecks = { ...decks };
+    updatedDecks[nextName] = updatedDecks[previousName];
+    delete updatedDecks[previousName];
+
+    setDecks(updatedDecks);
+    localStorage.setItem("decks", JSON.stringify(updatedDecks));
+
+    setDeckList((prev) =>
+      prev.map((deck) =>
+        deck.name === previousName
+          ? {
+              ...deck,
+              name: nextName,
+            }
+          : deck
+      )
+    );
+
+    setSelectedDeck(nextName);
+    setIsRenamingDeck(false);
+    setDeckNameError("");
+  };
+
+  const deleteSelectedDeck = () => {
+    if (!selectedDeck) return;
+
+    const shouldDelete = window.confirm(`Supprimer le deck \"${selectedDeck}\" ?`);
+    if (!shouldDelete) return;
+
+    const updatedDecks = { ...decks };
+    delete updatedDecks[selectedDeck];
+
+    setDecks(updatedDecks);
+    localStorage.setItem("decks", JSON.stringify(updatedDecks));
+
+    setDeckList((prev) => prev.filter((deck) => deck.name !== selectedDeck));
+    closeDeckPopup();
+  };
+
   return (
     <main className="relative isolate min-h-screen overflow-hidden text-white">
       {/* Fond global */}
@@ -242,6 +349,7 @@ export default function DecksPage() {
 
         <section className="flex-1 rounded-3xl border border-[#3c3650] bg-[#15131d]/85 p-8 shadow-2xl backdrop-blur-md">
           <button
+            onClick={addNewDeck}
             className="mb-6 inline-flex h-10 items-center gap-2 rounded-lg border border-[#b4a8ff]/60 bg-[#8e82ff] px-4 py-2 text-sm font-medium text-white shadow-lg transition-colors hover:bg-[#7d71ec]"
           >
             <i className="fa-solid fa-plus"></i>
@@ -254,7 +362,7 @@ export default function DecksPage() {
               {deckList.map((deck) => (
                 <button
                   key={deck.name}
-                  onClick={() => setSelectedDeck(deck.name)}
+                  onClick={() => openDeckPopup(deck.name)}
                   className="group relative overflow-hidden rounded-2xl border border-[#3c3650] bg-[#242033] p-6 transition-all hover:border-[#8e82ff]/60 hover:bg-[#302a45]"
                 >
                   <div className="mb-4 flex items-center justify-center">
@@ -285,32 +393,95 @@ export default function DecksPage() {
       {selectedDeck && (
         <div
           className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => setSelectedDeck(null)}
+          onClick={closeDeckPopup}
         >
           <div
             className="w-full max-w-7xl rounded-3xl border border-[#3c3650] bg-[#15131d] shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-[#3c3650] px-6 py-4">
-              <h3 className="text-2xl font-bold text-white">{selectedDeck} Deck</h3>
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                {isRenamingDeck ? (
+                  <div className="flex w-full max-w-md items-center gap-2">
+                    <input
+                      type="text"
+                      value={deckNameDraft}
+                      onChange={(e) => {
+                        setDeckNameDraft(e.target.value);
+                        if (deckNameError) setDeckNameError("");
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") renameSelectedDeck();
+                        if (e.key === "Escape") {
+                          setIsRenamingDeck(false);
+                          setDeckNameDraft(selectedDeck);
+                          setDeckNameError("");
+                        }
+                      }}
+                      placeholder="Nom du deck"
+                      className="w-full rounded-lg border border-[#8e82ff]/60 bg-[#242033] px-3 py-2 text-white placeholder:text-gray-500 focus:border-[#b4a8ff] focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={renameSelectedDeck}
+                      className="rounded-lg border border-emerald-400/70 bg-emerald-500/90 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsRenamingDeck(false);
+                        setDeckNameDraft(selectedDeck);
+                        setDeckNameError("");
+                      }}
+                      className="rounded-lg border border-gray-500/70 bg-gray-700/90 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-600"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <h3 className="truncate text-2xl font-bold text-white">{selectedDeck}</h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsRenamingDeck(true);
+                        setDeckNameDraft(selectedDeck);
+                        setDeckNameError("");
+                      }}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#b4a8ff]/60 bg-[#242033] text-white transition-colors hover:bg-[#302a45]"
+                      aria-label="Renommer le deck"
+                    >
+                      <i className="fa-solid fa-pen"></i>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={deleteSelectedDeck}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-400/70 bg-red-500/20 text-red-300 transition-colors hover:bg-red-500/35"
+                      aria-label="Supprimer le deck"
+                    >
+                      <i className="fa-solid fa-trash"></i>
+                    </button>
+                  </>
+                )}
+              </div>
               <button
-                onClick={() => setSelectedDeck(null)}
+                onClick={closeDeckPopup}
                 className="text-gray-400 hover:text-white text-2xl font-bold"
               >
                 ✕
               </button>
             </div>
 
+            {isRenamingDeck && deckNameError && (
+              <p className="px-6 pt-3 text-sm text-red-500">{deckNameError}</p>
+            )}
+
             <div className="p-6 max-h-[90vh] overflow-y-auto">
               <div className="mb-6">
                 <div className="mb-2 text-sm text-gray-400">
                   Cards: {getTotalCards(selectedDeck)}/60
-                </div>
-                <div className="w-full bg-[#242033] rounded-full h-2 border border-[#3c3650]">
-                  <div
-                    className="bg-[#8e82ff] h-2 rounded-full transition-all"
-                    style={{ width: `${(getTotalCards(selectedDeck) / 60) * 100}%` }}
-                  />
                 </div>
               </div>
 
@@ -351,8 +522,11 @@ export default function DecksPage() {
                               )}
                             </button>
                             
-                            {/* Badge de quantité */}
-                            <div className="absolute -top-1 -right-1 w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg border border-red-400">
+                            {/* Badge de quantité (polygone bas-centre) */}
+                            <div
+                              className="absolute bottom-1 left-1/2 z-20 flex h-8 w-10 -translate-x-1/2 items-center justify-center border border-red-400 bg-gradient-to-br from-red-500 to-red-600 text-sm font-bold text-white shadow-lg"
+                              style={{ clipPath: "polygon(0 0, 100% 0, 100% 68%, 50% 100%, 0 68%)" }}
+                            >
                               {card.count}
                             </div>
 
