@@ -348,14 +348,6 @@ export default function DecksPage() {
         </header>
 
         <section className="flex-1 rounded-3xl border border-[#3c3650] bg-[#15131d]/85 p-8 shadow-2xl backdrop-blur-md">
-          <button
-            onClick={addNewDeck}
-            className="mb-6 inline-flex h-10 items-center gap-2 rounded-lg border border-[#b4a8ff]/60 bg-[#8e82ff] px-4 py-2 text-sm font-medium text-white shadow-lg transition-colors hover:bg-[#7d71ec]"
-          >
-            <i className="fa-solid fa-plus"></i>
-            New
-          </button>
-
           <div className="mb-8">
             <h2 className="mb-4 text-xl font-semibold tracking-tight">My Decks</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -387,6 +379,14 @@ export default function DecksPage() {
             </div>
           </div>
         </section>
+
+        <button
+          onClick={addNewDeck}
+          className="fixed bottom-6 right-4 z-20 inline-flex h-14 items-center gap-3 rounded-full border border-[#b4a8ff]/60 bg-[#8e82ff] px-5 text-base font-semibold text-white shadow-2xl transition-colors hover:bg-[#7d71ec] sm:bottom-8 sm:right-8"
+        >
+          <i className="fa-solid fa-plus text-lg"></i>
+          New
+        </button>
       </div>
 
       {/* Popup du deck */}
@@ -468,7 +468,7 @@ export default function DecksPage() {
               </div>
               <button
                 onClick={closeDeckPopup}
-                className="text-gray-400 hover:text-white text-2xl font-bold"
+                className="flex h-12 w-12 items-center justify-center rounded-xl text-4xl font-bold leading-none text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
               >
                 ✕
               </button>
@@ -524,7 +524,7 @@ export default function DecksPage() {
                             
                             {/* Badge de quantité (polygone bas-centre) */}
                             <div
-                              className="absolute bottom-1 left-1/2 z-20 flex h-8 w-10 -translate-x-1/2 items-center justify-center border border-red-400 bg-gradient-to-br from-red-500 to-red-600 text-sm font-bold text-white shadow-lg"
+                              className="absolute bottom-1 left-1/2 z-20 flex h-10 w-14 -translate-x-1/2 items-center justify-center border border-[#b4a8ff]/80 bg-gradient-to-br from-[#8e82ff] to-[#5e54d6] text-base font-bold text-white shadow-lg"
                               style={{ clipPath: "polygon(0 0, 100% 0, 100% 68%, 50% 100%, 0 68%)" }}
                             >
                               {card.count}
@@ -535,7 +535,7 @@ export default function DecksPage() {
                               <button
                                 type="button"
                                 onClick={() => removeCard(selectedDeck, card.id)}
-                                className="flex h-7 w-7 items-center justify-center rounded-md border border-red-400/70 bg-red-500/90 text-white transition-colors hover:bg-red-600"
+                                className="flex h-11 w-11 items-center justify-center rounded-lg border border-red-400/70 bg-red-500/90 text-3xl font-black leading-none text-white transition-colors hover:bg-red-600"
                                 aria-label={`Retirer une copie de ${card.name}`}
                               >
                                 −
@@ -544,7 +544,7 @@ export default function DecksPage() {
                                 type="button"
                                 onClick={() => incrementCard(selectedDeck, card.id)}
                                 disabled={getTotalCards(selectedDeck) >= 60}
-                                className="flex h-7 w-7 items-center justify-center rounded-md border border-emerald-400/70 bg-emerald-500/90 text-white transition-colors hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex h-11 w-11 items-center justify-center rounded-lg border border-emerald-400/70 bg-emerald-500/90 text-3xl font-black leading-none text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
                                 aria-label={`Ajouter une copie de ${card.name}`}
                               >
                                 +

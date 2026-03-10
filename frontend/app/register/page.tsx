@@ -40,7 +40,7 @@ export default function RegisterPage() {
     } else {
       setMessage("Inscription réussie");
       setTimeout(() => {
-        router.push(`/${pseudo}`);
+        router.push(`/profile/${pseudo}`);
       }, 700);
     }
 

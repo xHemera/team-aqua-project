@@ -127,7 +127,7 @@ export default function Home() {
     e.preventDefault();
     const { data } = await authClient.getSession();
     if (data?.user?.name) {
-      router.push(`/${data.user.name}`);
+      router.push(`/profile/${data.user.name}`);
     } else {
       router.push("/not-connected");
     }
@@ -228,7 +228,7 @@ export default function Home() {
           </a>
           
           {/* Settings Icon */}
-          <a href="/profile" onClick={handleProfileClick} className="w-16 h-16 bg-[#242033] rounded-xl flex items-center justify-center border border-[#3c3650] hover:bg-[#302a45] transition-colors shadow-lg">
+          <a href="#" onClick={handleProfileClick} className="w-16 h-16 bg-[#242033] rounded-xl flex items-center justify-center border border-[#3c3650] hover:bg-[#302a45] transition-colors shadow-lg">
             <i className="fa-solid fa-user-gear text-white text-2xl"></i>
           </a>
         </div>
@@ -255,7 +255,7 @@ export default function Home() {
                 priority
               />
               <div className="bg-[#8e82ff] bg-opacity-75 bg-gradient-to-r px-8 py-3 border-3 border-[#a99bff] rounded-lg shadow-lg hover:bg-opacity-90 hover:scale-110 transition-all cursor-pointer">
-                <a href="/profile" onClick={handleProfileClick} className="text-white font-bold text-lg hover:text-gray-200">{userPseudo || "Pseudo"}</a>
+                <a href="#" onClick={handleProfileClick} className="text-white font-bold text-lg hover:text-gray-200">{userPseudo || "Pseudo"}</a>
               </div>
             </div>
           </div>

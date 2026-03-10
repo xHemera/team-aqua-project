@@ -64,7 +64,7 @@ export default function LoginPage() {
       } else {
         setMessage("Connexion réussie !");
         const pseudo = data?.user?.name || "utilisateur";
-        setTimeout(() => router.push(`/${pseudo}`), 500);
+        setTimeout(() => router.push(`/profile/${pseudo}`), 500);
       }
     }
 
