@@ -7,6 +7,7 @@ import { authClient } from "@/lib/auth-client";
 import logo from "./images/logo.png";
 import { socket } from "../socket"
 
+
 // Page d'entrée: connexion + création de compte (mode toggle)
 export default function LoginPage() {
   // États de formulaire
@@ -16,8 +17,7 @@ export default function LoginPage() {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [message, setMessage] = useState<string>("");
   const [loading, setLoading] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
-  const [transport, setTransport] = useState("N/A");
+  const [pseudo, setPseudo] = useState<string | null>(null);
   const router = useRouter();
 
 
@@ -35,6 +35,15 @@ export default function LoginPage() {
     };
     checkSession();
   }, [router]);
+
+  //permet d'envoyer l'utilisateur a redis dans le serveur
+  useEffect(() => {
+    if (!pseudo) return;
+    socket.emit("login", pseudo);
+    socket.on("online_users", (users) => {
+      console.log("Users from Redis:", users);
+    });
+  });
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -66,43 +75,13 @@ export default function LoginPage() {
 
       if (error) {
         setMessage(error.message ?? "Erreur de connexion");
-      } else {
-        setMessage("Connexion réussie !");
-        const pseudo = data?.user?.name || "utilisateur";
-        setTimeout(() => router.push(`/${pseudo}`), 500);
       }
-
-      //tests websockets
-      useEffect(() => {
-        if (socket.connected) {
-          onConnect();
-        }
-
-        function onConnect() {
-          setIsConnected(true);
-          setTransport(socket.io.engine.transport.name);
-
-          socket.io.engine.on("upgrade", (transport) => {
-            setTransport(transport.name);
-          });
-        }
-
-        function onDisconnect() {
-          setIsConnected(false);
-          setTransport("N/A");
-        }
-
-        socket.on("connect", onConnect);
-        socket.on("disconnect", onDisconnect);
-
-        return () => {
-          socket.off("connect", onConnect);
-          socket.off("disconnect", onDisconnect);
-        };
-      }, []);
-      //fin tests websockets
+      else {
+        setMessage("Connexion réussie !");
+        setPseudo(data?.user?.name || "utilisateur");
+        setTimeout(() => router.push(`/${data?.user?.name}`), 500);
+      }
     }
-
     setLoading(false);
   };
 
