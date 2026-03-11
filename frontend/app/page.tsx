@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import logo from "./images/logo.png";
 
 // Page d'entrée: connexion + création de compte (mode toggle)
 export default function LoginPage() {
@@ -65,7 +64,7 @@ export default function LoginPage() {
       } else {
         setMessage("Connexion réussie !");
         const pseudo = data?.user?.name || "utilisateur";
-        setTimeout(() => router.push(`/${pseudo}`), 500);
+        setTimeout(() => router.push(`/profile/${pseudo}`), 500);
       }
     }
 
@@ -90,7 +89,7 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-md rounded-3xl border border-[#3c3650] bg-[#15131d]/85 p-6 shadow-2xl backdrop-blur-md sm:p-8">
         <div className="mb-4 w-full py-2">
           <Image
-            src={logo}
+            src="/logo.png"
             alt="Logo"
             width={500}
             height={250}

@@ -4,7 +4,6 @@ import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import logo from "../images/logo.png";
 
 // Page d'inscription dédiée
 export default function RegisterPage() {
@@ -41,7 +40,7 @@ export default function RegisterPage() {
     } else {
       setMessage("Inscription réussie");
       setTimeout(() => {
-        router.push(`/${pseudo}`);
+        router.push(`/profile/${pseudo}`);
       }, 700);
     }
 
@@ -67,7 +66,7 @@ export default function RegisterPage() {
         <div className="w-full max-w-md rounded-3xl border border-[#3c3650] bg-[#15131d]/85 p-6 shadow-2xl backdrop-blur-md sm:p-8">
           {/* Carte formulaire */}
           <div className="mb-5 w-full py-2">
-            <Image src={logo} alt="Logo" width={500} height={250} className="mx-auto" />
+            <Image src="/logo.png" alt="Logo" width={500} height={250} className="mx-auto" />
           </div>
 
           <form onSubmit={onSubmit} className="space-y-4">
