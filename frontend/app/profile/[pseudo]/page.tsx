@@ -4,12 +4,11 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
-import flygon from "../images/flygon-icon.png";
-import ceruledge from "../images/ceruledge-icon.png";
-import toxtricity from "../images/toxtricity-icon.png";
-import zacian from "../images/zacian-icon.png";
 
-const alder = "https://archives.bulbagarden.net/media/upload/e/e8/Spr_B2W2_Alder.png";
+const DEFAULT_AVATAR_URL = "https://archives.bulbagarden.net/media/upload/e/e8/Spr_B2W2_Alder.png";
+
+type AvatarEntry = { id: string; name: string; url: string };
+
 
 // Historique mock affiché dans la section profil
 
@@ -52,36 +51,40 @@ const matchHistory = [
   },
 ];
 
-const deckImages: Record<string, string> = {
-  Flygon: flygon.src,
-  Ceruledge: ceruledge.src,
-  Toxtricity: toxtricity.src,
-  Zacian: zacian.src,
+const deckpublic: Record<string, string> = {
+  Flygon: "/decks/flygon-icon.png",
+  Ceruledge: "/decks/ceruledge-icon.png",
+  Toxtricity: "/decks/toxtricity-icon.png",
+  Zacian: "/decks/zacian-icon.png",
 };
 
-const defaultBackground = "/images/ectoplasme.jpg";
+const defaultBanner = "https://www.katebackdrop.fr/cdn/shop/files/B4035519.jpg?v=1710741683&width=600"
+const defaultBackground = "https://p4.wallpaperbetter.com/wallpaper/162/64/1018/gengar-ghastly-ghosts-haunter-wallpaper-preview.jpg";
 
 // Normalise une valeur de fond (URL brute, background:, ou url(...))
-const normalizeBackgroundValue = (value: string) => {
+const normalizeImageValue = (value: string, fallback: string) => {
   const rawValue = (value || "").trim();
 
   if (!rawValue) {
-    return defaultBackground;
+    return fallback;
   }
 
   const withoutDeclaration = rawValue.replace(/^background(-image)?\s*:\s*/i, "").trim();
 
   if (withoutDeclaration.startsWith("url(")) {
     const insideUrl = withoutDeclaration.slice(4, -1).trim().replace(/^['"]|['"]$/g, "");
-    return insideUrl || defaultBackground;
+    return insideUrl || fallback;
   }
 
   return withoutDeclaration;
 };
 
+const normalizeBackgroundValue = (value: string) => normalizeImageValue(value, defaultBackground);
+const normalizeBannerValue = (value: string) => normalizeImageValue(value, defaultBanner);
+
 // Construit le style CSS final du fond (image ou gradient)
-const buildBackgroundStyle = (value: string) => {
-  const normalizedValue = normalizeBackgroundValue(value);
+const buildBackgroundStyle = (value: string, fallback: string) => {
+  const normalizedValue = normalizeImageValue(value, fallback);
 
   if (normalizedValue.startsWith("linear-gradient") || normalizedValue.startsWith("radial-gradient")) {
     return { background: normalizedValue, backgroundPosition: "center", backgroundSize: "cover" };
@@ -97,6 +100,17 @@ const buildBackgroundStyle = (value: string) => {
 // Transforme une valeur de fond en variable CSS exploitable globalement
 const toCssBackgroundImageValue = (value: string) => {
   const normalizedValue = normalizeBackgroundValue(value);
+  
+  // Si la valeur normalisée est vide ou juste des espaces, utiliser le fond par défaut
+  if (!normalizedValue || !normalizedValue.trim()) {
+    return `url("${defaultBackground}")`;
+  }
+  
+  // Si c'est un gradient, le retourner tel quel
+  if (normalizedValue.startsWith("linear-gradient") || normalizedValue.startsWith("radial-gradient")) {
+    return normalizedValue;
+  }
+  
   return `url("${normalizedValue.replace(/"/g, '\\"')}")`;
 };
 
@@ -107,39 +121,62 @@ export default function ProfilePage() {
   // États d'UI et de personnalisation locale
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [avatar, setAvatar] = useState(alder);
+  const [avatars, setAvatars] = useState<AvatarEntry[]>([]);
+  const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
+  const [avatar, setAvatar] = useState(DEFAULT_AVATAR_URL);
   const [profileBackground, setProfileBackground] = useState(defaultBackground);
-  const [profileBanner, setProfileBanner] = useState(defaultBackground);
+  const [profileBanner, setProfileBanner] = useState(defaultBanner);
   const [showCustomizationPanel, setShowCustomizationPanel] = useState(false);
-  const [draftAvatar, setDraftAvatar] = useState(alder);
+  const [draftAvatarId, setDraftAvatarId] = useState<string | null>(null);
   const [draftBackground, setDraftBackground] = useState(defaultBackground);
-  const [draftBanner, setDraftBanner] = useState(defaultBackground);
-
-  const avatars = [
-    { name: "Alder", url: alder },
-    { name: "Red", url: "https://archives.bulbagarden.net/media/upload/d/d2/Spr_HGSS_Red.png" },
-    { name: "Cynthia", url: "https://archives.bulbagarden.net/media/upload/3/3e/Spr_B2W2_Cynthia.png" },
-    { name: "Leon", url: "https://archives.bulbagarden.net/media/upload/8/87/VSLeon.png" },
-  ];
+  const [draftBanner, setDraftBanner] = useState(defaultBanner);
 
   useEffect(() => {
-    // Auth guard + chargement des préférences depuis localStorage
-    const getUser = async () => {
+    // Auth guard + chargement des préférences depuis l'API et le localStorage
+    const init = async () => {
       const { data, error } = await authClient.getSession();
       if (error || !data) {
         router.push("/");
         return;
       }
       setUser(data.user);
+
+      // Charger la liste des avatars depuis la DB
+      const avatarsRes = await fetch("/api/avatars");
+      if (avatarsRes.ok) {
+        const avatarList: AvatarEntry[] = await avatarsRes.json();
+        setAvatars(avatarList);
+
+        // Charger l'avatar du profil depuis la DB
+        const profileRes = await fetch("/api/profile");
+        if (profileRes.ok) {
+          const profile = await profileRes.json();
+          if (profile.avatar) {
+            setSelectedAvatarId(profile.avatar.id);
+            setDraftAvatarId(profile.avatar.id);
+            setAvatar(profile.avatar.url);
+          } else {
+            // Fallback localStorage
+            const savedAvatar = localStorage.getItem("avatar");
+            if (savedAvatar) {
+              const found = avatarList.find((a) => a.url === savedAvatar);
+              if (found) {
+                setSelectedAvatarId(found.id);
+                setDraftAvatarId(found.id);
+              }
+              setAvatar(savedAvatar);
+            } else if (avatarList.length > 0) {
+              setSelectedAvatarId(avatarList[0].id);
+              setDraftAvatarId(avatarList[0].id);
+              setAvatar(avatarList[0].url);
+            }
+          }
+        }
+      }
+
       setLoading(false);
     };
-    getUser();
-    
-    const savedAvatar = localStorage.getItem("avatar");
-    if (savedAvatar) {
-      setAvatar(savedAvatar);
-      setDraftAvatar(savedAvatar);
-    }
+    init();
 
     const savedBackground =
       localStorage.getItem("profileBackground") ||
@@ -148,15 +185,17 @@ export default function ProfilePage() {
       localStorage.getItem("customBackground");
 
     if (savedBackground) {
-      setProfileBackground(savedBackground);
-      setDraftBackground(savedBackground);
-      document.documentElement.style.setProperty("--site-bg-image", toCssBackgroundImageValue(savedBackground));
+      const nextSavedBackground = normalizeBackgroundValue(savedBackground);
+      setProfileBackground(nextSavedBackground);
+      setDraftBackground(nextSavedBackground);
+      document.documentElement.style.setProperty("--site-bg-image", toCssBackgroundImageValue(nextSavedBackground));
     }
 
     const savedBanner = localStorage.getItem("profileBanner");
     if (savedBanner) {
-      setProfileBanner(savedBanner);
-      setDraftBanner(savedBanner);
+      const nextSavedBanner = normalizeBannerValue(savedBanner);
+      setProfileBanner(nextSavedBanner);
+      setDraftBanner(nextSavedBanner);
     }
   }, [router]);
 
@@ -166,22 +205,35 @@ export default function ProfilePage() {
   }, [profileBackground]);
 
   const openCustomizationPanel = () => {
-    setDraftAvatar(avatar);
+    setDraftAvatarId(selectedAvatarId);
     setDraftBackground(profileBackground);
     setDraftBanner(profileBanner);
     setShowCustomizationPanel(true);
   };
 
-  const handleSaveCustomization = () => {
+  const handleSaveCustomization = async () => {
     // Persiste les préférences et applique immédiatement le rendu
     const nextBackground = normalizeBackgroundValue(draftBackground);
-    const nextBanner = normalizeBackgroundValue(draftBanner);
+    const nextBanner = normalizeBannerValue(draftBanner);
 
-    setAvatar(draftAvatar);
+    // Sauvegarde l'avatar en DB
+    if (draftAvatarId && draftAvatarId !== selectedAvatarId) {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatarId: draftAvatarId }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setSelectedAvatarId(updated.avatar?.id ?? draftAvatarId);
+        setAvatar(updated.avatar?.url ?? avatar);
+        localStorage.setItem("avatar", updated.avatar?.url ?? avatar);
+      }
+    }
+
     setProfileBackground(nextBackground);
     setProfileBanner(nextBanner);
 
-    localStorage.setItem("avatar", draftAvatar);
     localStorage.setItem("profileBackground", nextBackground);
     localStorage.setItem("profileBanner", nextBanner);
     localStorage.setItem("background", nextBackground);
@@ -200,8 +252,8 @@ export default function ProfilePage() {
     ? pseudoParam[0]
     : pseudoParam || user?.name || "Pseudo";
 
-  const backgroundStyle = buildBackgroundStyle(profileBackground);
-  const bannerStyle = buildBackgroundStyle(profileBanner);
+  const backgroundStyle = buildBackgroundStyle(profileBackground, defaultBackground);
+  const bannerStyle = buildBackgroundStyle(profileBanner, defaultBanner);
 
   if (loading) {
     return (
@@ -318,7 +370,7 @@ export default function ProfilePage() {
                           <p className="mb-1 text-xs uppercase tracking-wide text-gray-400">Deck joué</p>
                           <div className="inline-flex items-center gap-2.5">
                             <Image
-                              src={deckImages[match.playedDeck] || deckImages.Flygon}
+                              src={deckpublic[match.playedDeck] || deckpublic.Flygon}
                               alt={match.playedDeck}
                               width={24}
                               height={24}
@@ -332,7 +384,7 @@ export default function ProfilePage() {
                           <p className="mb-1 text-xs uppercase tracking-wide text-gray-400">Deck affronté</p>
                           <div className="inline-flex items-center gap-2.5">
                             <Image
-                              src={deckImages[match.opponentDeck] || deckImages.Flygon}
+                              src={deckpublic[match.opponentDeck] || deckpublic.Flygon}
                               alt={match.opponentDeck}
                               width={24}
                               height={24}
@@ -382,10 +434,10 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {avatars.map((av) => (
                     <button
-                      key={av.name}
-                      onClick={() => setDraftAvatar(av.url)}
+                      key={av.id}
+                      onClick={() => setDraftAvatarId(av.id)}
                       className={`flex items-center justify-center gap-2 rounded-lg border p-2 transition-colors ${
-                        draftAvatar === av.url
+                        draftAvatarId === av.id
                           ? "border-[#b4a8ff] bg-[#8e82ff]/20"
                           : "border-[#3c3650] bg-[#242033] hover:bg-[#302a45]"
                       }`}
@@ -395,6 +447,7 @@ export default function ProfilePage() {
                         alt={av.name}
                         width={32}
                         height={32}
+                        className="h-8 w-8 object-contain"
                         style={{ imageRendering: "pixelated" }}
                       />
                       <span className="text-xs text-gray-200">{av.name}</span>

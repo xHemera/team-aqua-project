@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-const defaultBackground = "/images/ectoplasme.jpg";
+const defaultBackground = "/public/ectoplasme.jpg";
 
 const normalizeBackgroundValue = (value: string) => {
   const rawValue = (value || "").trim();

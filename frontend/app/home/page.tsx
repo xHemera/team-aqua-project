@@ -4,20 +4,18 @@ import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import flygon from "../images/flygon-icon.png";
-import ceruledge from "../images/ceruledge-icon.png";
-import toxtricity from "../images/toxtricity-icon.png";
-import zacian from "../images/zacian-icon.png";
-import { socket } from "../../socket";
+
 
 const alder = "https://archives.bulbagarden.net/media/upload/e/e8/Spr_B2W2_Alder.png";
 
-const deckImages: Record<string, string> = {
-  "Flygon": flygon.src,
-  "Ceruledge": ceruledge.src,
-  "Toxtricity": toxtricity.src,
-  "Zacian": zacian.src,
+const deckpublic: Record<string, string> = {
+  "Flygon": "/decks/flygon-icon.png",
+  "Ceruledge": "/decks/ceruledge-icon.png",
+  "Toxtricity": "/decks/toxtricity-icon.png",
+  "Zacian": "/decks/zacian-icon.png",
 };
+
+const defaultDecks = ["Flygon", "Ceruledge", "Toxtricity", "Zacian"];
 
 // Page principale: navigation rapide, lancement de partie et sélection de deck
 export default function Home() {
@@ -26,12 +24,41 @@ export default function Home() {
   // États UI de la page
   const [showPopup, setShowPopup] = useState(false);
   const [selectedDeck, setSelectedDeck] = useState("Flygon");
+  const [availableDecks, setAvailableDecks] = useState<string[]>(defaultDecks);
   const [showDeckDropdown, setShowDeckDropdown] = useState(false);
   const [showNotification, setShowNotification] = useState(true);
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
+  const [avatar, setAvatar] = useState(alder);
   const deckMenuRef = useRef<HTMLDivElement | null>(null);
-  
-  const decks = ["Flygon", "Ceruledge", "Toxtricity", "Zacian"];
+
+  const loadDecksFromStorage = () => {
+    const savedDecksRaw = localStorage.getItem("decks");
+    const savedSelectedDeck = localStorage.getItem("selectedDeck");
+
+    if (!savedDecksRaw) {
+      setAvailableDecks(defaultDecks);
+      setSelectedDeck(savedSelectedDeck && defaultDecks.includes(savedSelectedDeck) ? savedSelectedDeck : "Flygon");
+      return;
+    }
+
+    const parsedDecks = JSON.parse(savedDecksRaw) as Record<string, { cards: Array<unknown> }>;
+    const deckNames = Object.keys(parsedDecks);
+
+    if (deckNames.length === 0) {
+      setAvailableDecks([]);
+      setSelectedDeck("");
+      return;
+    }
+
+    setAvailableDecks(deckNames);
+
+    if (savedSelectedDeck && deckNames.includes(savedSelectedDeck)) {
+      setSelectedDeck(savedSelectedDeck);
+      return;
+    }
+
+    setSelectedDeck(deckNames[0]);
+  };
   
   // Récupère le pseudo de la session pour l'afficher sur la home
   useEffect(() => {
@@ -42,7 +69,37 @@ export default function Home() {
       }
     };
     getUserData();
+
+    // Charge l'avatar depuis localStorage
+    const savedAvatar = localStorage.getItem("avatar");
+    if (savedAvatar) {
+      setAvatar(savedAvatar);
+    }
+
+    loadDecksFromStorage();
+
+    // Écoute les changements de localStorage (entre onglets ou après modification)
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === "avatar" && event.newValue) {
+        setAvatar(event.newValue);
+      }
+
+      if (event.key === "decks" || event.key === "selectedDeck") {
+        loadDecksFromStorage();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
   }, []);
+
+  useEffect(() => {
+    if (selectedDeck) {
+      localStorage.setItem("selectedDeck", selectedDeck);
+    }
+  }, [selectedDeck]);
 
   // Gère la fermeture du menu deck au clic extérieur / touche Escape
   useEffect(() => {
@@ -72,7 +129,7 @@ export default function Home() {
     e.preventDefault();
     const { data } = await authClient.getSession();
     if (data?.user?.name) {
-      router.push(`/${data.user.name}`);
+      router.push(`/profile/${data.user.name}`);
     } else {
       router.push("/not-connected");
     }
@@ -172,7 +229,7 @@ export default function Home() {
           </a>
           
           {/* Settings Icon */}
-          <a href="/profile" onClick={handleProfileClick} className="w-16 h-16 bg-[#242033] rounded-xl flex items-center justify-center border border-[#3c3650] hover:bg-[#302a45] transition-colors shadow-lg">
+          <a href="#" onClick={handleProfileClick} className="w-16 h-16 bg-[#242033] rounded-xl flex items-center justify-center border border-[#3c3650] hover:bg-[#302a45] transition-colors shadow-lg">
             <i className="fa-solid fa-user-gear text-white text-2xl"></i>
           </a>
         </div>
@@ -190,8 +247,8 @@ export default function Home() {
           <div className="flex-1 min-h-full flex items-center left-30 justify-end relative pointer-events-auto">
             <div className="relative z-10 flex flex-col items-center gap-4 mr-8">
               <Image
-                src={alder}
-                alt="Alder"
+                src={avatar}
+                alt="Avatar"
                 width={360}
                 height={360}
                 className="w-250 max-w-[60%] h-auto drop-shadow-2xl"
@@ -199,7 +256,7 @@ export default function Home() {
                 priority
               />
               <div className="bg-[#8e82ff] bg-opacity-75 bg-gradient-to-r px-8 py-3 border-3 border-[#a99bff] rounded-lg shadow-lg hover:bg-opacity-90 hover:scale-110 transition-all cursor-pointer">
-                <a href="/profile" onClick={handleProfileClick} className="text-white font-bold text-lg hover:text-gray-200">{userPseudo || "Pseudo"}</a>
+                <a href="#" onClick={handleProfileClick} className="text-white font-bold text-lg hover:text-gray-200">{userPseudo || "Pseudo"}</a>
               </div>
             </div>
           </div>
@@ -239,7 +296,7 @@ export default function Home() {
             >
               <div className="flex h-12 w-12 items-center justify-center">
                 <Image
-                  src={deckImages[selectedDeck] || flygon.src}
+                  src={deckpublic[selectedDeck] || deckpublic.Flygon}
                   alt={selectedDeck}
                   width={52}
                   height={52}
@@ -253,7 +310,7 @@ export default function Home() {
               </div>
               <div className="flex flex-1 flex-col items-start leading-tight">
                 <span className="text-xs uppercase tracking-[0.14em] text-gray-400">Deck sélectionné</span>
-                <span className="text-lg font-bold text-white">{selectedDeck}</span>
+                <span className="text-lg font-bold text-white">{selectedDeck || "Aucun deck"}</span>
               </div>
               <svg
                 className={`h-5 w-5 text-gray-300 transition-transform ${showDeckDropdown ? 'rotate-180' : ''}`}
@@ -267,7 +324,7 @@ export default function Home() {
             
             {showDeckDropdown && (
               <div className="absolute bottom-[calc(100%+0.55rem)] z-30 w-full rounded-2xl border border-[#3c3650] bg-[#15131d] p-2 shadow-2xl">
-                {decks.map((deck) => (
+                {availableDecks.map((deck) => (
                   <button
                     key={deck}
                     onClick={() => {
@@ -284,7 +341,7 @@ export default function Home() {
                   >
                     <div className="flex h-10 w-10 items-center justify-center">
                       <Image
-                        src={deckImages[deck] || flygon.src}
+                        src={deckpublic[deck] || deckpublic.Flygon}
                         alt={deck}
                         width={40}
                         height={40}
@@ -296,6 +353,9 @@ export default function Home() {
                     {selectedDeck === deck && <i className="fa-solid fa-check text-[#b4a8ff]"></i>}
                   </button>
                 ))}
+                {availableDecks.length === 0 && (
+                  <div className="px-3 py-2 text-sm text-gray-400">Aucun deck disponible</div>
+                )}
               </div>
             )}
           </div>
