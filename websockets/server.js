@@ -24,7 +24,7 @@ const io = new Server(httpServer, {
   cors: {
     origin: "*"
   },
-  transports: ["websocket", "polling"]
+  transports: ["websocket", "polling"],
 });
 
 //fonctions sockets (comme gerer les connexions ou l'envoi de msgs)
@@ -37,7 +37,8 @@ io.on("connect", (socket) => {
   });
   socket.on("disconnect", async () => {
     await redis.hDel("online_users", socket.id)
-    console.log("Client disconnected");
+    const users = await redis.hGetAll("online_users");
+    console.log("Client disconnected: ", users);
     });
   })
 

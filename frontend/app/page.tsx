@@ -38,6 +38,7 @@ export default function LoginPage() {
   //permet d'envoyer l'utilisateur a redis dans le serveur
   useEffect(() => {
     if (!pseudo) return;
+    socket.connect()
     socket.emit("login", pseudo);
     socket.on("online_users", (users) => {
       console.log("Users from Redis:", users);

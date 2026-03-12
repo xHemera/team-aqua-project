@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
+import { socket } from "../../../socket"
 
 const DEFAULT_AVATAR_URL = "https://archives.bulbagarden.net/media/upload/e/e8/Spr_B2W2_Alder.png";
 
@@ -130,6 +131,7 @@ export default function ProfilePage() {
   const [draftAvatarId, setDraftAvatarId] = useState<string | null>(null);
   const [draftBackground, setDraftBackground] = useState(defaultBackground);
   const [draftBanner, setDraftBanner] = useState(defaultBanner);
+  const [disconnect, setDisconnect] = useState(false);
 
   useEffect(() => {
     // Auth guard + chargement des préférences depuis l'API et le localStorage
@@ -242,7 +244,14 @@ export default function ProfilePage() {
     setShowCustomizationPanel(false);
   };
 
+  //deconnecte le socket
+  useEffect(() => {
+    if (disconnect == true)
+      socket.disconnect();
+  });
+  
   const handleLogout = async () => {
+    setDisconnect(true);
     await authClient.signOut();
     router.push("/");
   };
