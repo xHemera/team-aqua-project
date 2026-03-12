@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import AuthPageLayout from "@/components/AuthPageLayout";
 
 // Page d'inscription dédiée
 export default function RegisterPage() {
@@ -47,109 +47,87 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="relative isolate min-h-screen overflow-hidden text-white">
-      {/* Fond global */}
-      <div
-        className="absolute inset-0 z-0"
-        style={{
-          backgroundImage: "var(--site-bg-image)",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          filter: "blur(10px)",
-          transform: "scale(1.08)",
-        }}
-      />
-      <div className="absolute inset-0 z-[1] bg-black/25" />
-
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[92rem] items-center justify-center px-4 py-4 sm:px-8 sm:py-6">
-        <div className="w-full max-w-md rounded-3xl border border-[#3c3650] bg-[#15131d]/85 p-6 shadow-2xl backdrop-blur-md sm:p-8">
-          {/* Carte formulaire */}
-          <div className="mb-5 w-full py-2">
-            <Image src="/logo.png" alt="Logo" width={500} height={250} className="mx-auto" />
+    <AuthPageLayout>
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
+            <i className="fa-solid fa-user"></i>
           </div>
-
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
-                <i className="fa-solid fa-user"></i>
-              </div>
-              <input
-                type="text"
-                value={pseudo}
-                onChange={(e) => setPseudo(e.target.value)}
-                placeholder="Pseudo"
-                className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[var(--accent-color)] focus:outline-none"
-                required
-              />
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
-                <i className="fa-regular fa-user"></i>
-              </div>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
-                className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[var(--accent-color)] focus:outline-none"
-                required
-              />
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
-                <i className="fa-solid fa-lock"></i>
-              </div>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mot de passe"
-                className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[var(--accent-color)] focus:outline-none"
-                required
-              />
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
-                <i className="fa-solid fa-lock"></i>
-              </div>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirmer le mot de passe"
-                className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[var(--accent-color)] focus:outline-none"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => router.push("/")}
-                className="rounded-xl border border-[#3c3650] bg-[#242033] py-3 font-semibold text-gray-100 transition-colors hover:bg-[#302a45]"
-              >
-                Retour
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] py-3 font-semibold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {loading ? "Chargement..." : "S'inscrire"}
-              </button>
-            </div>
-
-            {message && (
-              <p className={`text-center text-sm ${message.includes("réussie") ? "text-green-400" : "text-red-400"}`}>
-                {message}
-              </p>
-            )}
-          </form>
+          <input
+            type="text"
+            value={pseudo}
+            onChange={(e) => setPseudo(e.target.value)}
+            placeholder="Pseudo"
+            className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[var(--accent-color)] focus:outline-none"
+            required
+          />
         </div>
-      </div>
-    </main>
+
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
+            <i className="fa-regular fa-user"></i>
+          </div>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+            className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[var(--accent-color)] focus:outline-none"
+            required
+          />
+        </div>
+
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
+            <i className="fa-solid fa-lock"></i>
+          </div>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Mot de passe"
+            className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[var(--accent-color)] focus:outline-none"
+            required
+          />
+        </div>
+
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
+            <i className="fa-solid fa-lock"></i>
+          </div>
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Confirmer le mot de passe"
+            className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[var(--accent-color)] focus:outline-none"
+            required
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="rounded-xl border border-[#3c3650] bg-[#242033] py-3 font-semibold text-gray-100 transition-colors hover:bg-[#302a45]"
+          >
+            Retour
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] py-3 font-semibold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading ? "Chargement..." : "S'inscrire"}
+          </button>
+        </div>
+
+        {message && (
+          <p className={`text-center text-sm ${message.includes("réussie") ? "text-green-400" : "text-red-400"}`}>
+            {message}
+          </p>
+        )}
+      </form>
+    </AuthPageLayout>
   );
 }

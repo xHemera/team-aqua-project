@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import AppPageShell from "@/components/AppPageShell";
 import { DEFAULT_PROFILE_ICON, PROFILE_ICONS } from "@/lib/profile-icons";
 
 const esper = PROFILE_ICONS.find((icon) => icon.type === "esper")?.url ?? DEFAULT_PROFILE_ICON.url;
@@ -290,7 +291,7 @@ export default function SocialPage() {
   };
 
   return (
-    <main className="relative isolate min-h-screen overflow-hidden text-white">
+    <AppPageShell>
       {inviteNotification && (
         <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
           <div
@@ -308,7 +309,7 @@ export default function SocialPage() {
       {isAddFriendModalOpen && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 px-4">
           <div className="w-full max-w-md rounded-2xl border border-[#3c3650] bg-[#1b1826] p-5 shadow-2xl">
-            <h3 className="text-lg font-bold text-white">entrez le nom d'utilisateur</h3>
+            <h3 className="text-lg font-bold text-white">entrez le nom d&apos;utilisateur</h3>
             <p className="mt-1 text-sm text-gray-300">Saisis le pseudo du joueur pour envoyer une invitation.</p>
 
             <input
@@ -340,19 +341,7 @@ export default function SocialPage() {
         </div>
       )}
 
-      <div
-        className="absolute inset-0 z-0"
-        style={{
-          backgroundImage: "var(--site-bg-image)",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          filter: "blur(10px)",
-          transform: "scale(1.08)",
-        }}
-      />
-      <div className="absolute inset-0 z-[1] bg-black/25" />
-
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[92rem] px-4 py-4 sm:px-8 sm:py-6">
+      <div className="w-full">
         <section className="grid h-[calc(100vh-2rem)] w-full grid-cols-1 overflow-hidden rounded-3xl border border-[#3c3650] bg-[#15131d]/85 shadow-2xl backdrop-blur-md lg:grid-cols-[19rem_1fr]">
           <aside className="flex min-h-0 flex-col border-b border-[#3c3650] lg:border-b-0 lg:border-r">
             <div className="flex items-center justify-between border-b border-[#3c3650] px-5 py-4">
@@ -564,6 +553,6 @@ export default function SocialPage() {
           </section>
         </section>
       </div>
-    </main>
+    </AppPageShell>
   );
 }

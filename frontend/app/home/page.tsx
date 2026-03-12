@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import AppPageShell from "@/components/AppPageShell";
 import { DEFAULT_PROFILE_ICON } from "@/lib/profile-icons";
 
 const deckpublic: Record<string, string> = {
@@ -14,6 +15,35 @@ const deckpublic: Record<string, string> = {
 };
 
 const defaultDecks = ["Flygon", "Ceruledge", "Toxtricity", "Zacian"];
+
+const getInitialDeckState = () => {
+  if (typeof window === "undefined") {
+    return { availableDecks: defaultDecks, selectedDeck: "Flygon" };
+  }
+
+  const savedDecksRaw = localStorage.getItem("decks");
+  const savedSelectedDeck = localStorage.getItem("selectedDeck");
+
+  if (!savedDecksRaw) {
+    return {
+      availableDecks: defaultDecks,
+      selectedDeck: savedSelectedDeck && defaultDecks.includes(savedSelectedDeck) ? savedSelectedDeck : "Flygon",
+    };
+  }
+
+  const parsedDecks = JSON.parse(savedDecksRaw) as Record<string, { cards: Array<unknown> }>;
+  const deckNames = Object.keys(parsedDecks);
+
+  if (deckNames.length === 0) {
+    return { availableDecks: [], selectedDeck: "" };
+  }
+
+  if (savedSelectedDeck && deckNames.includes(savedSelectedDeck)) {
+    return { availableDecks: deckNames, selectedDeck: savedSelectedDeck };
+  }
+
+  return { availableDecks: deckNames, selectedDeck: deckNames[0] };
+};
 
 // Page principale: navigation rapide, lancement de partie et sélection de deck
 export default function Home() {
@@ -28,37 +58,16 @@ export default function Home() {
   const [avatar, setAvatar] = useState(DEFAULT_PROFILE_ICON.url);
   const deckMenuRef = useRef<HTMLDivElement | null>(null);
 
-  const loadDecksFromStorage = () => {
-    const savedDecksRaw = localStorage.getItem("decks");
-    const savedSelectedDeck = localStorage.getItem("selectedDeck");
-
-    if (!savedDecksRaw) {
-      setAvailableDecks(defaultDecks);
-      setSelectedDeck(savedSelectedDeck && defaultDecks.includes(savedSelectedDeck) ? savedSelectedDeck : "Flygon");
-      return;
-    }
-
-    const parsedDecks = JSON.parse(savedDecksRaw) as Record<string, { cards: Array<unknown> }>;
-    const deckNames = Object.keys(parsedDecks);
-
-    if (deckNames.length === 0) {
-      setAvailableDecks([]);
-      setSelectedDeck("");
-      return;
-    }
-
-    setAvailableDecks(deckNames);
-
-    if (savedSelectedDeck && deckNames.includes(savedSelectedDeck)) {
-      setSelectedDeck(savedSelectedDeck);
-      return;
-    }
-
-    setSelectedDeck(deckNames[0]);
-  };
-  
   // Récupère le pseudo de la session pour l'afficher sur la home
   useEffect(() => {
+    // Sync avatar and deck state from localStorage after hydration
+    const savedAvatar = localStorage.getItem("avatar");
+    if (savedAvatar) setAvatar(savedAvatar);
+
+    const nextState = getInitialDeckState();
+    setAvailableDecks(nextState.availableDecks);
+    setSelectedDeck(nextState.selectedDeck);
+
     const getUserData = async () => {
       const { data } = await authClient.getSession();
       if (data?.user?.name) {
@@ -67,14 +76,6 @@ export default function Home() {
     };
     getUserData();
 
-    // Charge l'avatar depuis localStorage
-    const savedAvatar = localStorage.getItem("avatar");
-    if (savedAvatar) {
-      setAvatar(savedAvatar);
-    }
-
-    loadDecksFromStorage();
-
     // Écoute les changements de localStorage (entre onglets ou après modification)
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === "avatar" && event.newValue) {
@@ -82,7 +83,9 @@ export default function Home() {
       }
 
       if (event.key === "decks" || event.key === "selectedDeck") {
-        loadDecksFromStorage();
+        const nextState = getInitialDeckState();
+        setAvailableDecks(nextState.availableDecks);
+        setSelectedDeck(nextState.selectedDeck);
       }
     };
 
@@ -132,7 +135,7 @@ export default function Home() {
     }
   };
   return (
-    <div className="relative isolate min-h-screen overflow-hidden text-white">
+    <AppPageShell containerClassName="w-full max-w-[92rem] flex-col px-0 py-0">
       {/* Animations locales de notification et loader */}
       <style jsx>{`
         @keyframes dot-pulse {
@@ -169,22 +172,6 @@ export default function Home() {
           animation: dot-pulse 1.4s infinite 0.4s;
         }
       `}</style>
-      
-      {/* Fond global */}
-      <div className="absolute inset-0">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: "var(--site-bg-image)",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            filter: "blur(10px)",
-            transform: "scale(1.08)",
-          }}
-        />
-
-        <div className="absolute inset-0 z-[1] bg-black/25" />
-      </div>
 
       {/* Notification Bar - Top Left */}
       {showNotification && (
@@ -204,14 +191,14 @@ export default function Home() {
             <div className="w-full h-[2px] bg-black"></div>
             {/* Bottom part - Black */}
             <div className="bg-black px-4 py-4">
-              <div className="text-white text-sm leading-tight">Viens sur mon ile, j'ai pleins de petites filles a te donner</div>
+              <div className="text-white text-sm leading-tight">Viens sur mon ile, j&apos;ai pleins de petites filles a te donner</div>
             </div>
           </div>
         </div>
       )}
 
       {/* Header */}
-      <header className="relative z-10 mx-auto flex w-full max-w-[92rem] items-center justify-end px-4 py-4 sm:px-8 sm:py-6">
+      <header className="relative z-10 flex w-full items-center justify-end px-4 py-4 sm:px-8 sm:py-6">
         <div className="flex gap-4 rounded-2xl border border-[#3c3650] bg-[#15131d]/85 px-4 py-3 shadow-2xl backdrop-blur-md">
           {/* Decks Icon */}
           <a href="/decks" className="w-16 h-16 bg-[#242033] rounded-xl flex items-center justify-center border border-[#3c3650] hover:bg-[#302a45] transition-colors shadow-lg">
@@ -234,7 +221,7 @@ export default function Home() {
       </header>
 
       {/* Zone centrale (CTA Play + sélecteur deck) */}
-      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-116px)] w-full max-w-[92rem] flex-1 items-center justify-center px-4 pb-4 sm:px-8 sm:pb-6">
+      <div className="relative z-10 flex min-h-[calc(100vh-116px)] w-full flex-1 items-center justify-center px-4 pb-4 sm:px-8 sm:pb-6">
         
         <div className="absolute inset-0 flex pointer-events-none">
           {/* Left Side - Illustration */}
@@ -358,7 +345,7 @@ export default function Home() {
             )}
           </div>
         </div>
-      </main>
+      </div>
 
       {/* Popup Modal */}
       {showPopup && (
@@ -381,7 +368,7 @@ export default function Home() {
           </div>
         </div>
       )}
-    </div>
+    </AppPageShell>
   );
 }
 

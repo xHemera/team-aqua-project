@@ -18,6 +18,8 @@ export async function GET() {
         email: true,
         avatarId: true,
         image: true,
+        profileBackground: true,
+        profileBanner: true,
         avatar: {
           select: {
             id: true,
@@ -42,6 +44,8 @@ export async function GET() {
 
     return Response.json({
       ...user,
+      profileBackground: user.profileBackground ?? undefined,
+      profileBanner: user.profileBanner ?? undefined,
       avatar: {
         id: dbAvatar.id,
         name: dbAvatar.name,
@@ -65,36 +69,51 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
-    const { avatarId } = body as { avatarId: string };
+    const { avatarId, profileBackground, profileBanner } = body as {
+      avatarId?: string;
+      profileBackground?: string | null;
+      profileBanner?: string | null;
+    };
 
-    if (!avatarId) {
-      return Response.json({ error: "avatarId is required" }, { status: 400 });
+    // Validate and find avatar if provided
+    let nextAvatar = null;
+    if (avatarId) {
+      nextAvatar = await prisma.avatar.findUnique({
+        where: { id: avatarId },
+        select: {
+          id: true,
+          name: true,
+          url: true,
+        },
+      });
+
+      if (!nextAvatar) {
+        return Response.json({ error: "Avatar not found" }, { status: 404 });
+      }
     }
 
-    const nextAvatar = await prisma.avatar.findUnique({
-      where: { id: avatarId },
-      select: {
-        id: true,
-        name: true,
-        url: true,
-      },
-    });
-
-    if (!nextAvatar) {
-      return Response.json({ error: "Avatar not found" }, { status: 404 });
+    // Build update data
+    const updateData: any = {};
+    if (avatarId && nextAvatar) {
+      updateData.avatarId = nextAvatar.id;
+      updateData.image = nextAvatar.url;
+    }
+    if (profileBackground !== undefined) {
+      updateData.profileBackground = profileBackground;
+    }
+    if (profileBanner !== undefined) {
+      updateData.profileBanner = profileBanner;
     }
 
     const updated = await prisma.user.update({
       where: { id: session.user.id },
-      data: {
-        avatarId: nextAvatar.id,
-        image: nextAvatar.url,
-      },
+      data: updateData,
       select: {
         id: true,
         name: true,
         avatarId: true,
-        image: true,
+        profileBackground: true,
+        profileBanner: true,
         avatar: {
           select: {
             id: true,
@@ -105,14 +124,16 @@ export async function PATCH(request: Request) {
       },
     });
 
-    const avatarMeta = resolveProfileIcon({ id: nextAvatar.id, url: nextAvatar.url });
+    const avatarMeta = nextAvatar
+      ? resolveProfileIcon({ id: nextAvatar.id, url: nextAvatar.url })
+      : resolveProfileIcon({ id: updated.avatarId, url: updated.avatar?.url });
 
     return Response.json({
       ...updated,
       avatar: {
-        id: nextAvatar.id,
-        name: nextAvatar.name,
-        url: nextAvatar.url,
+        id: updated.avatar?.id ?? nextAvatar?.id,
+        name: updated.avatar?.name ?? nextAvatar?.name,
+        url: updated.avatar?.url ?? nextAvatar?.url,
         type: avatarMeta.type,
         accent: avatarMeta.accent,
         accentHover: avatarMeta.accentHover,

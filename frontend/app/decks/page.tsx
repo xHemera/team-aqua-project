@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import AppPageShell from "@/components/AppPageShell";
 
 const deckImages: Record<string, string> = {
   Flygon: "/decks/flygon-icon.png",
@@ -90,18 +91,63 @@ const isValidCardName = (name: string): boolean => {
   return Boolean(cardNameMap[canonicalizeCardName(name)]);
 };
 
-// Page des decks
-export default function DecksPage() {
-  const router = useRouter();
-  const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
-  const [previewCard, setPreviewCard] = useState<{ name: string; filename: string } | null>(null);
-  const [decks, setDecks] = useState<Record<string, DeckData>>({});
-  const [deckList, setDeckList] = useState<Array<{ name: string; icon: string }>>([
+const getInitialDeckData = () => {
+  const fallbackDeckList = [
     { name: "Flygon", icon: deckImages.Flygon },
     { name: "Ceruledge", icon: deckImages.Ceruledge },
     { name: "Toxtricity", icon: deckImages.Toxtricity },
     { name: "Zacian", icon: deckImages.Zacian },
-  ]);
+  ];
+
+  const fallbackDecks: Record<string, DeckData> = {
+    Flygon: { cards: [] },
+    Ceruledge: { cards: [] },
+    Toxtricity: { cards: [] },
+    Zacian: { cards: [] },
+  };
+
+  if (typeof window === "undefined") {
+    return {
+      decks: fallbackDecks,
+      deckList: fallbackDeckList,
+    };
+  }
+
+  const saved = localStorage.getItem("decks");
+  if (!saved) {
+    return {
+      decks: fallbackDecks,
+      deckList: fallbackDeckList,
+    };
+  }
+
+  const parsedDecks = JSON.parse(saved) as Record<string, DeckData>;
+  const savedDeckNames = Object.keys(parsedDecks);
+
+  if (savedDeckNames.length === 0) {
+    return {
+      decks: fallbackDecks,
+      deckList: fallbackDeckList,
+    };
+  }
+
+  return {
+    decks: parsedDecks,
+    deckList: savedDeckNames.map((name) => ({
+      name,
+      icon: deckImages[name] || deckImages.Flygon,
+    })),
+  };
+};
+
+// Page des decks
+export default function DecksPage() {
+  const router = useRouter();
+  const initialDeckData = getInitialDeckData();
+  const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
+  const [previewCard, setPreviewCard] = useState<{ name: string; filename: string } | null>(null);
+  const [decks, setDecks] = useState<Record<string, DeckData>>(initialDeckData.decks);
+  const [deckList, setDeckList] = useState<Array<{ name: string; icon: string }>>(initialDeckData.deckList);
   const [newCardName, setNewCardName] = useState("");
   const [cardError, setCardError] = useState("");
   const [invalidCards, setInvalidCards] = useState<Set<string>>(new Set());
@@ -109,39 +155,12 @@ export default function DecksPage() {
   const [deckNameDraft, setDeckNameDraft] = useState("");
   const [deckNameError, setDeckNameError] = useState("");
 
-  const getDeckIcon = (deckName: string) => {
-    return deckImages[deckName] || deckImages.Flygon;
-  };
-
-  // Charger les decks depuis localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem("decks");
-    if (saved) {
-      const parsedDecks: Record<string, DeckData> = JSON.parse(saved);
-      setDecks(parsedDecks);
-
-      const savedDeckNames = Object.keys(parsedDecks);
-      if (savedDeckNames.length > 0) {
-        setDeckList(
-          savedDeckNames.map((name) => ({
-            name,
-            icon: getDeckIcon(name),
-          }))
-        );
-      }
-    } else {
-      // Initialiser les decks vides
-      const newDecks: Record<string, DeckData> = {};
-      deckList.forEach((deck) => {
-        newDecks[deck.name] = { cards: [] };
-      });
-      setDecks(newDecks);
-    }
-  }, []);
-
   // Sauvegarder les decks dans localStorage
   const saveDeck = (deckName: string, data: DeckData) => {
-    const updated = { ...decks, [deckName]: data };
+    const normalizedData: DeckData = {
+      cards: data.cards.map((card) => ({ ...card })),
+    };
+    const updated = { ...decks, [deckName]: normalizedData };
     setDecks(updated);
     localStorage.setItem("decks", JSON.stringify(updated));
   };
@@ -161,6 +180,7 @@ export default function DecksPage() {
     setCardError("");
 
     const currentDeck = decks[deckName] || { cards: [] };
+    const nextCards = currentDeck.cards.map((card) => ({ ...card }));
     const total = getTotalCards(deckName);
 
     if (total >= 60) {
@@ -168,7 +188,7 @@ export default function DecksPage() {
       return;
     }
 
-    const existingCard = currentDeck.cards.find(
+    const existingCard = nextCards.find(
       (card) => card.name.toLowerCase() === newCardName.toLowerCase()
     );
 
@@ -179,28 +199,31 @@ export default function DecksPage() {
       }
       existingCard.count += 1;
     } else {
-      currentDeck.cards.push({
+      nextCards.push({
         id: `${Date.now()}-${Math.random()}`,
         name: newCardName,
         count: 1,
       });
     }
 
-    saveDeck(deckName, currentDeck);
+    saveDeck(deckName, { cards: nextCards });
     setNewCardName("");
   };
 
   const removeCard = (deckName: string, cardId: string) => {
     const currentDeck = decks[deckName];
-    const cardIndex = currentDeck.cards.findIndex((card) => card.id === cardId);
+    if (!currentDeck) return;
+
+    const nextCards = currentDeck.cards.map((card) => ({ ...card }));
+    const cardIndex = nextCards.findIndex((card) => card.id === cardId);
 
     if (cardIndex !== -1) {
-      if (currentDeck.cards[cardIndex].count > 1) {
-        currentDeck.cards[cardIndex].count -= 1;
+      if (nextCards[cardIndex].count > 1) {
+        nextCards[cardIndex].count -= 1;
       } else {
-        currentDeck.cards.splice(cardIndex, 1);
+        nextCards.splice(cardIndex, 1);
       }
-      saveDeck(deckName, currentDeck);
+      saveDeck(deckName, { cards: nextCards });
     }
   };
 
@@ -214,11 +237,12 @@ export default function DecksPage() {
       return;
     }
 
-    const card = currentDeck.cards.find((item) => item.id === cardId);
+    const nextCards = currentDeck.cards.map((item) => ({ ...item }));
+    const card = nextCards.find((item) => item.id === cardId);
     if (!card) return;
 
     card.count += 1;
-    saveDeck(deckName, currentDeck);
+    saveDeck(deckName, { cards: nextCards });
   };
 
   const addNewDeck = () => {
@@ -312,21 +336,8 @@ export default function DecksPage() {
   };
 
   return (
-    <main className="relative isolate min-h-screen overflow-hidden text-white">
-      {/* Fond global */}
-      <div
-        className="absolute inset-0 z-0"
-        style={{
-          backgroundImage: "var(--site-bg-image)",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          filter: "blur(10px)",
-          transform: "scale(1.08)",
-        }}
-      />
-      <div className="absolute inset-0 z-[1] bg-black/25" />
-
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-6 sm:px-8 sm:py-8">
+    <AppPageShell containerClassName="max-w-6xl flex-col px-4 py-6 sm:px-8 sm:py-8">
+      <div className="w-full">
         <header className="mb-6 flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">My Decks</h1>
           <div className="flex gap-3">
@@ -509,14 +520,15 @@ export default function DecksPage() {
                               className="w-full h-full bg-gradient-to-br from-[var(--accent-soft)] to-[#3c3650] flex items-center justify-center relative overflow-hidden"
                             >
                               {hasError ? (
-                                <p className="text-xs text-red-500 text-center p-2">Cette carte n'existe pas</p>
+                                <p className="text-xs text-red-500 text-center p-2">Cette carte n&apos;existe pas</p>
                               ) : (
-                                <img
+                                <Image
                                   src={`/cards/${encodeURIComponent(normalized)}.png`}
                                   alt={card.name}
-                                  className="w-full h-full object-cover"
+                                  fill
+                                  className="object-cover"
                                   onError={() => {
-                                    setInvalidCards(prev => new Set([...prev, card.id]));
+                                    setInvalidCards((prev) => new Set([...prev, card.id]));
                                   }}
                                 />
                               )}
@@ -572,7 +584,7 @@ export default function DecksPage() {
                       setNewCardName(e.target.value);
                       if (cardError) setCardError("");
                     }}
-                    onKeyPress={(e) => {
+                    onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         addCard(selectedDeck);
                       }
@@ -601,14 +613,16 @@ export default function DecksPage() {
           className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => setPreviewCard(null)}
         >
-          <img
+          <Image
             src={`/cards/${encodeURIComponent(previewCard.filename)}.png`}
             alt={previewCard.name}
+            width={1000}
+            height={1400}
             className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />
         </div>
       )}
-    </main>
+    </AppPageShell>
   );
 }
