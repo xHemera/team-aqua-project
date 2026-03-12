@@ -72,10 +72,13 @@ model Inbox_users {
 }
 
 model Avatar {
-  id    String @id @default(cuid())
-  name  String
-  url   String
-  users User[]
+  id          String @id @default(cuid())
+  name        String
+  type        String
+  url         String
+  accent      String
+  accentHover String
+  users       User[]
 }
 
 model User {

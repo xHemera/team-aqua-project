@@ -25,7 +25,7 @@ export default function NotConnectedPage() {
       {/* Carte d'information + actions de redirection */}
       <div className="w-full max-w-md rounded-3xl border border-[#3c3650] bg-[#15131d]/85 p-8 text-center shadow-2xl backdrop-blur-md">
         <div className="mb-6">
-          <i className="fa-solid fa-circle-exclamation text-[#8e82ff] text-6xl"></i>
+          <i className="fa-solid fa-circle-exclamation text-[var(--accent-color)] text-6xl"></i>
         </div>
         
         <h1 className="text-3xl font-bold text-white mb-4">
@@ -39,7 +39,7 @@ export default function NotConnectedPage() {
         <div className="flex flex-col gap-3">
           <button
             onClick={() => router.push("/")}
-            className="w-full rounded-xl border border-[#b4a8ff]/70 bg-[#8e82ff] py-3 font-semibold text-white transition-colors hover:bg-[#7d71ec]"
+            className="w-full rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] py-3 font-semibold text-white transition-colors hover:bg-[var(--accent-hover)]"
           >
             <i className="fa-solid fa-right-to-bracket mr-2"></i>
             Se connecter

@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { applyAccentPalette, resolveProfileIcon } from "@/lib/profile-icons";
 
-type AvatarEntry = { id: string; name: string; url: string };
+type AvatarEntry = { id: string; name: string; type: string; url: string; accent: string; accentHover: string };
 
 type ProfileClientViewProps = {
   profileName: string;
@@ -123,6 +124,11 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
   const [draftBanner, setDraftBanner] = useState(defaultBanner);
 
   useEffect(() => {
+    const icon = resolveProfileIcon({ url: initialAvatar });
+    applyAccentPalette(icon);
+  }, [initialAvatar]);
+
+  useEffect(() => {
     if (!isOwnProfile) return;
 
     const initOwnProfile = async () => {
@@ -138,6 +144,9 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
             setSelectedAvatarId(profile.avatar.id);
             setDraftAvatarId(profile.avatar.id);
             setAvatar(profile.avatar.url);
+            localStorage.setItem("avatar", profile.avatar.url);
+            localStorage.setItem("avatarId", profile.avatar.id);
+            applyAccentPalette(resolveProfileIcon({ id: profile.avatar.id, url: profile.avatar.url }));
           }
         }
       }
@@ -193,6 +202,8 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
         setSelectedAvatarId(updated.avatar?.id ?? draftAvatarId);
         setAvatar(updated.avatar?.url ?? avatar);
         localStorage.setItem("avatar", updated.avatar?.url ?? avatar);
+        localStorage.setItem("avatarId", updated.avatar?.id ?? draftAvatarId);
+        applyAccentPalette(resolveProfileIcon({ id: updated.avatar?.id ?? draftAvatarId, url: updated.avatar?.url ?? avatar }));
       }
     }
 
@@ -230,7 +241,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
           {isOwnProfile && (
             <button
               onClick={openCustomizationPanel}
-              className="inline-flex h-11 items-center gap-2 rounded-xl border border-[#b4a8ff]/60 bg-[#1f1b2d]/90 px-3 text-sm font-medium text-white shadow-lg transition-colors hover:bg-[#2b2540]"
+              className="inline-flex h-11 items-center gap-2 rounded-xl border border-[color:var(--accent-border)] bg-[#1f1b2d]/90 px-3 text-sm font-medium text-white shadow-lg transition-colors hover:bg-[#2b2540]"
               aria-label="Personnaliser le profil"
             >
               <i className="fa-solid fa-sliders"></i>
@@ -272,8 +283,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                     alt={`Avatar de ${profileName}`}
                     width={176}
                     height={176}
-                    className="drop-shadow-2xl"
-                    style={{ imageRendering: "pixelated" }}
+                    className="h-40 w-40 rounded-2xl border border-[color:var(--accent-border)] object-cover drop-shadow-2xl sm:h-44 sm:w-44"
                     priority
                     unoptimized
                   />
@@ -282,7 +292,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                 <div className="pb-3">
                   <div className="mb-2 flex flex-wrap items-center gap-3">
                     <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{profileName}</h1>
-                    <i className="fa-solid fa-circle-check text-[#8e82ff] text-xl"></i>
+                    <i className="fa-solid fa-circle-check text-[var(--accent-color)] text-xl"></i>
                     <i className="fa-brands fa-telegram text-blue-400 text-xl"></i>
                   </div>
                   <p className="text-sm text-gray-300">#1 MIMIKYU ENJOYER</p>
@@ -291,7 +301,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
 
               <div className="flex items-center gap-2 pb-3">
                 <span className="rounded-md border border-yellow-500/50 bg-yellow-600/90 px-3 py-1 text-xs font-bold">OWNER</span>
-                <span className="rounded-md border border-[#b4a8ff]/50 bg-[#8e82ff]/90 px-3 py-1 text-xs font-bold">GIGACHAD</span>
+                <span className="rounded-md border border-[color:var(--accent-border)] bg-[var(--accent-color)] px-3 py-1 text-xs font-bold">GIGACHAD</span>
               </div>
             </div>
 
@@ -391,19 +401,19 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                     <button
                       key={av.id}
                       onClick={() => setDraftAvatarId(av.id)}
-                      className={`flex items-center justify-center gap-2 rounded-lg border p-2 transition-colors ${
+                      className={`flex items-center gap-2 rounded-xl border p-2 transition-colors ${
                         draftAvatarId === av.id
-                          ? "border-[#b4a8ff] bg-[#8e82ff]/20"
+                          ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)]"
                           : "border-[#3c3650] bg-[#242033] hover:bg-[#302a45]"
                       }`}
                     >
                       <Image
                         src={av.url}
                         alt={av.name}
-                        width={32}
-                        height={32}
-                        className="h-8 w-8 object-contain"
-                        style={{ imageRendering: "pixelated" }}
+                        width={48}
+                        height={48}
+                        className="h-12 w-12 rounded-lg border border-[#3c3650] object-cover"
+                        unoptimized
                       />
                       <span className="text-xs text-gray-200">{av.name}</span>
                     </button>
@@ -418,7 +428,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                   value={draftBackground}
                   onChange={(event) => setDraftBackground(event.target.value)}
                   placeholder="https://..."
-                  className="w-full rounded-lg border border-[#3c3650] bg-[#242033] px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-gray-500 focus:border-[#8e82ff]"
+                  className="w-full rounded-lg border border-[#3c3650] bg-[#242033] px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-gray-500 focus:border-[var(--accent-color)]"
                 />
               </div>
 
@@ -429,7 +439,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                   value={draftBanner}
                   onChange={(event) => setDraftBanner(event.target.value)}
                   placeholder="https://..."
-                  className="w-full rounded-lg border border-[#3c3650] bg-[#242033] px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-gray-500 focus:border-[#8e82ff]"
+                  className="w-full rounded-lg border border-[#3c3650] bg-[#242033] px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-gray-500 focus:border-[var(--accent-color)]"
                 />
               </div>
 
@@ -442,7 +452,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                 </button>
                 <button
                   onClick={handleSaveCustomization}
-                  className="rounded-lg border border-[#b4a8ff]/70 bg-[#8e82ff] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#7d71ec]"
+                  className="rounded-lg border border-[color:var(--accent-border)] bg-[var(--accent-color)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-hover)]"
                 >
                   Enregistrer
                 </button>

@@ -4,8 +4,7 @@ import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-
-const alder = "https://archives.bulbagarden.net/media/upload/e/e8/Spr_B2W2_Alder.png";
+import { DEFAULT_PROFILE_ICON } from "@/lib/profile-icons";
 
 const deckpublic: Record<string, string> = {
   "Flygon": "/decks/flygon-icon.png",
@@ -26,7 +25,7 @@ export default function Home() {
   const [showDeckDropdown, setShowDeckDropdown] = useState(false);
   const [showNotification, setShowNotification] = useState(true);
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
-  const [avatar, setAvatar] = useState(alder);
+  const [avatar, setAvatar] = useState(DEFAULT_PROFILE_ICON.url);
   const deckMenuRef = useRef<HTMLDivElement | null>(null);
 
   const loadDecksFromStorage = () => {
@@ -190,9 +189,9 @@ export default function Home() {
       {/* Notification Bar - Top Left */}
       {showNotification && (
         <div className="fixed top-4 left-4 z-50 animate-slide-in">
-          <div className="rounded-2xl shadow-2xl border-2 border-[#a99bff] overflow-hidden w-[380px] max-w-[90vw]">
+          <div className="rounded-2xl shadow-2xl border-2 border-[color:var(--accent-border)] overflow-hidden w-[380px] max-w-[90vw]">
             {/* Top part - Violet */}
-            <div className="bg-[#8e82ff] px-3  flex items-center justify-between">
+            <div className="bg-[var(--accent-color)] px-3  flex items-center justify-between">
               <div className="text-white font-bold text-base">@sunmiaou</div>
               <button
                 onClick={() => setShowNotification(false)}
@@ -250,11 +249,11 @@ export default function Home() {
                 alt="Avatar"
                 width={360}
                 height={360}
-                className="w-250 max-w-[60%] h-auto drop-shadow-2xl"
-                style={{ imageRendering: 'pixelated' }}
+                className="h-auto w-[240px] max-w-[58%] rounded-3xl border-2 border-[color:var(--accent-border)] object-cover drop-shadow-2xl"
                 priority
+                unoptimized
               />
-              <div className="bg-[#8e82ff] bg-opacity-75 bg-gradient-to-r px-8 py-3 border-3 border-[#a99bff] rounded-lg shadow-lg hover:bg-opacity-90 hover:scale-110 transition-all cursor-pointer">
+              <div className="bg-[var(--accent-color)] bg-opacity-75 bg-gradient-to-r px-8 py-3 border-3 border-[color:var(--accent-border)] rounded-lg shadow-lg hover:scale-110 transition-all cursor-pointer">
                 <a href="#" onClick={handleProfileClick} className="text-white font-bold text-lg hover:text-gray-200">{userPseudo || "Pseudo"}</a>
               </div>
             </div>
@@ -334,7 +333,7 @@ export default function Home() {
                     aria-selected={selectedDeck === deck}
                     className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
                       selectedDeck === deck
-                        ? "bg-[#8e82ff]/25 text-white"
+                        ? "bg-[var(--accent-soft)] text-white"
                         : "text-gray-200 hover:bg-[#242033]"
                     }`}
                   >
@@ -349,7 +348,7 @@ export default function Home() {
                       />
                     </div>
                     <span className="flex-1 font-semibold text-base">{deck}</span>
-                    {selectedDeck === deck && <i className="fa-solid fa-check text-[#b4a8ff]"></i>}
+                    {selectedDeck === deck && <i className="fa-solid fa-check text-[var(--accent-color)]"></i>}
                   </button>
                 ))}
                 {availableDecks.length === 0 && (

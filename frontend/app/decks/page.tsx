@@ -339,7 +339,7 @@ export default function DecksPage() {
             </button>
             <button
               onClick={() => router.push("/social")}
-              className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#b4a8ff]/60 bg-[#1f1b2d]/90 text-white shadow-lg transition-colors hover:bg-[#2b2540]"
+              className="flex h-11 w-11 items-center justify-center rounded-xl border border-[color:var(--accent-border)] bg-[#1f1b2d]/90 text-white shadow-lg transition-colors hover:bg-[#2b2540]"
               aria-label="Aller au social"
             >
               <i className="fa-regular fa-comment-dots"></i>
@@ -355,7 +355,7 @@ export default function DecksPage() {
                 <button
                   key={deck.name}
                   onClick={() => openDeckPopup(deck.name)}
-                  className="group relative overflow-hidden rounded-2xl border border-[#3c3650] bg-[#242033] p-6 transition-all hover:border-[#8e82ff]/60 hover:bg-[#302a45]"
+                  className="group relative overflow-hidden rounded-2xl border border-[#3c3650] bg-[#242033] p-6 transition-all hover:border-[color:var(--accent-border)] hover:bg-[#302a45]"
                 >
                   <div className="mb-4 flex items-center justify-center">
                     <Image
@@ -367,7 +367,7 @@ export default function DecksPage() {
                       style={{ imageRendering: "pixelated" }}
                     />
                   </div>
-                  <p className="text-center text-lg font-semibold text-white group-hover:text-[#b4a8ff]">
+                  <p className="text-center text-lg font-semibold text-white group-hover:text-[var(--accent-color)]">
                     {deck.name}
                   </p>
                   <p className="text-center text-sm text-gray-400 mt-2">
@@ -382,7 +382,7 @@ export default function DecksPage() {
 
         <button
           onClick={addNewDeck}
-          className="fixed bottom-6 right-4 z-20 inline-flex h-14 items-center gap-3 rounded-full border border-[#b4a8ff]/60 bg-[#8e82ff] px-5 text-base font-semibold text-white shadow-2xl transition-colors hover:bg-[#7d71ec] sm:bottom-8 sm:right-8"
+          className="fixed bottom-6 right-4 z-20 inline-flex h-14 items-center gap-3 rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] px-5 text-base font-semibold text-white shadow-2xl transition-colors hover:bg-[var(--accent-hover)] sm:bottom-8 sm:right-8"
         >
           <i className="fa-solid fa-plus text-lg"></i>
           New
@@ -419,7 +419,7 @@ export default function DecksPage() {
                         }
                       }}
                       placeholder="Nom du deck"
-                      className="w-full rounded-lg border border-[#8e82ff]/60 bg-[#242033] px-3 py-2 text-white placeholder:text-gray-500 focus:border-[#b4a8ff] focus:outline-none"
+                      className="w-full rounded-lg border border-[color:var(--accent-border)] bg-[#242033] px-3 py-2 text-white placeholder:text-gray-500 focus:border-[var(--accent-color)] focus:outline-none"
                     />
                     <button
                       type="button"
@@ -450,7 +450,7 @@ export default function DecksPage() {
                         setDeckNameDraft(selectedDeck);
                         setDeckNameError("");
                       }}
-                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#b4a8ff]/60 bg-[#242033] text-white transition-colors hover:bg-[#302a45]"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[color:var(--accent-border)] bg-[#242033] text-white transition-colors hover:bg-[#302a45]"
                       aria-label="Renommer le deck"
                     >
                       <i className="fa-solid fa-pen"></i>
@@ -497,7 +497,7 @@ export default function DecksPage() {
                           key={card.id}
                           className="relative group"
                         >
-                          <div className="relative overflow-hidden rounded-lg border border-[#3c3650] bg-[#242033] aspect-[2.5/3.5] hover:border-[#8e82ff]/60 transition-all">
+                          <div className="relative overflow-hidden rounded-lg border border-[#3c3650] bg-[#242033] aspect-[2.5/3.5] hover:border-[color:var(--accent-border)] transition-all">
                             {/* Image de la carte */}
                             <button
                               type="button"
@@ -506,7 +506,7 @@ export default function DecksPage() {
                                   setPreviewCard({ name: card.name, filename: normalized });
                                 }
                               }}
-                              className="w-full h-full bg-gradient-to-br from-[#8e82ff]/20 to-[#3c3650] flex items-center justify-center relative overflow-hidden"
+                              className="w-full h-full bg-gradient-to-br from-[var(--accent-soft)] to-[#3c3650] flex items-center justify-center relative overflow-hidden"
                             >
                               {hasError ? (
                                 <p className="text-xs text-red-500 text-center p-2">Cette carte n'existe pas</p>
@@ -524,7 +524,7 @@ export default function DecksPage() {
                             
                             {/* Badge de quantité (polygone bas-centre) */}
                             <div
-                              className="absolute bottom-1 left-1/2 z-20 flex h-10 w-14 -translate-x-1/2 items-center justify-center border border-[#b4a8ff]/80 bg-gradient-to-br from-[#8e82ff] to-[#5e54d6] text-base font-bold text-white shadow-lg"
+                              className="absolute bottom-1 left-1/2 z-20 flex h-10 w-14 -translate-x-1/2 items-center justify-center border border-[color:var(--accent-border)] bg-gradient-to-br from-[var(--accent-color)] to-[var(--accent-hover)] text-base font-bold text-white shadow-lg"
                               style={{ clipPath: "polygon(0 0, 100% 0, 100% 68%, 50% 100%, 0 68%)" }}
                             >
                               {card.count}
@@ -578,12 +578,12 @@ export default function DecksPage() {
                       }
                     }}
                     placeholder="Nom de la carte..."
-                    className="flex-1 rounded-lg border border-[#3c3650] bg-[#242033] px-3 py-2 text-white placeholder:text-gray-500 focus:border-[#8e82ff] focus:outline-none transition-colors"
+                    className="flex-1 rounded-lg border border-[#3c3650] bg-[#242033] px-3 py-2 text-white placeholder:text-gray-500 focus:border-[var(--accent-color)] focus:outline-none transition-colors"
                   />
                   <button
                     onClick={() => addCard(selectedDeck)}
                     disabled={getTotalCards(selectedDeck) >= 60}
-                    className="flex h-10 items-center gap-2 rounded-lg bg-[#8e82ff] px-4 py-2 text-sm font-medium text-white hover:bg-[#7d71ec] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex h-10 items-center gap-2 rounded-lg bg-[var(--accent-color)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <i className="fa-solid fa-plus"></i>
                     Add

@@ -3,10 +3,11 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { DEFAULT_PROFILE_ICON, PROFILE_ICONS } from "@/lib/profile-icons";
 
-const alder = "https://archives.bulbagarden.net/media/upload/e/e8/Spr_B2W2_Alder.png";
-const cynthia = "https://archives.bulbagarden.net/media/upload/8/83/Spr_B2W2_Cynthia.png";
-const n = "https://archives.bulbagarden.net/media/upload/2/2c/Spr_B2W2_N.png";
+const esper = PROFILE_ICONS.find((icon) => icon.type === "esper")?.url ?? DEFAULT_PROFILE_ICON.url;
+const dragon = PROFILE_ICONS.find((icon) => icon.type === "dragon")?.url ?? DEFAULT_PROFILE_ICON.url;
+const mizu = PROFILE_ICONS.find((icon) => icon.type === "mizu")?.url ?? DEFAULT_PROFILE_ICON.url;
 
 type Attachment = {
   id: string;
@@ -62,9 +63,9 @@ export default function SocialPage() {
   const messageListRef = useRef<HTMLDivElement | null>(null);
 
   const [users, setUsers] = useState<ChatUser[]>([
-    { name: "Sauralt", avatar: alder, unreadCount: 0 },
-    { name: "Xoco", avatar: n, unreadCount: 1 },
-    { name: "SunMiaou", avatar: cynthia, unreadCount: 0 },
+    { name: "Sauralt", avatar: esper, unreadCount: 0 },
+    { name: "Xoco", avatar: dragon, unreadCount: 1 },
+    { name: "SunMiaou", avatar: mizu, unreadCount: 0 },
   ]);
 
   const [selectedUser, setSelectedUser] = useState("SunMiaou");
@@ -190,7 +191,7 @@ export default function SocialPage() {
       }
 
       const foundName = payload.user.name;
-      const foundAvatar = payload.user.avatarUrl || cynthia;
+      const foundAvatar = payload.user.avatarUrl || DEFAULT_PROFILE_ICON.url;
 
       setUsers((prevUsers) => {
         if (prevUsers.some((user) => user.name === foundName)) {
@@ -315,7 +316,7 @@ export default function SocialPage() {
               value={inviteUsername}
               onChange={(event) => setInviteUsername(event.target.value)}
               placeholder="Pseudo du joueur"
-              className="mt-4 w-full rounded-xl border border-[#3c3650] bg-[#242033] px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-[#8e82ff]"
+              className="mt-4 w-full rounded-xl border border-[#3c3650] bg-[#242033] px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-[var(--accent-color)]"
               autoFocus
             />
 
@@ -330,7 +331,7 @@ export default function SocialPage() {
               <button
                 onClick={submitFriendInvite}
                 disabled={isInviting || inviteUsername.trim().length === 0}
-                className="rounded-xl border border-[#b4a8ff]/60 bg-[#8e82ff] px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-[#7d71ec] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isInviting ? "Recherche..." : "Envoyer"}
               </button>
@@ -375,7 +376,7 @@ export default function SocialPage() {
                     onClick={() => selectUser(user.name)}
                     className={`relative flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors ${
                       isActive
-                        ? "border-[#8e82ff]/60 bg-[#8e82ff]/25 text-white"
+                        ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)] text-white"
                         : "border-[#3c3650] bg-[#242033] text-gray-200 hover:bg-[#302a45]"
                     }`}
                   >
@@ -385,8 +386,7 @@ export default function SocialPage() {
                         alt={user.name}
                         width={64}
                         height={64}
-                        className="h-12 w-12 object-contain"
-                        style={{ imageRendering: "pixelated" }}
+                        className="h-12 w-12 rounded-lg border border-[#3c3650] object-cover"
                         unoptimized
                       />
                     </div>
@@ -405,7 +405,7 @@ export default function SocialPage() {
               <button
                 onClick={openAddFriendModal}
                 disabled={isInviting}
-                className="w-full rounded-xl border border-[#b4a8ff]/60 bg-[#8e82ff] py-2 font-bold text-white transition-colors hover:bg-[#7d71ec]"
+                className="w-full rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] py-2 font-bold text-white transition-colors hover:bg-[var(--accent-hover)]"
               >
                 {isInviting ? "Recherche..." : "+ Nouveau contact"}
               </button>
@@ -421,14 +421,13 @@ export default function SocialPage() {
                     alt={currentUser.name}
                     width={64}
                     height={64}
-                    className="h-12 w-12 object-contain"
-                    style={{ imageRendering: "pixelated" }}
+                    className="h-12 w-12 rounded-lg border border-[#3c3650] object-cover"
                     unoptimized
                   />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold">{currentUser.name}</h2>
-                  {hasDraft && <p className="text-xs text-[#b4a8ff]">En train d’écrire...</p>}
+                  {hasDraft && <p className="text-xs text-[var(--accent-color)]">En train d’écrire...</p>}
                 </div>
               </div>
 
@@ -453,7 +452,7 @@ export default function SocialPage() {
                   <article
                     className={`max-w-[44rem] rounded-2xl px-5 py-3 ${
                       msg.isMine
-                        ? "bg-[#8e82ff] text-white"
+                        ? "bg-[var(--accent-color)] text-white"
                         : "border border-[#3c3650] bg-[#242033] text-gray-100"
                     }`}
                   >
@@ -555,7 +554,7 @@ export default function SocialPage() {
                 <button
                   onClick={sendMessage}
                   disabled={!hasDraft}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-[#b4a8ff]/60 bg-[#8e82ff] text-white transition-colors hover:bg-[#7d71ec] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Envoyer"
                 >
                   <i className="fa-solid fa-paper-plane" />
