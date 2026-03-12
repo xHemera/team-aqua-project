@@ -139,7 +139,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
 
   //reconnection en cas de chargement de la page
     useEffect(() => {
-      if (socket.connected || disconnect) return;
+      if (socket.connected || disconnect || !userPseudo) return;
       socket.connect()
       socket.emit("login", userPseudo);
       socket.on("online_users", (users) => {

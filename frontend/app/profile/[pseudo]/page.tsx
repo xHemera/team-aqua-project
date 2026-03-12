@@ -46,9 +46,8 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     notFound();
   }
 
-
   const avatar = profileUser.avatar?.url ?? profileUser.image ?? DEFAULT_AVATAR_URL;
-
+  
   return (
     <ProfileClientView
       profileName={profileUser.name}
