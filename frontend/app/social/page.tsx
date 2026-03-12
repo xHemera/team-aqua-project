@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { socket } from "../../socket"
+import { authClient } from "@/lib/auth-client";
 
 const alder = "https://archives.bulbagarden.net/media/upload/e/e8/Spr_B2W2_Alder.png";
 const cynthia = "https://archives.bulbagarden.net/media/upload/8/83/Spr_B2W2_Cynthia.png";
@@ -55,7 +56,6 @@ const buildAttachmentFromFile = (file: File): Attachment => ({
 export default function SocialPage() {
 
   const router = useRouter();
-  const params = useParams();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
 
@@ -68,6 +68,7 @@ export default function SocialPage() {
   const [selectedUser, setSelectedUser] = useState("SunMiaou");
   const [message, setMessage] = useState("");
   const [draftAttachments, setDraftAttachments] = useState<Attachment[]>([]);
+  const [userPseudo, setUserPseudo] = useState<string | null>(null);
 
   const [messagesByUser, setMessagesByUser] = useState<Record<string, ChatMessage[]>>({
     SunMiaou: [
@@ -115,9 +116,20 @@ export default function SocialPage() {
 
 
   useEffect(() => {
-    if (socket.connected) return;
+    const getUserData = async () => {
+      const { data } = await authClient.getSession();
+      if (data?.user?.name)
+      {
+        setUserPseudo(data.user.name);
+      };
+    };
+    getUserData();
+  });
+
+  useEffect(() => {
+    if (socket.connected || !userPseudo) return;
     socket.connect()
-    socket.emit("login", params.pseudo);
+    socket.emit("login", userPseudo);
     socket.on("online_users", (users) => {
       console.log("Users from Redis:", users);
     });

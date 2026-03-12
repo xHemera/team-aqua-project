@@ -125,7 +125,7 @@ export default function DecksPage() {
     
 
   useEffect(() => {
-    if (socket.connected) return;
+    if (socket.connected || !userPseudo) return;
     socket.connect()
     socket.emit("login", userPseudo);
     socket.on("online_users", (users) => {

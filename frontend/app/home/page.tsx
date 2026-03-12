@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { socket } from "../../socket"
 
@@ -21,7 +21,6 @@ const defaultDecks = ["Flygon", "Ceruledge", "Toxtricity", "Zacian"];
 // Page principale: navigation rapide, lancement de partie et sélection de deck
 export default function Home() {
 
-  const params = useParams();
   const router = useRouter();
   // États UI de la page
   const [showPopup, setShowPopup] = useState(false);
@@ -36,9 +35,9 @@ export default function Home() {
 
   //reconnection en cas de chargement de la page
     useEffect(() => {
-      if (socket.connected) return;
+      if (socket.connected || !userPseudo) return;
       socket.connect()
-      socket.emit("login", params.pseudo);
+      socket.emit("login", userPseudo);
       socket.on("online_users", (users) => {
         console.log("Users from Redis:", users);
       });
