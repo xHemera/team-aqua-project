@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import { socket } from "../../socket"
+import { authClient } from "@/lib/auth-client";
 
 const deckImages: Record<string, string> = {
   Flygon: "/decks/flygon-icon.png",
@@ -96,6 +98,7 @@ export default function DecksPage() {
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [previewCard, setPreviewCard] = useState<{ name: string; filename: string } | null>(null);
   const [decks, setDecks] = useState<Record<string, DeckData>>({});
+  const [userPseudo, setUserPseudo] = useState<string | null>(null);
   const [deckList, setDeckList] = useState<Array<{ name: string; icon: string }>>([
     { name: "Flygon", icon: deckImages.Flygon },
     { name: "Ceruledge", icon: deckImages.Ceruledge },
@@ -108,6 +111,27 @@ export default function DecksPage() {
   const [isRenamingDeck, setIsRenamingDeck] = useState(false);
   const [deckNameDraft, setDeckNameDraft] = useState("");
   const [deckNameError, setDeckNameError] = useState("");
+
+  useEffect(() => {
+    const getUserData = async () => {
+      const { data } = await authClient.getSession();
+      if (data?.user?.name)
+      {
+        setUserPseudo(data.user.name);
+      };
+    };
+    getUserData();
+  });
+    
+
+  useEffect(() => {
+    if (socket.connected) return;
+    socket.connect()
+    socket.emit("login", userPseudo);
+    socket.on("online_users", (users) => {
+      console.log("Users from Redis:", users);
+    });
+  });
 
   const getDeckIcon = (deckName: string) => {
     return deckImages[deckName] || deckImages.Flygon;

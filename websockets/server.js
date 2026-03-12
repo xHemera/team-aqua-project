@@ -30,7 +30,7 @@ const io = new Server(httpServer, {
 //fonctions sockets (comme gerer les connexions ou l'envoi de msgs)
 io.on("connect", (socket) => {
   socket.on("login", async (user) => {
-    await redis.hSet("online_users", socket.id, user);
+    await redis.hSet("online_users", socket.id, JSON.stringify(user));
     const users = await redis.hGetAll("online_users");
     console.log("Client connected: ", users);
     socket.emit("online_users: ", users);

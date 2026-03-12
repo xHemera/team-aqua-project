@@ -243,6 +243,16 @@ export default function ProfilePage() {
 
     setShowCustomizationPanel(false);
   };
+  
+  //reconnection en cas de chargement de la page
+  useEffect(() => {
+    if (socket.connected || disconnect) return;
+    socket.connect()
+    socket.emit("login", params?.pseudo);
+    socket.on("online_users", (users) => {
+      console.log("Users from Redis:", users);
+    });
+  });
 
   //deconnecte le socket
   useEffect(() => {

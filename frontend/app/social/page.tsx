@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { socket } from "../../socket"
 
 const alder = "https://archives.bulbagarden.net/media/upload/e/e8/Spr_B2W2_Alder.png";
 const cynthia = "https://archives.bulbagarden.net/media/upload/8/83/Spr_B2W2_Cynthia.png";
@@ -54,6 +55,7 @@ const buildAttachmentFromFile = (file: File): Attachment => ({
 export default function SocialPage() {
 
   const router = useRouter();
+  const params = useParams();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
 
@@ -110,6 +112,16 @@ export default function SocialPage() {
   );
 
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
+
+
+  useEffect(() => {
+    if (socket.connected) return;
+    socket.connect()
+    socket.emit("login", params.pseudo);
+    socket.on("online_users", (users) => {
+      console.log("Users from Redis:", users);
+    });
+  });
 
   useEffect(() => {
     messageListRef.current?.scrollTo({
