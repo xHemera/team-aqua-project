@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { socket } from "../../../socket"
 
 type AvatarEntry = { id: string; name: string; url: string };
 
@@ -121,7 +122,37 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
   const [draftAvatarId, setDraftAvatarId] = useState<string | null>(null);
   const [draftBackground, setDraftBackground] = useState(defaultBackground);
   const [draftBanner, setDraftBanner] = useState(defaultBanner);
+  const [disconnect, setDisconnect] = useState(false);
+  const [userPseudo, setUserPseudo] = useState<string | null>(null)
 
+
+  useEffect(() => {
+    const getUserData = async () => {
+      const { data } = await authClient.getSession();
+      if (data?.user?.name)
+      {
+        setUserPseudo(data.user.name);
+      };
+    };
+    getUserData();
+  });
+
+  //reconnection en cas de chargement de la page
+    useEffect(() => {
+      if (socket.connected || disconnect) return;
+      socket.connect()
+      socket.emit("login", userPseudo);
+      socket.on("online_users", (users) => {
+        console.log("Users from Redis:", users);
+      });
+    });
+  
+    //deconnecte le socket
+    useEffect(() => {
+      if (disconnect == true)
+        socket.disconnect();
+    });
+    
   useEffect(() => {
     if (!isOwnProfile) return;
 
@@ -206,6 +237,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
   };
 
   const handleLogout = async () => {
+    setDisconnect(true);
     await authClient.signOut();
     router.push("/");
   };
