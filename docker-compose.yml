@@ -61,14 +61,14 @@ services:
     tty: true
     command: sh
     ports:
-      - "4000:4000"
+      - "4001:4001"
     volumes:
       - ./websockets:/app
       - backend_pnpm_store:/pnpm/store
     environment:
       NODE_ENV: development
       DATABASE_URL: postgresql://postgres:postgres@db:5432/aqua_temp
-      PORT: 4000
+      PORT: 4001
     depends_on:
       db:
         condition: service_healthy
