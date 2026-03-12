@@ -123,6 +123,18 @@ export default function Home() {
       document.removeEventListener("keydown", handleEscape);
     };
   }, []);
+
+  useEffect(() => {
+    const handleEscapeModal = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setShowPopup(false);
+    };
+
+    document.addEventListener("keydown", handleEscapeModal);
+    return () => {
+      document.removeEventListener("keydown", handleEscapeModal);
+    };
+  }, []);
   
   // Redirige vers la page profil réelle de l'utilisateur connecté
   const handleProfileClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -135,7 +147,7 @@ export default function Home() {
     }
   };
   return (
-    <AppPageShell containerClassName="w-full max-w-[92rem] flex-col px-0 py-0">
+    <AppPageShell showSidebar containerClassName="min-h-0 flex-1 flex-col">
       {/* Animations locales de notification et loader */}
       <style jsx>{`
         @keyframes dot-pulse {
@@ -151,7 +163,7 @@ export default function Home() {
         }
         @keyframes slide-in {
           from {
-            transform: translateX(-100%);
+            transform: translateX(100%);
             opacity: 0;
           }
           to {
@@ -173,10 +185,10 @@ export default function Home() {
         }
       `}</style>
 
-      {/* Notification Bar - Top Left */}
+      {/* Notification */}
       {showNotification && (
-        <div className="fixed top-4 left-4 z-50 animate-slide-in">
-          <div className="rounded-2xl shadow-2xl border-2 border-[color:var(--accent-border)] overflow-hidden w-[380px] max-w-[90vw]">
+        <div className="absolute right-4 top-4 z-30 animate-slide-in">
+          <div className="w-[min(380px,92vw)] overflow-hidden rounded-2xl border-2 border-[color:var(--accent-border)] shadow-2xl">
             {/* Top part - Violet */}
             <div className="bg-[var(--accent-color)] px-3  flex items-center justify-between">
               <div className="text-white font-bold text-base">@sunmiaou</div>
@@ -197,58 +209,12 @@ export default function Home() {
         </div>
       )}
 
-      {/* Header */}
-      <header className="relative z-10 flex w-full items-center justify-end px-4 py-4 sm:px-8 sm:py-6">
-        <div className="flex gap-4 rounded-2xl border border-[#3c3650] bg-[#15131d]/85 px-4 py-3 shadow-2xl backdrop-blur-md">
-          {/* Decks Icon */}
-          <a href="/decks" className="w-16 h-16 bg-[#242033] rounded-xl flex items-center justify-center border border-[#3c3650] hover:bg-[#302a45] transition-colors shadow-lg">
-            <i className="fa-solid fa-box-archive text-white text-2xl"></i>
-          </a>
-          
-          {/* Social/Chat Icon with notification */}
-          <a href="/social" className="w-16 h-16 bg-[#242033] rounded-xl flex items-center justify-center border border-[#3c3650] hover:bg-[#302a45] transition-colors shadow-lg relative">
-            <i className="fa-regular fa-comment-dots text-white text-2xl"></i>
-            <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-              1
-            </div>
-          </a>
-          
-          {/* Settings Icon */}
-          <a href="#" onClick={handleProfileClick} className="w-16 h-16 bg-[#242033] rounded-xl flex items-center justify-center border border-[#3c3650] hover:bg-[#302a45] transition-colors shadow-lg">
-            <i className="fa-solid fa-user-gear text-white text-2xl"></i>
-          </a>
-        </div>
-      </header>
-
       {/* Zone centrale (CTA Play + sélecteur deck) */}
-      <div className="relative z-10 flex min-h-[calc(100vh-116px)] w-full flex-1 items-center justify-center px-4 pb-4 sm:px-8 sm:pb-6">
-        
-        <div className="absolute inset-0 flex pointer-events-none">
-          {/* Left Side - Illustration */}
-          <div className="flex-1 min-h-full flex items-center justify-center p-8 relative">
-          </div>
+      <div className="relative z-10 flex min-h-0 flex-1 w-full items-center justify-center">
+        <div className="grid w-full max-w-6xl grid-cols-1 items-center gap-8 px-2 lg:grid-cols-[1fr_auto_1fr]">
+          <div className="hidden lg:block" />
 
-          {/* Right Side */}
-          <div className="flex-1 min-h-full flex items-center left-30 justify-end relative pointer-events-auto">
-            <div className="relative z-10 flex flex-col items-center gap-4 mr-8">
-              <Image
-                src={avatar}
-                alt="Avatar"
-                width={360}
-                height={360}
-                className="h-auto w-[240px] max-w-[58%] rounded-3xl border-2 border-[color:var(--accent-border)] object-cover drop-shadow-2xl"
-                priority
-                unoptimized
-              />
-              <div className="bg-[var(--accent-color)] bg-opacity-75 bg-gradient-to-r px-8 py-3 border-3 border-[color:var(--accent-border)] rounded-lg shadow-lg hover:scale-110 transition-all cursor-pointer">
-                <a href="#" onClick={handleProfileClick} className="text-white font-bold text-lg hover:text-gray-200">{userPseudo || "Pseudo"}</a>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Centered Play Button */}
-        <div className="relative z-20 flex flex-col items-center justify-center gap-6">
+          <div className="relative z-20 flex flex-col items-center justify-center gap-6">
           <div
             className="bg-black p-0.5 shadow-2xl transform-gpu transition-transform origin-center hover:scale-105"
             style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
@@ -259,7 +225,7 @@ export default function Home() {
             >
               <button
                 onClick={() => setShowPopup(true)}
-                className="w-80 h-90 bg-[#ffdb4c] text-[#fff46d] font-black text-7xl italic uppercase tracking-wide flex items-center justify-center"
+                className="flex h-80 w-72 items-center justify-center bg-[#ffdb4c] text-6xl font-black italic uppercase tracking-wide text-[#fff46d] sm:h-96 sm:w-80 sm:text-7xl"
                 style={{ 
                   clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)', 
                   textShadow: '1px 1px 2px rgba(0,0,0,0.2)',
@@ -308,7 +274,7 @@ export default function Home() {
             </button>
             
             {showDeckDropdown && (
-              <div className="absolute bottom-[calc(100%+0.55rem)] z-30 w-full rounded-2xl border border-[#3c3650] bg-[#15131d] p-2 shadow-2xl">
+              <div className="absolute top-[calc(100%+0.55rem)] z-30 w-full rounded-2xl border border-[#3c3650] bg-[#15131d] p-2 shadow-2xl">
                 {availableDecks.map((deck) => (
                   <button
                     key={deck}
@@ -343,6 +309,25 @@ export default function Home() {
                 )}
               </div>
             )}
+          </div>
+
+          </div>
+
+          <div className="relative z-20 flex flex-col items-center justify-center gap-4 lg:items-end">
+            <Image
+              src={avatar}
+              alt="Avatar"
+              width={320}
+              height={320}
+              className="h-auto w-[220px] rounded-3xl border-2 border-[color:var(--accent-border)] object-cover drop-shadow-2xl sm:w-[240px]"
+              priority
+              unoptimized
+            />
+            <div className="cursor-pointer rounded-lg border-2 border-[color:var(--accent-border)] bg-[var(--accent-color)] px-8 py-3 shadow-lg transition-all hover:scale-105">
+              <a href="#" onClick={handleProfileClick} className="text-lg font-bold text-white hover:text-gray-200">
+                {userPseudo || "Pseudo"}
+              </a>
+            </div>
           </div>
         </div>
       </div>

@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import AppPageShell from "@/components/AppPageShell";
 import { DEFAULT_PROFILE_ICON, PROFILE_ICONS } from "@/lib/profile-icons";
 
@@ -38,6 +37,92 @@ type InviteNotification = {
   message: string;
 };
 
+const SOCIAL_STORAGE_KEY = "social-chat-state";
+
+const defaultUsers = [
+  { name: "Sauralt", avatar: esper, unreadCount: 0 },
+  { name: "Xoco", avatar: dragon, unreadCount: 1 },
+  { name: "SunMiaou", avatar: mizu, unreadCount: 0 },
+] as ChatUser[];
+
+const defaultMessagesByUser: Record<string, ChatMessage[]> = {
+  SunMiaou: [
+    {
+      id: "msg-1",
+      sender: "SunMiaou",
+      text: "Salut ! Tu lances une partie ce soir ?",
+      isMine: false,
+      sentAt: "20:41",
+      attachments: [],
+    },
+    {
+      id: "msg-2",
+      sender: "me",
+      text: "Oui, je finis mon deck et je t’écris.",
+      isMine: true,
+      sentAt: "20:43",
+      attachments: [],
+    },
+  ],
+  Xoco: [
+    {
+      id: "msg-3",
+      sender: "Xoco",
+      text: "Tu peux me renvoyer la liste du deck ?",
+      isMine: false,
+      sentAt: "18:12",
+      attachments: [],
+    },
+  ],
+  Sauralt: [],
+};
+
+const getInitialSocialState = () => {
+  if (typeof window === "undefined") {
+    return {
+      users: defaultUsers,
+      messagesByUser: defaultMessagesByUser,
+      selectedUser: "SunMiaou",
+    };
+  }
+
+  const savedState = localStorage.getItem(SOCIAL_STORAGE_KEY);
+  if (!savedState) {
+    return {
+      users: defaultUsers,
+      messagesByUser: defaultMessagesByUser,
+      selectedUser: "SunMiaou",
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(savedState) as {
+      users?: ChatUser[];
+      messagesByUser?: Record<string, ChatMessage[]>;
+      selectedUser?: string;
+    };
+
+    const users = parsed.users && parsed.users.length > 0 ? parsed.users : defaultUsers;
+    const messagesByUser = parsed.messagesByUser ?? defaultMessagesByUser;
+    const selectedUser =
+      parsed.selectedUser && users.some((user) => user.name === parsed.selectedUser)
+        ? parsed.selectedUser
+        : users[0]?.name ?? "SunMiaou";
+
+    return {
+      users,
+      messagesByUser,
+      selectedUser,
+    };
+  } catch {
+    return {
+      users: defaultUsers,
+      messagesByUser: defaultMessagesByUser,
+      selectedUser: "SunMiaou",
+    };
+  }
+};
+
 const formatTime = (date: Date) =>
   date.toLocaleTimeString("fr-FR", {
     hour: "2-digit",
@@ -59,55 +144,23 @@ const buildAttachmentFromFile = (file: File): Attachment => ({
 });
 
 export default function SocialPage() {
-  const router = useRouter();
+  const initialSocialState = getInitialSocialState();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
 
-  const [users, setUsers] = useState<ChatUser[]>([
-    { name: "Sauralt", avatar: esper, unreadCount: 0 },
-    { name: "Xoco", avatar: dragon, unreadCount: 1 },
-    { name: "SunMiaou", avatar: mizu, unreadCount: 0 },
-  ]);
-
-  const [selectedUser, setSelectedUser] = useState("SunMiaou");
+  const [users, setUsers] = useState<ChatUser[]>(initialSocialState.users);
+  const [selectedUser, setSelectedUser] = useState(initialSocialState.selectedUser);
   const [message, setMessage] = useState("");
   const [draftAttachments, setDraftAttachments] = useState<Attachment[]>([]);
   const [inviteNotification, setInviteNotification] = useState<InviteNotification | null>(null);
   const [isInviting, setIsInviting] = useState(false);
   const [isAddFriendModalOpen, setIsAddFriendModalOpen] = useState(false);
   const [inviteUsername, setInviteUsername] = useState("");
+  const [contactSearch, setContactSearch] = useState("");
 
-  const [messagesByUser, setMessagesByUser] = useState<Record<string, ChatMessage[]>>({
-    SunMiaou: [
-      {
-        id: "msg-1",
-        sender: "SunMiaou",
-        text: "Salut ! Tu lances une partie ce soir ?",
-        isMine: false,
-        sentAt: "20:41",
-        attachments: [],
-      },
-      {
-        id: "msg-2",
-        sender: "me",
-        text: "Oui, je finis mon deck et je t’écris.",
-        isMine: true,
-        sentAt: "20:43",
-        attachments: [],
-      },
-    ],
-    Xoco: [
-      {
-        id: "msg-3",
-        sender: "Xoco",
-        text: "Tu peux me renvoyer la liste du deck ?",
-        isMine: false,
-        sentAt: "18:12",
-        attachments: [],
-      },
-    ],
-    Sauralt: [],
-  });
+  const [messagesByUser, setMessagesByUser] = useState<Record<string, ChatMessage[]>>(
+    initialSocialState.messagesByUser,
+  );
 
   const currentUser = useMemo(
     () => users.find((user) => user.name === selectedUser) ?? users[0],
@@ -118,6 +171,13 @@ export default function SocialPage() {
     () => messagesByUser[selectedUser] ?? [],
     [messagesByUser, selectedUser],
   );
+
+  const filteredUsers = useMemo(() => {
+    const query = contactSearch.trim().toLowerCase();
+    if (!query) return users;
+
+    return users.filter((user) => user.name.toLowerCase().includes(query));
+  }, [contactSearch, users]);
 
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
 
@@ -143,6 +203,38 @@ export default function SocialPage() {
 
     return () => clearTimeout(timeoutId);
   }, [inviteNotification]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      SOCIAL_STORAGE_KEY,
+      JSON.stringify({
+        users,
+        messagesByUser,
+        selectedUser,
+      }),
+    );
+  }, [messagesByUser, selectedUser, users]);
+
+  useEffect(() => {
+    if (users.length === 0) return;
+    if (!users.some((user) => user.name === selectedUser)) {
+      setSelectedUser(users[0].name);
+    }
+  }, [selectedUser, users]);
+
+  useEffect(() => {
+    const handleEscapeModal = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (isAddFriendModalOpen) {
+        closeAddFriendModal();
+      }
+    };
+
+    document.addEventListener("keydown", handleEscapeModal);
+    return () => {
+      document.removeEventListener("keydown", handleEscapeModal);
+    };
+  }, [isAddFriendModalOpen, isInviting]);
 
   const selectUser = (userName: string) => {
     setSelectedUser(userName);
@@ -291,7 +383,7 @@ export default function SocialPage() {
   };
 
   return (
-    <AppPageShell>
+    <AppPageShell showSidebar containerClassName="min-h-0 flex-1">
       {inviteNotification && (
         <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
           <div
@@ -307,8 +399,14 @@ export default function SocialPage() {
       )}
 
       {isAddFriendModalOpen && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 px-4">
-          <div className="w-full max-w-md rounded-2xl border border-[#3c3650] bg-[#1b1826] p-5 shadow-2xl">
+        <div
+          className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 px-4"
+          onClick={closeAddFriendModal}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-[#3c3650] bg-[#1b1826] p-5 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
             <h3 className="text-lg font-bold text-white">entrez le nom d&apos;utilisateur</h3>
             <p className="mt-1 text-sm text-gray-300">Saisis le pseudo du joueur pour envoyer une invitation.</p>
 
@@ -316,6 +414,12 @@ export default function SocialPage() {
               type="text"
               value={inviteUsername}
               onChange={(event) => setInviteUsername(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  submitFriendInvite();
+                }
+              }}
               placeholder="Pseudo du joueur"
               className="mt-4 w-full rounded-xl border border-[#3c3650] bg-[#242033] px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-[var(--accent-color)]"
               autoFocus
@@ -341,22 +445,25 @@ export default function SocialPage() {
         </div>
       )}
 
-      <div className="w-full">
-        <section className="grid h-[calc(100vh-2rem)] w-full grid-cols-1 overflow-hidden rounded-3xl border border-[#3c3650] bg-[#15131d]/85 shadow-2xl backdrop-blur-md lg:grid-cols-[19rem_1fr]">
+      <div className="mx-auto flex min-h-0 flex-1 w-full max-w-6xl">
+        <section className="grid h-full min-h-0 w-full grid-cols-1 overflow-hidden rounded-3xl border border-[#3c3650] bg-[#15131d]/85 shadow-2xl backdrop-blur-md lg:grid-cols-[19rem_1fr]">
           <aside className="flex min-h-0 flex-col border-b border-[#3c3650] lg:border-b-0 lg:border-r">
             <div className="flex items-center justify-between border-b border-[#3c3650] px-5 py-4">
               <h1 className="text-2xl font-bold tracking-tight">Social</h1>
-              <button
-                onClick={() => router.push("/home")}
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#3c3650] bg-[#242033] text-white transition-colors hover:bg-[#302a45]"
-                aria-label="Retour à l'accueil"
-              >
-                <i className="fa-solid fa-house" />
-              </button>
+            </div>
+
+            <div className="border-b border-[#3c3650] p-3">
+              <input
+                type="text"
+                value={contactSearch}
+                onChange={(event) => setContactSearch(event.target.value)}
+                placeholder="Rechercher un contact..."
+                className="w-full rounded-xl border border-[#3c3650] bg-[#242033] px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-[var(--accent-color)]"
+              />
             </div>
 
             <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
-              {users.map((user) => {
+              {filteredUsers.map((user) => {
                 const isActive = selectedUser === user.name;
 
                 return (
@@ -369,13 +476,13 @@ export default function SocialPage() {
                         : "border-[#3c3650] bg-[#242033] text-gray-200 hover:bg-[#302a45]"
                     }`}
                   >
-                    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-visible">
+                    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md">
                       <Image
                         src={user.avatar}
                         alt={user.name}
                         width={64}
                         height={64}
-                        className="h-12 w-12 rounded-lg border border-[#3c3650] object-cover"
+                        className="h-10 w-10 rounded-md border border-[#3c3650] object-cover"
                         unoptimized
                       />
                     </div>
@@ -388,6 +495,12 @@ export default function SocialPage() {
                   </button>
                 );
               })}
+
+              {filteredUsers.length === 0 && (
+                <div className="rounded-xl border border-[#3c3650] bg-[#242033]/70 p-3 text-sm text-gray-300">
+                  Aucun contact trouvé.
+                </div>
+              )}
             </div>
 
             <div className="border-t border-[#3c3650] p-3">
@@ -404,13 +517,13 @@ export default function SocialPage() {
           <section className="flex min-h-0 flex-col">
             <header className="flex items-center justify-between border-b border-[#3c3650] bg-[#242033] px-5 py-4">
               <div className="flex items-center gap-3">
-                <div className="relative flex h-10 w-10 items-center justify-center overflow-visible">
+                <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-md">
                   <Image
                     src={currentUser.avatar}
                     alt={currentUser.name}
                     width={64}
                     height={64}
-                    className="h-12 w-12 rounded-lg border border-[#3c3650] object-cover"
+                    className="h-10 w-10 rounded-md border border-[#3c3650] object-cover"
                     unoptimized
                   />
                 </div>
@@ -420,13 +533,9 @@ export default function SocialPage() {
                 </div>
               </div>
 
-              <button
-                onClick={() => router.push("/home")}
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#3c3650] bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
-                aria-label="Fermer"
-              >
-                ✕
-              </button>
+              <div className="rounded-xl border border-[#3c3650] bg-[#302a45] px-3 py-1 text-xs text-gray-200">
+                Conversation
+              </div>
             </header>
 
             <div ref={messageListRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">

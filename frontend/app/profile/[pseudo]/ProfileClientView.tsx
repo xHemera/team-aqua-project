@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import AppPageShell from "@/components/AppPageShell";
 import { authClient } from "@/lib/auth-client";
-import { buildBackgroundStyle, DEFAULT_SITE_BACKGROUND, normalizeImageValue, toCssImageValue } from "@/lib/background-utils";
+import { applyBackgroundPreferenceToDocument, buildBackgroundStyle, DEFAULT_SITE_BACKGROUND, normalizeImageValue } from "@/lib/background-utils";
 import { applyAccentPalette, resolveProfileIcon } from "@/lib/profile-icons";
 
 type AvatarEntry = { id: string; name: string; type: string; url: string; accent: string; accentHover: string };
@@ -68,8 +68,6 @@ const deckpublic: Record<string, string> = {
 const normalizeBackgroundValue = (value: string) => normalizeImageValue(value, defaultBackground);
 const normalizeBannerValue = (value: string) => normalizeImageValue(value, defaultBanner);
 
-const toCssBackgroundImageValue = (value: string) => toCssImageValue(value, defaultBackground);
-
 export default function ProfileClientView({ profileName, initialAvatar, isOwnProfile }: ProfileClientViewProps) {
   const router = useRouter();
   const [avatars, setAvatars] = useState<AvatarEntry[]>([]);
@@ -131,12 +129,12 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
         const nextSavedBackground = normalizeBackgroundValue(savedBackground);
         setProfileBackground(nextSavedBackground);
         setDraftBackground(nextSavedBackground);
-        document.documentElement.style.setProperty("--site-bg-image", toCssBackgroundImageValue(nextSavedBackground));
+        applyBackgroundPreferenceToDocument(nextSavedBackground, defaultBackground);
       } else if (profile?.profileBackground) {
         const nextBackground = normalizeBackgroundValue(profile.profileBackground);
         setProfileBackground(nextBackground);
         setDraftBackground(nextBackground);
-        document.documentElement.style.setProperty("--site-bg-image", toCssBackgroundImageValue(nextBackground));
+        applyBackgroundPreferenceToDocument(nextBackground, defaultBackground);
       }
 
       if (profile?.profileBanner) {
@@ -151,8 +149,20 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
 
   useEffect(() => {
     if (!isOwnProfile) return;
-    document.documentElement.style.setProperty("--site-bg-image", toCssBackgroundImageValue(profileBackground));
+    applyBackgroundPreferenceToDocument(profileBackground, defaultBackground);
   }, [isOwnProfile, profileBackground]);
+
+  useEffect(() => {
+    const handleEscapeModal = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setShowCustomizationPanel(false);
+    };
+
+    document.addEventListener("keydown", handleEscapeModal);
+    return () => {
+      document.removeEventListener("keydown", handleEscapeModal);
+    };
+  }, []);
 
   const openCustomizationPanel = () => {
     setDraftAvatarId(selectedAvatarId);
@@ -189,7 +199,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
       if (updated.profileBackground !== undefined) {
         const normalized = normalizeBackgroundValue(updated.profileBackground);
         setProfileBackground(normalized);
-        document.documentElement.style.setProperty("--site-bg-image", toCssBackgroundImageValue(normalized));
+        applyBackgroundPreferenceToDocument(normalized, defaultBackground);
       }
       if (updated.profileBanner !== undefined) {
         const normalized = normalizeBannerValue(updated.profileBanner);
@@ -207,8 +217,8 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
   const bannerStyle = buildBackgroundStyle(profileBanner, defaultBanner);
 
   return (
-    <AppPageShell containerClassName="flex min-h-screen w-full max-w-[92rem] flex-col px-4 py-4 sm:px-8 sm:py-6">
-      <div className="w-full">
+    <AppPageShell showSidebar containerClassName="min-h-0 flex-1">
+      <div className="mx-auto flex h-full w-full max-w-6xl flex-col overflow-y-auto pr-1">
         <header className="mb-5 flex items-center justify-end gap-3">
           {isOwnProfile && (
             <button
@@ -220,14 +230,6 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
               <span className="hidden sm:inline">Personnaliser</span>
             </button>
           )}
-
-          <button
-            onClick={() => router.push("/home")}
-            className="flex h-11 w-11 items-center justify-center rounded-xl border border-gray-500/80 bg-gray-700/80 text-white shadow-lg transition-colors hover:bg-gray-600"
-            aria-label="Retour à l'accueil"
-          >
-            <i className="fa-solid fa-house"></i>
-          </button>
 
           {isOwnProfile && (
             <button

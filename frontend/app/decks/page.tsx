@@ -1,8 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AppPageShell from "@/components/AppPageShell";
 
 const deckImages: Record<string, string> = {
@@ -11,6 +10,8 @@ const deckImages: Record<string, string> = {
   Toxtricity: "/decks/toxtricity-icon.png",
   Zacian: "/decks/zacian-icon.png",
 };
+
+const BLANK_DECK_ICON = "__blank__";
 
 type Card = {
   id: string;
@@ -22,6 +23,8 @@ type Card = {
 type DeckData = {
   cards: Card[];
 };
+
+type DeckIcons = Record<string, string>;
 
 const cardFileBases = [
   "absol",
@@ -65,6 +68,9 @@ const cardFileBases = [
   "zacian",
 ] as const;
 
+const deckIconChoices = [BLANK_DECK_ICON, ...Object.values(deckImages)];
+const MAX_NON_ENERGY_COPIES = 4;
+
 // Fonction pour normaliser le nom de la carte en nom de fichier
 const normalizeCardName = (name: string): string => {
   return name
@@ -91,6 +97,22 @@ const isValidCardName = (name: string): boolean => {
   return Boolean(cardNameMap[canonicalizeCardName(name)]);
 };
 
+const formatCardDisplayName = (fileBase: string) =>
+  fileBase
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
+const isImageIcon = (icon: string) => icon.startsWith("/");
+const normalizeDeckIcon = (icon: string | undefined) => {
+  if (!icon) return deckImages.Flygon;
+  if (icon === BLANK_DECK_ICON) return BLANK_DECK_ICON;
+  if (isImageIcon(icon)) return icon;
+  return BLANK_DECK_ICON;
+};
+
+const isEnergyCardName = (name: string) => resolveCardFilename(name).endsWith("_energy");
+
 const getInitialDeckData = () => {
   const fallbackDeckList = [
     { name: "Flygon", icon: deckImages.Flygon },
@@ -106,10 +128,15 @@ const getInitialDeckData = () => {
     Zacian: { cards: [] },
   };
 
+  const fallbackDeckIcons: DeckIcons = Object.fromEntries(
+    fallbackDeckList.map((deck) => [deck.name, deck.icon])
+  );
+
   if (typeof window === "undefined") {
     return {
       decks: fallbackDecks,
-      deckList: fallbackDeckList,
+      deckList: fallbackDeckList.map((deck) => ({ name: deck.name })),
+      deckIcons: fallbackDeckIcons,
     };
   }
 
@@ -117,43 +144,62 @@ const getInitialDeckData = () => {
   if (!saved) {
     return {
       decks: fallbackDecks,
-      deckList: fallbackDeckList,
+      deckList: fallbackDeckList.map((deck) => ({ name: deck.name })),
+      deckIcons: fallbackDeckIcons,
     };
   }
 
   const parsedDecks = JSON.parse(saved) as Record<string, DeckData>;
+  const savedIcons = localStorage.getItem("deckIcons");
+  const parsedIcons = savedIcons ? (JSON.parse(savedIcons) as DeckIcons) : {};
   const savedDeckNames = Object.keys(parsedDecks);
 
   if (savedDeckNames.length === 0) {
     return {
       decks: fallbackDecks,
-      deckList: fallbackDeckList,
+      deckList: fallbackDeckList.map((deck) => ({ name: deck.name })),
+      deckIcons: fallbackDeckIcons,
     };
   }
 
+  const deckIcons: DeckIcons = Object.fromEntries(
+    savedDeckNames.map((name) => [name, normalizeDeckIcon(parsedIcons[name] || deckImages[name] || deckImages.Flygon)])
+  );
+
   return {
     decks: parsedDecks,
-    deckList: savedDeckNames.map((name) => ({
-      name,
-      icon: deckImages[name] || deckImages.Flygon,
-    })),
+    deckList: savedDeckNames.map((name) => ({ name })),
+    deckIcons,
   };
 };
 
 // Page des decks
 export default function DecksPage() {
-  const router = useRouter();
   const initialDeckData = getInitialDeckData();
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [previewCard, setPreviewCard] = useState<{ name: string; filename: string } | null>(null);
   const [decks, setDecks] = useState<Record<string, DeckData>>(initialDeckData.decks);
-  const [deckList, setDeckList] = useState<Array<{ name: string; icon: string }>>(initialDeckData.deckList);
-  const [newCardName, setNewCardName] = useState("");
+  const [deckList, setDeckList] = useState<Array<{ name: string }>>(initialDeckData.deckList);
+  const [deckIcons, setDeckIcons] = useState<DeckIcons>(initialDeckData.deckIcons);
   const [cardError, setCardError] = useState("");
   const [invalidCards, setInvalidCards] = useState<Set<string>>(new Set());
   const [isRenamingDeck, setIsRenamingDeck] = useState(false);
   const [deckNameDraft, setDeckNameDraft] = useState("");
   const [deckNameError, setDeckNameError] = useState("");
+  const [availableCardQuery, setAvailableCardQuery] = useState("");
+  const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
+
+  const selectedDeckIcon = selectedDeck ? deckIcons[selectedDeck] || deckImages.Flygon : deckImages.Flygon;
+
+  const filteredAvailableCards = useMemo(() => {
+    const query = availableCardQuery.trim().toLowerCase();
+    if (!query) return cardFileBases;
+
+    return cardFileBases.filter((base) => {
+      const displayName = formatCardDisplayName(base).toLowerCase();
+      return displayName.includes(query) || base.includes(query);
+    });
+  }, [availableCardQuery]);
 
   // Sauvegarder les decks dans localStorage
   const saveDeck = (deckName: string, data: DeckData) => {
@@ -169,10 +215,48 @@ export default function DecksPage() {
     return decks[deckName]?.cards.reduce((sum, card) => sum + card.count, 0) || 0;
   };
 
-  const addCard = (deckName: string) => {
-    if (!newCardName.trim()) return;
+  const persistDeckIcons = (nextDeckIcons: DeckIcons) => {
+    setDeckIcons(nextDeckIcons);
+    localStorage.setItem("deckIcons", JSON.stringify(nextDeckIcons));
+  };
 
-    if (!isValidCardName(newCardName)) {
+  const setDeckIcon = (deckName: string, icon: string) => {
+    const iconValue = normalizeDeckIcon(icon.trim());
+    if (!iconValue) return;
+
+    const nextDeckIcons = {
+      ...deckIcons,
+      [deckName]: iconValue,
+    };
+    persistDeckIcons(nextDeckIcons);
+  };
+
+  const getCardCountInDeck = (deckName: string, cardBase: string) => {
+    const currentDeck = decks[deckName];
+    if (!currentDeck) return 0;
+
+    const card = currentDeck.cards.find((item) => resolveCardFilename(item.name) === cardBase);
+    return card?.count || 0;
+  };
+
+  const isCardAtCopyLimit = (deckName: string, cardName: string) => {
+    if (isEnergyCardName(cardName)) return false;
+
+    const currentDeck = decks[deckName];
+    if (!currentDeck) return false;
+
+    const card = currentDeck.cards.find(
+      (item) => canonicalizeCardName(item.name) === canonicalizeCardName(cardName)
+    );
+
+    return (card?.count || 0) >= MAX_NON_ENERGY_COPIES;
+  };
+
+  const addCardByName = (deckName: string, cardName: string) => {
+    const name = cardName.trim();
+    if (!name) return;
+
+    if (!isValidCardName(name)) {
       setCardError("Cette carte n'existe pas");
       return;
     }
@@ -189,10 +273,15 @@ export default function DecksPage() {
     }
 
     const existingCard = nextCards.find(
-      (card) => card.name.toLowerCase() === newCardName.toLowerCase()
+      (card) => canonicalizeCardName(card.name) === canonicalizeCardName(name)
     );
 
     if (existingCard) {
+      if (!isEnergyCardName(name) && existingCard.count >= MAX_NON_ENERGY_COPIES) {
+        setCardError(`Maximum ${MAX_NON_ENERGY_COPIES} exemplaires pour cette carte (hors énergies).`);
+        return;
+      }
+
       if (total + 1 > 60) {
         alert("Cannot exceed 60 cards!");
         return;
@@ -201,13 +290,12 @@ export default function DecksPage() {
     } else {
       nextCards.push({
         id: `${Date.now()}-${Math.random()}`,
-        name: newCardName,
+        name,
         count: 1,
       });
     }
 
     saveDeck(deckName, { cards: nextCards });
-    setNewCardName("");
   };
 
   const removeCard = (deckName: string, cardId: string) => {
@@ -241,6 +329,11 @@ export default function DecksPage() {
     const card = nextCards.find((item) => item.id === cardId);
     if (!card) return;
 
+    if (!isEnergyCardName(card.name) && card.count >= MAX_NON_ENERGY_COPIES) {
+      setCardError(`Maximum ${MAX_NON_ENERGY_COPIES} exemplaires pour cette carte (hors énergies).`);
+      return;
+    }
+
     card.count += 1;
     saveDeck(deckName, { cards: nextCards });
   };
@@ -258,7 +351,14 @@ export default function DecksPage() {
     setDecks(updatedDecks);
     localStorage.setItem("decks", JSON.stringify(updatedDecks));
 
-    setDeckList((prev) => [...prev, { name: deckName, icon: deckImages.Flygon }]);
+    const nextDeckIcons = {
+      ...deckIcons,
+      [deckName]: deckImages.Flygon,
+    };
+    persistDeckIcons(nextDeckIcons);
+
+    setDeckList((prev) => [...prev, { name: deckName }]);
+    openDeckPopup(deckName);
   };
 
   const openDeckPopup = (deckName: string) => {
@@ -266,6 +366,9 @@ export default function DecksPage() {
     setIsRenamingDeck(false);
     setDeckNameDraft(deckName);
     setDeckNameError("");
+    setAvailableCardQuery("");
+    setIsIconPickerOpen(false);
+    setCardError("");
   };
 
   const closeDeckPopup = () => {
@@ -273,6 +376,9 @@ export default function DecksPage() {
     setIsRenamingDeck(false);
     setDeckNameDraft("");
     setDeckNameError("");
+    setAvailableCardQuery("");
+    setIsIconPickerOpen(false);
+    setCardError("");
   };
 
   const renameSelectedDeck = () => {
@@ -303,6 +409,11 @@ export default function DecksPage() {
     setDecks(updatedDecks);
     localStorage.setItem("decks", JSON.stringify(updatedDecks));
 
+    const nextDeckIcons: DeckIcons = { ...deckIcons };
+    nextDeckIcons[nextName] = nextDeckIcons[previousName] || deckImages.Flygon;
+    delete nextDeckIcons[previousName];
+    persistDeckIcons(nextDeckIcons);
+
     setDeckList((prev) =>
       prev.map((deck) =>
         deck.name === previousName
@@ -331,31 +442,38 @@ export default function DecksPage() {
     setDecks(updatedDecks);
     localStorage.setItem("decks", JSON.stringify(updatedDecks));
 
+    const nextDeckIcons = { ...deckIcons };
+    delete nextDeckIcons[selectedDeck];
+    persistDeckIcons(nextDeckIcons);
+
     setDeckList((prev) => prev.filter((deck) => deck.name !== selectedDeck));
     closeDeckPopup();
   };
 
+  useEffect(() => {
+    const handleEscapeModal = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+
+      if (previewCard) {
+        setPreviewCard(null);
+        return;
+      }
+
+      if (selectedDeck) {
+        closeDeckPopup();
+      }
+    };
+
+    document.addEventListener("keydown", handleEscapeModal);
+    return () => {
+      document.removeEventListener("keydown", handleEscapeModal);
+    };
+  }, [previewCard, selectedDeck]);
+
   return (
-    <AppPageShell containerClassName="max-w-6xl flex-col px-4 py-6 sm:px-8 sm:py-8">
-      <div className="w-full">
+    <AppPageShell showSidebar containerClassName="min-h-0 flex-1">
+      <div className="relative mx-auto flex h-full w-full max-w-6xl flex-col overflow-y-auto pr-1">
         <header className="mb-6 flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">My Decks</h1>
-          <div className="flex gap-3">
-            <button
-              onClick={() => router.push("/home")}
-              className="flex h-11 w-11 items-center justify-center rounded-xl border border-gray-500/80 bg-gray-700/80 text-white shadow-lg transition-colors hover:bg-gray-600"
-              aria-label="Retour à l'accueil"
-            >
-              <i className="fa-solid fa-house"></i>
-            </button>
-            <button
-              onClick={() => router.push("/social")}
-              className="flex h-11 w-11 items-center justify-center rounded-xl border border-[color:var(--accent-border)] bg-[#1f1b2d]/90 text-white shadow-lg transition-colors hover:bg-[#2b2540]"
-              aria-label="Aller au social"
-            >
-              <i className="fa-regular fa-comment-dots"></i>
-            </button>
-          </div>
         </header>
 
         <section className="flex-1 rounded-3xl border border-[#3c3650] bg-[#15131d]/85 p-8 shadow-2xl backdrop-blur-md">
@@ -369,14 +487,28 @@ export default function DecksPage() {
                   className="group relative overflow-hidden rounded-2xl border border-[#3c3650] bg-[#242033] p-6 transition-all hover:border-[color:var(--accent-border)] hover:bg-[#302a45]"
                 >
                   <div className="mb-4 flex items-center justify-center">
-                    <Image
-                      src={deck.icon}
-                      alt={deck.name}
-                      width={90}
-                      height={90}
-                      className="h-25 w-25 object-contain group-hover:scale-110 transition-transform"
-                      style={{ imageRendering: "pixelated" }}
-                    />
+                    {(deckIcons[deck.name] || deckImages.Flygon) === BLANK_DECK_ICON ? (
+                      <div className="flex h-24 w-24 items-center justify-center rounded-xl border border-[#4a455e] bg-[#1b1828]">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-dashed border-[#6c6788] bg-[#242033] text-gray-300">
+                          <i className="fa-regular fa-image text-2xl" />
+                        </div>
+                      </div>
+                    ) : isImageIcon(deckIcons[deck.name] || deckImages.Flygon) ? (
+                      <Image
+                        src={deckIcons[deck.name] || deckImages.Flygon}
+                        alt={deck.name}
+                        width={90}
+                        height={90}
+                        className="h-25 w-25 object-contain transition-transform group-hover:scale-110"
+                        style={{ imageRendering: "pixelated" }}
+                      />
+                    ) : (
+                      <div className="flex h-24 w-24 items-center justify-center rounded-xl border border-[#4a455e] bg-[#1b1828]">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-dashed border-[#6c6788] bg-[#242033] text-gray-300">
+                          <i className="fa-regular fa-image text-2xl" />
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <p className="text-center text-lg font-semibold text-white group-hover:text-[var(--accent-color)]">
                     {deck.name}
@@ -391,13 +523,15 @@ export default function DecksPage() {
           </div>
         </section>
 
-        <button
-          onClick={addNewDeck}
-          className="fixed bottom-6 right-4 z-20 inline-flex h-14 items-center gap-3 rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] px-5 text-base font-semibold text-white shadow-2xl transition-colors hover:bg-[var(--accent-hover)] sm:bottom-8 sm:right-8"
-        >
-          <i className="fa-solid fa-plus text-lg"></i>
-          New
-        </button>
+        <div className="sticky bottom-4 z-20 mt-6 flex justify-end pr-1">
+          <button
+            onClick={addNewDeck}
+            className="inline-flex h-14 items-center gap-3 rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] px-5 text-base font-semibold text-white shadow-2xl transition-colors hover:bg-[var(--accent-hover)]"
+          >
+            <i className="fa-solid fa-plus text-lg"></i>
+            New
+          </button>
+        </div>
       </div>
 
       {/* Popup du deck */}
@@ -407,7 +541,7 @@ export default function DecksPage() {
           onClick={closeDeckPopup}
         >
           <div
-            className="w-full max-w-7xl rounded-3xl border border-[#3c3650] bg-[#15131d] shadow-2xl"
+            className="w-full max-w-[96rem] rounded-3xl border border-[#3c3650] bg-[#15131d] shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-[#3c3650] px-6 py-4">
@@ -489,120 +623,214 @@ export default function DecksPage() {
               <p className="px-6 pt-3 text-sm text-red-500">{deckNameError}</p>
             )}
 
-            <div className="p-6 max-h-[90vh] overflow-y-auto">
-              <div className="mb-6">
-                <div className="mb-2 text-sm text-gray-400">
+            <div className="grid h-[86vh] grid-cols-1 gap-5 overflow-hidden p-5 lg:grid-cols-[1.35fr_1fr]">
+              <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#3c3650] bg-[#181524]">
+                <div className="border-b border-[#3c3650] px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm text-gray-300">Deck icon:</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsIconPickerOpen((prev) => !prev)}
+                      className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#3c3650] bg-[#242033] transition-colors hover:bg-[#302a45]"
+                      aria-label="Choisir l'icône du deck"
+                    >
+                      {selectedDeckIcon === BLANK_DECK_ICON ? (
+                        <span className="text-gray-300">
+                          <i className="fa-regular fa-image text-lg" />
+                        </span>
+                      ) : isImageIcon(selectedDeckIcon) ? (
+                        <Image
+                          src={selectedDeckIcon}
+                          alt="Deck icon"
+                          width={36}
+                          height={36}
+                          className="h-9 w-9 object-contain"
+                          style={{ imageRendering: "pixelated" }}
+                        />
+                      ) : (
+                        <span className="text-gray-300">
+                          <i className="fa-regular fa-image text-lg" />
+                        </span>
+                      )}
+                    </button>
+
+                    {isIconPickerOpen && (
+                      <div className="ml-2 flex flex-wrap items-center gap-2">
+                        {deckIconChoices.map((iconPath) => (
+                          <button
+                            key={iconPath}
+                            type="button"
+                            onClick={() => setDeckIcon(selectedDeck, iconPath)}
+                            className={`flex h-10 w-10 items-center justify-center rounded-lg border transition-colors ${
+                              selectedDeckIcon === iconPath
+                                ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)]"
+                                : "border-[#3c3650] bg-[#242033] hover:bg-[#302a45]"
+                            }`}
+                          >
+                            {iconPath === BLANK_DECK_ICON ? (
+                              <span className="text-gray-300">
+                                <i className="fa-regular fa-image text-base" />
+                              </span>
+                            ) : (
+                              <Image
+                                src={iconPath}
+                                alt="Icon"
+                                width={32}
+                                height={32}
+                                className="h-8 w-8 object-contain"
+                                style={{ imageRendering: "pixelated" }}
+                              />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="border-b border-[#3c3650] px-4 py-3 text-sm text-gray-300">
                   Cards: {getTotalCards(selectedDeck)}/60
                 </div>
-              </div>
 
-              {/* Affichage en grille des cartes */}
-              {decks[selectedDeck]?.cards.length > 0 ? (
-                <div className="mb-6">
-                  <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
-                    {decks[selectedDeck]?.cards.map((card) => {
-                      const normalized = resolveCardFilename(card.name);
-                      const hasError = invalidCards.has(card.id);
-                      return (
-                        <div
-                          key={card.id}
-                          className="relative group"
-                        >
-                          <div className="relative overflow-hidden rounded-lg border border-[#3c3650] bg-[#242033] aspect-[2.5/3.5] hover:border-[color:var(--accent-border)] transition-all">
-                            {/* Image de la carte */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!hasError) {
-                                  setPreviewCard({ name: card.name, filename: normalized });
-                                }
-                              }}
-                              className="w-full h-full bg-gradient-to-br from-[var(--accent-soft)] to-[#3c3650] flex items-center justify-center relative overflow-hidden"
-                            >
-                              {hasError ? (
-                                <p className="text-xs text-red-500 text-center p-2">Cette carte n&apos;existe pas</p>
-                              ) : (
-                                <Image
-                                  src={`/cards/${encodeURIComponent(normalized)}.png`}
-                                  alt={card.name}
-                                  fill
-                                  className="object-cover"
-                                  onError={() => {
-                                    setInvalidCards((prev) => new Set([...prev, card.id]));
-                                  }}
-                                />
-                              )}
-                            </button>
-                            
-                            {/* Badge de quantité (polygone bas-centre) */}
+                <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                  {decks[selectedDeck]?.cards.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                      {decks[selectedDeck]?.cards.map((card) => {
+                        const normalized = resolveCardFilename(card.name);
+                        const hasError = invalidCards.has(card.id);
+                        const isLimitedCard = !isEnergyCardName(card.name);
+                        const isAtCopyLimit = isLimitedCard && card.count >= MAX_NON_ENERGY_COPIES;
+                        const isOverCopyLimit = isLimitedCard && card.count > MAX_NON_ENERGY_COPIES;
+                        return (
+                          <div key={card.id} className="relative group">
                             <div
-                              className="absolute bottom-1 left-1/2 z-20 flex h-10 w-14 -translate-x-1/2 items-center justify-center border border-[color:var(--accent-border)] bg-gradient-to-br from-[var(--accent-color)] to-[var(--accent-hover)] text-base font-bold text-white shadow-lg"
-                              style={{ clipPath: "polygon(0 0, 100% 0, 100% 68%, 50% 100%, 0 68%)" }}
+                              className={`relative aspect-[2.5/3.5] overflow-hidden rounded-lg border bg-[#242033] transition-all ${
+                                isOverCopyLimit
+                                  ? "border-red-400/90 ring-1 ring-red-500/60"
+                                  : "border-[#3c3650] hover:border-[color:var(--accent-border)]"
+                              }`}
                             >
-                              {card.count}
-                            </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!hasError) {
+                                    setPreviewCard({ name: card.name, filename: normalized });
+                                  }
+                                }}
+                                className="relative flex h-full w-full items-center justify-center overflow-hidden bg-gradient-to-br from-[var(--accent-soft)] to-[#3c3650]"
+                              >
+                                {hasError ? (
+                                  <p className="p-2 text-center text-xs text-red-500">Cette carte n&apos;existe pas</p>
+                                ) : (
+                                  <Image
+                                    src={`/cards/${encodeURIComponent(normalized)}.png`}
+                                    alt={card.name}
+                                    fill
+                                    className="object-cover"
+                                    onError={() => {
+                                      setInvalidCards((prev) => new Set([...prev, card.id]));
+                                    }}
+                                  />
+                                )}
+                              </button>
 
-                            {/* Contrôles + / - */}
-                            <div className="absolute bottom-1 left-1 right-1 flex items-center justify-between gap-1">
-                              <button
-                                type="button"
-                                onClick={() => removeCard(selectedDeck, card.id)}
-                                className="flex h-11 w-11 items-center justify-center rounded-lg border border-red-400/70 bg-red-500/90 text-3xl font-black leading-none text-white transition-colors hover:bg-red-600"
-                                aria-label={`Retirer une copie de ${card.name}`}
+                              <div
+                                className="absolute bottom-1.5 left-1/2 z-20 flex h-7 w-10 -translate-x-1/2 items-center justify-center rounded-md border border-gray-500 bg-gradient-to-br from-gray-500 to-gray-600 text-sm font-bold text-white shadow-lg"
+                                style={{ clipPath: "polygon(0 0, 100% 0, 100% 68%, 50% 100%, 0 68%)" }}
                               >
-                                −
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => incrementCard(selectedDeck, card.id)}
-                                disabled={getTotalCards(selectedDeck) >= 60}
-                                className="flex h-11 w-11 items-center justify-center rounded-lg border border-emerald-400/70 bg-emerald-500/90 text-3xl font-black leading-none text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
-                                aria-label={`Ajouter une copie de ${card.name}`}
-                              >
-                                +
-                              </button>
+                                {card.count}
+                              </div>
+
+                              <div className="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between">
+                                <button
+                                  type="button"
+                                  onClick={() => removeCard(selectedDeck, card.id)}
+                                  className="flex h-8 w-8 items-center justify-center rounded-md border border-red-400/70 bg-red-500/90 text-xl font-black leading-none text-white transition-colors hover:bg-red-600"
+                                  aria-label={`Retirer une copie de ${card.name}`}
+                                >
+                                  −
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => incrementCard(selectedDeck, card.id)}
+                                  disabled={getTotalCards(selectedDeck) >= 60 || isAtCopyLimit}
+                                  className="flex h-8 w-8 items-center justify-center rounded-md border border-emerald-400/70 bg-emerald-500/90 text-xl font-black leading-none text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                  aria-label={`Ajouter une copie de ${card.name}`}
+                                >
+                                  +
+                                </button>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="py-8 text-center">
+                      <p className="text-gray-400">Aucune carte dans ce deck</p>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#3c3650] bg-[#181524]">
+                <div className="border-b border-[#3c3650] px-4 py-3">
+                  <h4 className="text-lg font-semibold text-white">Cartes disponibles</h4>
+                  <div className="mt-3 flex gap-2">
+                    <input
+                      type="text"
+                      value={availableCardQuery}
+                      onChange={(e) => {
+                        setAvailableCardQuery(e.target.value);
+                        if (cardError) setCardError("");
+                      }}
+                      placeholder="Rechercher une carte..."
+                      className="flex-1 rounded-lg border border-[#3c3650] bg-[#242033] px-3 py-2 text-white placeholder:text-gray-500 focus:border-[var(--accent-color)] focus:outline-none"
+                    />
+                  </div>
+                  {cardError && <p className="mt-2 text-xs text-red-500">{cardError}</p>}
+                </div>
+
+                <div className="min-h-0 flex-1 overflow-y-scroll p-4 overscroll-contain">
+                  <div className="mb-3 text-sm text-gray-400">{filteredAvailableCards.length} cartes trouvées</div>
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+                    {filteredAvailableCards.map((cardBase) => {
+                      const displayName = formatCardDisplayName(cardBase);
+                      const countInDeck = getCardCountInDeck(selectedDeck, cardBase);
+                      const isAtCopyLimit = !isEnergyCardName(displayName) && countInDeck >= MAX_NON_ENERGY_COPIES;
+                      const isOverCopyLimit = !isEnergyCardName(displayName) && countInDeck > MAX_NON_ENERGY_COPIES;
+                      return (
+                        <button
+                          key={cardBase}
+                          type="button"
+                          onClick={() => addCardByName(selectedDeck, displayName)}
+                          disabled={getTotalCards(selectedDeck) >= 60 || isAtCopyLimit}
+                          className={`group overflow-hidden rounded-lg border bg-[#242033] text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                            isOverCopyLimit
+                              ? "border-red-400/80"
+                              : "border-[#3c3650] hover:border-[color:var(--accent-border)] hover:bg-[#302a45]"
+                          }`}
+                        >
+                          <div className="relative aspect-[2.5/3.5] bg-black/20">
+                            <Image
+                              src={`/cards/${encodeURIComponent(cardBase)}.png`}
+                              alt={displayName}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                          <div className="p-1.5">
+                            <p className="truncate text-[11px] font-semibold text-white">{displayName}</p>
+                            <p className="text-[10px] text-gray-400">
+                              Dans le deck: {countInDeck}
+                            </p>
+                          </div>
+                        </button>
                       );
                     })}
                   </div>
                 </div>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-400">Aucune carte dans ce deck</p>
-                </div>
-              )}
-
-              {/* Ajouter une carte */}
-              <div className="border-t border-[#3c3650] pt-4">
-                <div className="flex gap-2 mb-2">
-                  <input
-                    type="text"
-                    value={newCardName}
-                    onChange={(e) => {
-                      setNewCardName(e.target.value);
-                      if (cardError) setCardError("");
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        addCard(selectedDeck);
-                      }
-                    }}
-                    placeholder="Nom de la carte..."
-                    className="flex-1 rounded-lg border border-[#3c3650] bg-[#242033] px-3 py-2 text-white placeholder:text-gray-500 focus:border-[var(--accent-color)] focus:outline-none transition-colors"
-                  />
-                  <button
-                    onClick={() => addCard(selectedDeck)}
-                    disabled={getTotalCards(selectedDeck) >= 60}
-                    className="flex h-10 items-center gap-2 rounded-lg bg-[var(--accent-color)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <i className="fa-solid fa-plus"></i>
-                    Add
-                  </button>
-                </div>
-                {cardError && <p className="text-xs text-red-500 mt-1">{cardError}</p>}
-              </div>
+              </section>
             </div>
           </div>
         </div>

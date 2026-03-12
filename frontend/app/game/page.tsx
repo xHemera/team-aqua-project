@@ -1,10 +1,60 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { BackgroundMediaType, getBackgroundMediaFromDocument } from "@/lib/background-utils";
 
 // Plateau de jeu (maquette statique) + menu pause
 export default function GamePage() {
 	const [showMenu, setShowMenu] = useState(false);
+	const [backgroundMedia, setBackgroundMedia] = useState<{ mediaType: BackgroundMediaType; mediaSource: string }>({
+		mediaType: "none",
+		mediaSource: "",
+	});
+
+	useEffect(() => {
+		const handleEscapeModal = (event: KeyboardEvent) => {
+			if (event.key !== "Escape") return;
+			setShowMenu(false);
+		};
+
+		document.addEventListener("keydown", handleEscapeModal);
+		return () => {
+			document.removeEventListener("keydown", handleEscapeModal);
+		};
+	}, []);
+
+	useEffect(() => {
+		const refreshBackgroundMedia = () => {
+			setBackgroundMedia(getBackgroundMediaFromDocument());
+		};
+
+		refreshBackgroundMedia();
+
+		window.addEventListener("site-background-changed", refreshBackgroundMedia);
+		window.addEventListener("storage", refreshBackgroundMedia);
+
+		return () => {
+			window.removeEventListener("site-background-changed", refreshBackgroundMedia);
+			window.removeEventListener("storage", refreshBackgroundMedia);
+		};
+	}, []);
+
+	const youtubeEmbedUrl = useMemo(() => {
+		if (backgroundMedia.mediaType !== "youtube" || !backgroundMedia.mediaSource) {
+			return "";
+		}
+
+		const id = backgroundMedia.mediaSource;
+		return `https://www.youtube.com/embed/${encodeURIComponent(
+			id,
+		)}?autoplay=1&mute=1&controls=0&loop=1&playlist=${encodeURIComponent(
+			id,
+		)}&modestbranding=1&playsinline=1&rel=0`;
+	}, [backgroundMedia.mediaSource, backgroundMedia.mediaType]);
+
+	const showDirectVideo = backgroundMedia.mediaType === "direct-video" && Boolean(backgroundMedia.mediaSource);
+	const showYoutubeVideo = backgroundMedia.mediaType === "youtube" && Boolean(youtubeEmbedUrl);
+
 	// Collections de slots pour afficher les zones du plateau
 	const Bench = Array.from({ length: 1 }, (_, i) => i);
 	const Prize = Array.from({ length: 6 }, (_, i) => i);
@@ -12,6 +62,30 @@ export default function GamePage() {
 
 	return (
 		<div className="relative isolate min-h-screen flex flex-col overflow-hidden text-white">
+			{showDirectVideo && (
+				<video
+					key={backgroundMedia.mediaSource}
+					className="pointer-events-none absolute inset-0 z-0 h-full w-full scale-[1.08] object-cover blur-[10px]"
+					src={backgroundMedia.mediaSource}
+					autoPlay
+					loop
+					muted
+					playsInline
+				/>
+			)}
+
+			{showYoutubeVideo && (
+				<div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+					<iframe
+						src={youtubeEmbedUrl}
+						className="h-full w-full scale-[1.2] blur-[10px]"
+						title="Background video"
+						allow="autoplay; encrypted-media; picture-in-picture"
+						referrerPolicy="strict-origin-when-cross-origin"
+					/>
+				</div>
+			)}
+
 			{/* Fond global */}
 			<div
 				className="absolute inset-0 z-0"
@@ -21,6 +95,7 @@ export default function GamePage() {
 					backgroundPosition: "center",
 					filter: "blur(10px)",
 					transform: "scale(1.08)",
+					opacity: showDirectVideo || showYoutubeVideo ? 0 : 1,
 				}}
 			/>
 			<div className="absolute inset-0 z-[1] bg-black/25" />

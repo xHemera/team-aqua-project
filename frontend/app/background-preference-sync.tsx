@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { DEFAULT_SITE_BACKGROUND, toCssImageValue } from "@/lib/background-utils";
+import { applyBackgroundPreferenceToDocument, DEFAULT_SITE_BACKGROUND } from "@/lib/background-utils";
 
 export default function BackgroundPreferenceSync() {
   useEffect(() => {
@@ -14,7 +14,7 @@ export default function BackgroundPreferenceSync() {
         localStorage.getItem("customBackground") ||
         DEFAULT_SITE_BACKGROUND;
 
-      document.documentElement.style.setProperty("--site-bg-image", toCssImageValue(source, DEFAULT_SITE_BACKGROUND));
+      applyBackgroundPreferenceToDocument(source, DEFAULT_SITE_BACKGROUND);
     };
 
     applyBackground();
