@@ -33,6 +33,11 @@ type ChatMessage = {
   attachments: Attachment[];
 };
 
+type InviteNotification = {
+  type: "success" | "error";
+  message: string;
+};
+
 const formatTime = (date: Date) =>
   date.toLocaleTimeString("fr-FR", {
     hour: "2-digit",
@@ -68,8 +73,11 @@ export default function SocialPage() {
   const [selectedUser, setSelectedUser] = useState("SunMiaou");
   const [message, setMessage] = useState("");
   const [draftAttachments, setDraftAttachments] = useState<Attachment[]>([]);
-  const [userPseudo, setUserPseudo] = useState<string | null>(null);
-
+  const [inviteNotification, setInviteNotification] = useState<InviteNotification | null>(null);
+  const [isInviting, setIsInviting] = useState(false);
+  const [isAddFriendModalOpen, setIsAddFriendModalOpen] = useState(false);
+  const [inviteUsername, setInviteUsername] = useState("");
+  const [userPseudo, setUserPseudo] = useState<string | null>(null)
   const [messagesByUser, setMessagesByUser] = useState<Record<string, ChatMessage[]>>({
     SunMiaou: [
       {
@@ -148,6 +156,16 @@ export default function SocialPage() {
     };
   }, [draftAttachments]);
 
+  useEffect(() => {
+    if (!inviteNotification) return;
+
+    const timeoutId = setTimeout(() => {
+      setInviteNotification(null);
+    }, 3000);
+
+    return () => clearTimeout(timeoutId);
+  }, [inviteNotification]);
+
   const selectUser = (userName: string) => {
     setSelectedUser(userName);
     setUsers((prevUsers) =>
@@ -157,27 +175,88 @@ export default function SocialPage() {
     );
   };
 
-  const handleAddContact = () => {
-    const nextIndex = users.length + 1;
-    const newName = `Nouveau_${nextIndex}`;
+  const openAddFriendModal = () => {
+    if (isInviting) return;
+    setInviteUsername("");
+    setIsAddFriendModalOpen(true);
+  };
 
-    setUsers((prevUsers) => [
-      ...prevUsers,
-      {
-        name: newName,
-        avatar: cynthia,
-        unreadCount: 0,
-      },
-    ]);
+  const closeAddFriendModal = () => {
+    if (isInviting) return;
+    setIsAddFriendModalOpen(false);
+    setInviteUsername("");
+  };
 
-    setMessagesByUser((prevMessages) => ({
-      ...prevMessages,
-      [newName]: [],
-    }));
+  const submitFriendInvite = async () => {
+    const username = inviteUsername.trim();
+    if (isInviting || !username) return;
 
-    setSelectedUser(newName);
-    setMessage("");
-    setDraftAttachments([]);
+    try {
+      setIsInviting(true);
+
+      const response = await fetch("/api/social/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      });
+
+      const payload = (await response.json()) as {
+        error?: string;
+        user?: { name: string; avatarUrl?: string | null };
+      };
+
+      if (!response.ok || !payload.user) {
+        setInviteNotification({
+          type: "error",
+          message: payload.error ?? "ce joueur n'existe pas",
+        });
+        return;
+      }
+
+      const foundName = payload.user.name;
+      const foundAvatar = payload.user.avatarUrl || cynthia;
+
+      setUsers((prevUsers) => {
+        if (prevUsers.some((user) => user.name === foundName)) {
+          return prevUsers;
+        }
+
+        return [
+          ...prevUsers,
+          {
+            name: foundName,
+            avatar: foundAvatar,
+            unreadCount: 0,
+          },
+        ];
+      });
+
+      setMessagesByUser((prevMessages) => {
+        if (prevMessages[foundName]) {
+          return prevMessages;
+        }
+
+        return {
+          ...prevMessages,
+          [foundName]: [],
+        };
+      });
+
+      setSelectedUser(foundName);
+      setInviteNotification({
+        type: "success",
+        message: "votre invitation a bien ete envoyer",
+      });
+      setIsAddFriendModalOpen(false);
+      setInviteUsername("");
+    } catch {
+      setInviteNotification({
+        type: "error",
+        message: "ce joueur n'existe pas",
+      });
+    } finally {
+      setIsInviting(false);
+    }
   };
 
   const handlePickAttachments = () => {
@@ -235,6 +314,55 @@ export default function SocialPage() {
 
   return (
     <main className="relative isolate min-h-screen overflow-hidden text-white">
+      {inviteNotification && (
+        <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
+          <div
+            className={`rounded-xl border px-4 py-2 text-sm font-semibold shadow-lg ${
+              inviteNotification.type === "success"
+                ? "border-emerald-400/50 bg-emerald-500/90 text-white"
+                : "border-red-400/50 bg-red-500/90 text-white"
+            }`}
+          >
+            {inviteNotification.message}
+          </div>
+        </div>
+      )}
+
+      {isAddFriendModalOpen && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-[#3c3650] bg-[#1b1826] p-5 shadow-2xl">
+            <h3 className="text-lg font-bold text-white">entrez le nom d'utilisateur</h3>
+            <p className="mt-1 text-sm text-gray-300">Saisis le pseudo du joueur pour envoyer une invitation.</p>
+
+            <input
+              type="text"
+              value={inviteUsername}
+              onChange={(event) => setInviteUsername(event.target.value)}
+              placeholder="Pseudo du joueur"
+              className="mt-4 w-full rounded-xl border border-[#3c3650] bg-[#242033] px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-[#8e82ff]"
+              autoFocus
+            />
+
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                onClick={closeAddFriendModal}
+                disabled={isInviting}
+                className="rounded-xl border border-[#3c3650] bg-[#242033] px-4 py-2 text-sm font-semibold text-gray-200 transition-colors hover:bg-[#302a45] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={submitFriendInvite}
+                disabled={isInviting || inviteUsername.trim().length === 0}
+                className="rounded-xl border border-[#b4a8ff]/60 bg-[#8e82ff] px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-[#7d71ec] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isInviting ? "Recherche..." : "Envoyer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div
         className="absolute inset-0 z-0"
         style={{
@@ -299,10 +427,11 @@ export default function SocialPage() {
 
             <div className="border-t border-[#3c3650] p-3">
               <button
-                onClick={handleAddContact}
+                onClick={openAddFriendModal}
+                disabled={isInviting}
                 className="w-full rounded-xl border border-[#b4a8ff]/60 bg-[#8e82ff] py-2 font-bold text-white transition-colors hover:bg-[#7d71ec]"
               >
-                + Nouveau contact
+                {isInviting ? "Recherche..." : "+ Nouveau contact"}
               </button>
             </div>
           </aside>
