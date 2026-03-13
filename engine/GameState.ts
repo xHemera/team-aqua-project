@@ -1,4 +1,4 @@
-import { PlayerState } from "./player/PlayerState.ts"
+import { PlayerState } from "./player/PlayerState"
 
 export type GameState = {
 	players: PlayerState[]

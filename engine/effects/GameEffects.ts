@@ -1,4 +1,4 @@
-import { GameState } from "../GameState.ts"
+import { GameState } from "../GameState"
 
 export function drawCard(state: GameState, playerIndex: number): GameState {
 	const player = state.players[playerIndex]

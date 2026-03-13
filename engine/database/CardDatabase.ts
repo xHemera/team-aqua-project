@@ -1,4 +1,4 @@
-import { Card } from "../card/Card.ts"
+import { Card } from "../cards/Card"
 
 export class CardDatabase {
 	private cards: Map<string, Card> = new Map()

@@ -1,5 +1,5 @@
-import { GameState } from "../GameState.ts";
-import { GameEvent } from "./GameEvent.ts";
+import { GameState } from "../GameState";
+import { GameEvent } from "./GameEvent";
 
 // export class EventEngine {
 // 	static emit(event: GameEvent, state: GameState) {

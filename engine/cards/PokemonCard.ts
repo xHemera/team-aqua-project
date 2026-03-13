@@ -1,5 +1,5 @@
-import { Card } from "./Card.ts";
-import { CardType } from "./CardType.ts";
+import { Card } from "./Card";
+import { CardType } from "./CardType";
 
 export class PokemonCard extends Card {
 	hp: number

@@ -1,6 +1,6 @@
-import { GameAction } from "./actions/GameAction.ts"
-import { EffectEngine } from "./effects/EffectEngine.ts"
-import { GameState } from "./GameState.ts"
+import { GameAction } from "./actions/GameAction"
+import { EffectEngine } from "./effects/EffectEngine"
+import { GameState } from "./GameState"
 
 export class Game {
 	state: GameState

@@ -1,5 +1,5 @@
-import { PokemonCard } from "../card/PokemonCard.ts";
-import { CardInstance } from "./CardInstance.ts";
+import { PokemonCard } from "../cards/PokemonCard";
+import { CardInstance } from "./CardInstance";
 
 export class PokemonInstance extends CardInstance {
 	card: PokemonCard

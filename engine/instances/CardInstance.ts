@@ -1,4 +1,4 @@
-import { Card } from "../card/Card"
+import { Card } from "../cards/Card"
 
 export class CardInstance {
 	uid: string
