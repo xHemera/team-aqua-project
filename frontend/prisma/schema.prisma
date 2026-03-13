@@ -27,7 +27,7 @@ model Decks {
 }
 
 model Cards {
-  id       String    @id
+  id       String		@id
   type     String
   element  String?
   hp       Int?
@@ -39,7 +39,7 @@ model Cards {
   weakness String?
   resist   String?
   deckId   String?
-  deck     Decks?  @relation(fields: [deckId], references: [id])
+  deck     Decks?		@relation(fields: [deckId], references: [id])
 }
 
 model Messages {
@@ -47,28 +47,28 @@ model Messages {
   user_id   String
   inbox_id  String
   message   String?
-  createdAt DateTime @default(now())
-  user      User?   @relation(fields: [user_id], references: [id])
-  inbox     Inbox?   @relation(fields: [inbox_id], references: [id])
+  createdAt DateTime	@default(now())
+  user      User?			@relation(fields: [user_id], references: [id])
+  inbox     Inbox?		@relation(fields: [inbox_id], references: [id])
 }
 
 model Inbox {
-  id       			String    @id
-  inboxuid          String?
-  last_message      String?
-  last_sent_user_id String
-  createdAt         DateTime      @default(now())
-  inboxUser         Inbox_users[]
-  messages          Messages[]
-  user              User?        @relation(fields: [last_sent_user_id], references: [id])
+	id       			    String    @id
+	inboxuid          String?
+	last_message      String?
+	last_sent_user_id String?
+	createdAt         DateTime  @default(now())
+	inboxUser					Inbox_users[]
+	messages          Messages[]
+	user              User?     @relation(fields: [last_sent_user_id], references: [id])
 }
 
 model Inbox_users {
   id		    String    @id
   inbox_id	String
   user_id   String
-  user		  User? @relation(fields: [user_id], references: [id])
-  inbox		  Inbox? @relation(fields: [inbox_id], references: [id])
+  user		  User?			@relation(fields: [user_id], references: [id])
+  inbox		  Inbox?		@relation(fields: [inbox_id], references: [id])
 }
 
 model Avatar {
