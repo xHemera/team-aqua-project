@@ -71,14 +71,28 @@ model Inbox_users {
   inbox		  Inbox? @relation(fields: [inbox_id], references: [id])
 }
 
+model Avatar {
+  id          String @id @default(cuid())
+  name        String
+  type        String
+  url         String
+  accent      String
+  accentHover String
+  users       User[]
+}
+
 model User {
   id            String    @id
   name          String
   email         String
   emailVerified Boolean   @default(false)
   image         String?
+  profileBackground String?
+  profileBanner String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  avatarId      String?
+  avatar        Avatar?   @relation(fields: [avatarId], references: [id])
   sessions      Session[]
   accounts      Account[]
   decks         Decks[]

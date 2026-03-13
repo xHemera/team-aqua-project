@@ -1,4 +1,8 @@
 services:
+  redis:
+    image: redis:7
+    ports:
+      - "6380:6379"
   db:
     image: postgres:16-alpine
     container_name: aqua-db-temp
@@ -25,12 +29,17 @@ services:
     container_name: aqua-frontend
     restart: unless-stopped
     working_dir: /app
-    command: sh -c "pnpm install --frozen-lockfile --ignore-scripts=false && pnpm prisma generate && pnpm auth:migrate && pnpm dev --hostname 0.0.0.0"
+    command: >
+      sh -c "
+      pnpm install --frozen-lockfile --ignore-scripts=false &&
+      pnpm prisma generate &&
+      pnpm auth:migrate &&
+      pnpm dev --hostname 0.0.0.0
+      "
     ports:
       - "3000:3000"
     volumes:
       - ./frontend:/app
-      - frontend_node_modules:/app/node_modules
       - frontend_pnpm_store:/pnpm/store
     environment:
       NODE_ENV: development
@@ -52,26 +61,22 @@ services:
     container_name: aqua-websockets
     restart: unless-stopped
     working_dir: /app
-    stdin_open: true
-    tty: true
-    command: sh
     ports:
-      - "4000:4000"
+      - "4001:4001"
     volumes:
       - ./websockets:/app
-      - backend_node_modules:/app/node_modules
+      - /app/node_modules
       - backend_pnpm_store:/pnpm/store
     environment:
       NODE_ENV: development
       DATABASE_URL: postgresql://postgres:postgres@db:5432/aqua_temp
-      PORT: 4000
+      PORT: 4001
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   postgres_data:
-  frontend_node_modules:
   frontend_pnpm_store:
   backend_node_modules:
   backend_pnpm_store:
