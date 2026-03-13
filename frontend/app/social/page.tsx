@@ -81,6 +81,7 @@ export default function SocialPage() {
   const [messagesByUser, setMessagesByUser] = useState<Record<string, ChatMessage[]>>({
   });
 
+  //a modifier ou supprimer
   const currentUser = useMemo(
     () => users.find((user) => user.name === selectedUser) ?? users[0],
     [selectedUser, users],
@@ -228,6 +229,7 @@ export default function SocialPage() {
       setIsInviting(false);
     }
   };
+  //fin de la fonction a modifier
 
   const handlePickAttachments = () => {
     fileInputRef.current?.click();
