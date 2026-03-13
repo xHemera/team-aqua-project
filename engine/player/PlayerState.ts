@@ -1,5 +1,5 @@
-import { CardInstance } from "../instances/CardInstance"
-import { PokemonInstance } from "../instances/PokemonInstance"
+import { CardInstance } from "../instances/CardInstance.ts"
+import { PokemonInstance } from "../instances/PokemonInstance.ts"
 
 export class PlayerState {
 	deck: CardInstance[] = []

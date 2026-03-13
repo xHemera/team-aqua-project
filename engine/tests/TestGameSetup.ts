@@ -1,9 +1,9 @@
-import { Game } from "../Game"
-import { GameState } from "../GameState"
-import { PlayerState } from "../player/PlayerState"
+import { Game } from "../Game.ts"
+import { GameState } from "../GameState.ts"
+import { PlayerState } from "../player/PlayerState.ts"
 
-import { PokemonCard } from "../card/PokemonCard"
-import { CardInstance } from "../instances/CardInstance"
+import { PokemonCard } from "../card/PokemonCard.ts"
+import { CardInstance } from "../instances/CardInstance.ts"
 
 console.log("TEST GAME SETUP")
 
