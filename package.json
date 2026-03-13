@@ -8,8 +8,5 @@
   "dependencies": {
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3"
-  },
-  "scripts": {
-    "test-engine": "ts-node engine-tests/TestGameSetup.ts"
   }
 }

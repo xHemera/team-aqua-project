@@ -1,15 +1,12 @@
 import { Game } from "../engine/Game"
 import { GameState } from "../engine/GameState"
 import { PlayerState } from "../engine/player/PlayerState"
-
 import { PokemonCard } from "../engine/cards/PokemonCard"
 import { CardInstance } from "../engine/instances/CardInstance"
-
 import { GameAction } from "../engine/actions/GameAction"
 
-console.log("TEST DRAW CARD")
+console.log("TEST PLAY POKEMON")
 
-// carte
 const pikachu = new PokemonCard(
   "pikachu_001",
   "Pikachu",
@@ -17,18 +14,13 @@ const pikachu = new PokemonCard(
   0
 )
 
-// instances
-const card1 = new CardInstance("uid1", pikachu, 0)
-const card2 = new CardInstance("uid2", pikachu, 0)
+const card = new CardInstance("uid1", pikachu, 0)
 
-// joueur
 const player1 = new PlayerState()
-player1.deck.push(card1)
-player1.deck.push(card2)
+player1.hand.push(card)
 
 const player2 = new PlayerState()
 
-// état
 const state: GameState = {
   players: [player1, player2],
   activePlayer: 0,
@@ -37,23 +29,16 @@ const state: GameState = {
 
 const game = new Game(state)
 
-console.log("Deck before:", game.state.players[0].deck.length)
 console.log("Hand before:", game.state.players[0].hand.length)
+console.log("Bench before:", game.state.players[0].bench.length)
 
-// action
 const action: GameAction = {
-  type: "DRAW_CARD",
-  player: 0
+  type: "PLAY_POKEMON",
+  player: 0,
+  cardUid: "uid1"
 }
 
 game.dispatch(action)
 
-console.log("Deck after:", game.state.players[0].deck.length)
 console.log("Hand after:", game.state.players[0].hand.length)
-
-game.dispatch(action)
-
-console.log("Deck after:", game.state.players[0].deck.length)
-console.log("Hand after:", game.state.players[0].hand.length)
-
-game.dispatch(action)
+console.log("Bench after:", game.state.players[0].bench.length)
