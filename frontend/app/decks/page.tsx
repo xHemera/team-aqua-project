@@ -157,7 +157,7 @@ export default function DecksPage() {
   const [isRenamingDeck, setIsRenamingDeck] = useState(false);
   const [deckNameDraft, setDeckNameDraft] = useState("");
   const [deckNameError, setDeckNameError] = useState("");
-    const [userPseudo, setUserPseudo] = useState<string | null>(null);
+  const [userPseudo, setUserPseudo] = useState<string | null>(null);
 
   useEffect(() => {
     const getUserData = async () => {
