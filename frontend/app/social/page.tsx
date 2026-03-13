@@ -65,49 +65,18 @@ export default function SocialPage() {
   const messageListRef = useRef<HTMLDivElement | null>(null);
 
   const [users, setUsers] = useState<ChatUser[]>([
-    { name: "Sauralt", avatar: alder, unreadCount: 0 },
-    { name: "Xoco", avatar: n, unreadCount: 1 },
-    { name: "SunMiaou", avatar: cynthia, unreadCount: 0 },
+    
   ]);
 
-  const [selectedUser, setSelectedUser] = useState("SunMiaou");
+  const [selectedUser, setSelectedUser] = useState("");
   const [message, setMessage] = useState("");
   const [draftAttachments, setDraftAttachments] = useState<Attachment[]>([]);
   const [inviteNotification, setInviteNotification] = useState<InviteNotification | null>(null);
   const [isInviting, setIsInviting] = useState(false);
-  const [isAddFriendModalOpen, setIsAddFriendModalOpen] = useState(false);
+  const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
   const [inviteUsername, setInviteUsername] = useState("");
   const [userPseudo, setUserPseudo] = useState<string | null>(null)
   const [messagesByUser, setMessagesByUser] = useState<Record<string, ChatMessage[]>>({
-    SunMiaou: [
-      {
-        id: "msg-1",
-        sender: "SunMiaou",
-        text: "Salut ! Tu lances une partie ce soir ?",
-        isMine: false,
-        sentAt: "20:41",
-        attachments: [],
-      },
-      {
-        id: "msg-2",
-        sender: "me",
-        text: "Oui, je finis mon deck et je t’écris.",
-        isMine: true,
-        sentAt: "20:43",
-        attachments: [],
-      },
-    ],
-    Xoco: [
-      {
-        id: "msg-3",
-        sender: "Xoco",
-        text: "Tu peux me renvoyer la liste du deck ?",
-        isMine: false,
-        sentAt: "18:12",
-        attachments: [],
-      },
-    ],
-    Sauralt: [],
   });
 
   const currentUser = useMemo(
@@ -127,9 +96,7 @@ export default function SocialPage() {
     const getUserData = async () => {
       const { data } = await authClient.getSession();
       if (data?.user?.name)
-      {
         setUserPseudo(data.user.name);
-      };
     };
     getUserData();
   });
@@ -175,19 +142,19 @@ export default function SocialPage() {
     );
   };
 
-  const openAddFriendModal = () => {
+  const openAddContactModal = () => {
     if (isInviting) return;
     setInviteUsername("");
-    setIsAddFriendModalOpen(true);
+    setIsAddContactModalOpen(true);
   };
 
-  const closeAddFriendModal = () => {
+  const closeAddContactModal = () => {
     if (isInviting) return;
-    setIsAddFriendModalOpen(false);
+    setIsAddContactModalOpen(false);
     setInviteUsername("");
   };
 
-  const submitFriendInvite = async () => {
+  const submitContactInvite = async () => {
     const username = inviteUsername.trim();
     if (isInviting || !username) return;
 
@@ -247,7 +214,7 @@ export default function SocialPage() {
         type: "success",
         message: "votre invitation a bien ete envoyer",
       });
-      setIsAddFriendModalOpen(false);
+      setIsAddContactModalOpen(false);
       setInviteUsername("");
     } catch {
       setInviteNotification({
@@ -283,6 +250,7 @@ export default function SocialPage() {
     });
   };
 
+  //Ecrire et envoyer un message
   const sendMessage = () => {
     const cleanMessage = message.trim();
     if (!cleanMessage && draftAttachments.length === 0) return;
@@ -304,7 +272,6 @@ export default function SocialPage() {
     setMessage("");
     setDraftAttachments([]);
   };
-
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -328,7 +295,7 @@ export default function SocialPage() {
         </div>
       )}
 
-      {isAddFriendModalOpen && (
+      {isAddContactModalOpen && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 px-4">
           <div className="w-full max-w-md rounded-2xl border border-[#3c3650] bg-[#1b1826] p-5 shadow-2xl">
             <h3 className="text-lg font-bold text-white">entrez le nom d'utilisateur</h3>
@@ -345,14 +312,14 @@ export default function SocialPage() {
 
             <div className="mt-4 flex items-center justify-end gap-2">
               <button
-                onClick={closeAddFriendModal}
+                onClick={closeAddContactModal}
                 disabled={isInviting}
                 className="rounded-xl border border-[#3c3650] bg-[#242033] px-4 py-2 text-sm font-semibold text-gray-200 transition-colors hover:bg-[#302a45] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Annuler
               </button>
               <button
-                onClick={submitFriendInvite}
+                onClick={submitContactInvite}
                 disabled={isInviting || inviteUsername.trim().length === 0}
                 className="rounded-xl border border-[#b4a8ff]/60 bg-[#8e82ff] px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-[#7d71ec] disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -427,7 +394,7 @@ export default function SocialPage() {
 
             <div className="border-t border-[#3c3650] p-3">
               <button
-                onClick={openAddFriendModal}
+                onClick={openAddContactModal}
                 disabled={isInviting}
                 className="w-full rounded-xl border border-[#b4a8ff]/60 bg-[#8e82ff] py-2 font-bold text-white transition-colors hover:bg-[#7d71ec]"
               >
@@ -439,7 +406,7 @@ export default function SocialPage() {
             <header className="flex items-center justify-between border-b border-[#3c3650] bg-[#242033] px-5 py-4">
               <div className="flex items-center gap-3">
                 <div className="relative flex h-10 w-10 items-center justify-center overflow-visible">
-                  <Image
+                  {/* <Image
                     src={currentUser.avatar}
                     alt={currentUser.name}
                     width={64}
@@ -447,12 +414,12 @@ export default function SocialPage() {
                     className="h-12 w-12 object-contain"
                     style={{ imageRendering: "pixelated" }}
                     unoptimized
-                  />
+                  /> */}
                 </div>
-                <div>
+                {/* <div>
                   <h2 className="text-xl font-bold">{currentUser.name}</h2>
                   {hasDraft && <p className="text-xs text-[#b4a8ff]">En train d’écrire...</p>}
-                </div>
+                </div> */}
               </div>
 
               <button
