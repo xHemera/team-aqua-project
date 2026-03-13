@@ -10,7 +10,8 @@ export class Game {
 	}
 
 	dispatch(action: GameAction) {
-
+		if(action.player !== this.state.activePlayer)
+			throw new Error("Not your turn")
 		this.state = EffectEngine.execute(this.state, action)
 	}
 }
