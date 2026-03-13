@@ -13,6 +13,6 @@ RUN pnpm install
 
 COPY . .
 
-EXPOSE 4000
+EXPOSE 4001
 
 CMD ["node", "server.js"]

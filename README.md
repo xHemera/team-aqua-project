@@ -39,7 +39,7 @@ Projet web moderne avec :
 ### Prérequis
 
 - [Docker](https://www.docker.com/) et Docker Compose
-- Ports disponibles : 3000 (frontend), 4000 (websockets), 5432 (database)
+- Ports disponibles : 3000 (frontend), 4001 (websockets), 5432 (database)
 
 ### Démarrage rapide
 
@@ -75,7 +75,7 @@ docker compose up --build -d
 
 3. **Accéder à l'application**
 - Frontend : [http://localhost:3000](http://localhost:3000)
-- websockets API : [http://localhost:4000/health](http://localhost:4000/health)
+- websockets API : [http://localhost:4001/health](http://localhost:4001/health)
 
 4. **Créer votre compte**
 - Ouvrez http://localhost:3000
@@ -89,7 +89,7 @@ docker compose up --build -d
 docker compose ps
 
 # Tester le websockets
-curl http://localhost:4000/health
+curl http://localhost:4001/health
 
 # Tester le frontend
 open http://localhost:3000  # ou visitez dans votre navigateur
@@ -110,7 +110,7 @@ team-aqua-project/
 │   └── lib/
 │       ├── auth.ts            # Configuration Better Auth
 │       └── auth-client.ts     # Client Better Auth
-├── websockets/           # Express + Prisma (port 4000)
+├── websockets/           # Express + Prisma (port 4001)
 │   ├── src/
 │   │   └── index.ts           # API REST
 │   ├── lib/
@@ -126,7 +126,7 @@ team-aqua-project/
 | Service | Port | Description |
 |---------|------|-------------|
 | `frontend` | 3000 | Application Next.js |
-| `websockets` | 4000 | API Express |
+| `websockets` | 4001 | API Express |
 | `db` | 5432 | PostgreSQL 16 |
 | `game-engine` | 5000 | Service en attente |
 
@@ -294,13 +294,13 @@ BETTER_AUTH_DATABASE_URL: postgres://postgres:postgres@db:5432/aqua_temp
 #### websockets (docker-compose.yml)
 ```yaml
 DATABASE_URL: postgresql://postgres:postgres@db:5432/aqua_temp
-PORT: 4000
+PORT: 4001
 ```
 
 ### Ports utilisés
 
 - **3000** : Frontend Next.js
-- **4000** : websockets Express
+- **4001** : websockets Express
 - **5000** : Game engine
 - **5432** : PostgreSQL
 

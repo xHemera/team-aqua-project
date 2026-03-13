@@ -3,7 +3,7 @@
 import { io } from "socket.io-client";
 
 //connexion avec le serveur de websockets
-export const socket = io("http://localhost:4000", {
+export const socket = io("http://localhost:4001", {
   transports: ["websocket", "polling"],
   autoConnect: false,
   reconnection: true
