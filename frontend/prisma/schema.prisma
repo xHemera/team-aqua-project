@@ -9,14 +9,14 @@ datasource db {
 
 model Friends {
   friendIds    Int[]
-  userId       String    @id
+  userId       String    @id @default(cuid())
   request_sent Boolean
   created_at   DateTime @default(now())
   user         User?   @relation(fields: [userId], references: [id])
 }
 
 model Decks {
-  id        String    @id
+  id        String    @id @default(cuid())
   title     String?
   image     String?
   body      String?
@@ -27,7 +27,7 @@ model Decks {
 }
 
 model Cards {
-  id       String		@id
+  id       String		@id @default(cuid())
   type     String
   element  String?
   hp       Int?
@@ -43,7 +43,7 @@ model Cards {
 }
 
 model Messages {
-  id        String    @id
+  id        String    @id @default(cuid())
   user_id   String
   inbox_id  String
   message   String?
@@ -53,8 +53,7 @@ model Messages {
 }
 
 model Inbox {
-	id       			    String    @id
-	inboxuid          String?
+	id       			    String    @id @default(cuid())
 	last_message      String?
 	last_sent_user_id String?
 	createdAt         DateTime  @default(now())
@@ -64,7 +63,7 @@ model Inbox {
 }
 
 model Inbox_users {
-  id		    String    @id
+  id		    String    @id @default(cuid())
   inbox_id	String
   user_id   String
   user		  User?			@relation(fields: [user_id], references: [id])
