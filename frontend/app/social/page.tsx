@@ -5,10 +5,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { socket } from "../../socket"
 import { authClient } from "@/lib/auth-client";
+import AppPageShell from "@/components/AppPageShell";
+import { DEFAULT_PROFILE_ICON, PROFILE_ICONS } from "@/lib/profile-icons";
 
-const alder = "https://archives.bulbagarden.net/media/upload/e/e8/Spr_B2W2_Alder.png";
-const cynthia = "https://archives.bulbagarden.net/media/upload/8/83/Spr_B2W2_Cynthia.png";
-const n = "https://archives.bulbagarden.net/media/upload/2/2c/Spr_B2W2_N.png";
+const esper = PROFILE_ICONS.find((icon) => icon.type === "esper")?.url ?? DEFAULT_PROFILE_ICON.url;
+const dragon = PROFILE_ICONS.find((icon) => icon.type === "dragon")?.url ?? DEFAULT_PROFILE_ICON.url;
+const mizu = PROFILE_ICONS.find((icon) => icon.type === "mizu")?.url ?? DEFAULT_PROFILE_ICON.url;
 
 type Attachment = {
   id: string;
@@ -65,7 +67,6 @@ export default function SocialPage() {
   const messageListRef = useRef<HTMLDivElement | null>(null);
 
   const [users, setUsers] = useState<ChatUser[]>([
-    
   ]);
 
   const [selectedUser, setSelectedUser] = useState("");
@@ -181,7 +182,7 @@ export default function SocialPage() {
       }
 
       const foundName = payload.user.name;
-      const foundAvatar = payload.user.avatarUrl || cynthia;
+      const foundAvatar = payload.user.avatarUrl || DEFAULT_PROFILE_ICON.url;
 
       setUsers((prevUsers) => {
         if (prevUsers.some((user) => user.name === foundName)) {
@@ -280,7 +281,7 @@ export default function SocialPage() {
   };
 
   return (
-    <main className="relative isolate min-h-screen overflow-hidden text-white">
+    <AppPageShell>
       {inviteNotification && (
         <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
           <div
@@ -298,7 +299,7 @@ export default function SocialPage() {
       {isAddContactModalOpen && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 px-4">
           <div className="w-full max-w-md rounded-2xl border border-[#3c3650] bg-[#1b1826] p-5 shadow-2xl">
-            <h3 className="text-lg font-bold text-white">entrez le nom d'utilisateur</h3>
+            <h3 className="text-lg font-bold text-white">entrez le nom d&apos;utilisateur</h3>
             <p className="mt-1 text-sm text-gray-300">Saisis le pseudo du joueur pour envoyer une invitation.</p>
 
             <input
@@ -306,7 +307,7 @@ export default function SocialPage() {
               value={inviteUsername}
               onChange={(event) => setInviteUsername(event.target.value)}
               placeholder="Pseudo du joueur"
-              className="mt-4 w-full rounded-xl border border-[#3c3650] bg-[#242033] px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-[#8e82ff]"
+              className="mt-4 w-full rounded-xl border border-[#3c3650] bg-[#242033] px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-[var(--accent-color)]"
               autoFocus
             />
 
@@ -321,7 +322,7 @@ export default function SocialPage() {
               <button
                 onClick={submitContactInvite}
                 disabled={isInviting || inviteUsername.trim().length === 0}
-                className="rounded-xl border border-[#b4a8ff]/60 bg-[#8e82ff] px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-[#7d71ec] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isInviting ? "Recherche..." : "Envoyer"}
               </button>
@@ -330,19 +331,7 @@ export default function SocialPage() {
         </div>
       )}
 
-      <div
-        className="absolute inset-0 z-0"
-        style={{
-          backgroundImage: "var(--site-bg-image)",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          filter: "blur(10px)",
-          transform: "scale(1.08)",
-        }}
-      />
-      <div className="absolute inset-0 z-[1] bg-black/25" />
-
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[92rem] px-4 py-4 sm:px-8 sm:py-6">
+      <div className="w-full">
         <section className="grid h-[calc(100vh-2rem)] w-full grid-cols-1 overflow-hidden rounded-3xl border border-[#3c3650] bg-[#15131d]/85 shadow-2xl backdrop-blur-md lg:grid-cols-[19rem_1fr]">
           <aside className="flex min-h-0 flex-col border-b border-[#3c3650] lg:border-b-0 lg:border-r">
             <div className="flex items-center justify-between border-b border-[#3c3650] px-5 py-4">
@@ -366,7 +355,7 @@ export default function SocialPage() {
                     onClick={() => selectUser(user.name)}
                     className={`relative flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors ${
                       isActive
-                        ? "border-[#8e82ff]/60 bg-[#8e82ff]/25 text-white"
+                        ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)] text-white"
                         : "border-[#3c3650] bg-[#242033] text-gray-200 hover:bg-[#302a45]"
                     }`}
                   >
@@ -376,8 +365,7 @@ export default function SocialPage() {
                         alt={user.name}
                         width={64}
                         height={64}
-                        className="h-12 w-12 object-contain"
-                        style={{ imageRendering: "pixelated" }}
+                        className="h-12 w-12 rounded-lg border border-[#3c3650] object-cover"
                         unoptimized
                       />
                     </div>
@@ -396,7 +384,7 @@ export default function SocialPage() {
               <button
                 onClick={openAddContactModal}
                 disabled={isInviting}
-                className="w-full rounded-xl border border-[#b4a8ff]/60 bg-[#8e82ff] py-2 font-bold text-white transition-colors hover:bg-[#7d71ec]"
+                className="w-full rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] py-2 font-bold text-white transition-colors hover:bg-[var(--accent-hover)]"
               >
                 {isInviting ? "Recherche..." : "+ Nouveau contact"}
               </button>
@@ -411,8 +399,7 @@ export default function SocialPage() {
                     alt={currentUser.name}
                     width={64}
                     height={64}
-                    className="h-12 w-12 object-contain"
-                    style={{ imageRendering: "pixelated" }}
+                    className="h-12 w-12 rounded-lg border border-[#3c3650] object-cover"
                     unoptimized
                   /> */}
                 </div>
@@ -443,7 +430,7 @@ export default function SocialPage() {
                   <article
                     className={`max-w-[44rem] rounded-2xl px-5 py-3 ${
                       msg.isMine
-                        ? "bg-[#8e82ff] text-white"
+                        ? "bg-[var(--accent-color)] text-white"
                         : "border border-[#3c3650] bg-[#242033] text-gray-100"
                     }`}
                   >
@@ -545,7 +532,7 @@ export default function SocialPage() {
                 <button
                   onClick={sendMessage}
                   disabled={!hasDraft}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-[#b4a8ff]/60 bg-[#8e82ff] text-white transition-colors hover:bg-[#7d71ec] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Envoyer"
                 >
                   <i className="fa-solid fa-paper-plane" />
@@ -555,6 +542,6 @@ export default function SocialPage() {
           </section>
         </section>
       </div>
-    </main>
+    </AppPageShell>
   );
 }

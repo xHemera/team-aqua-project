@@ -63,14 +63,23 @@ start_services() {
     print_success "Services démarrés"
     print_info "Frontend: http://localhost:3000"
     print_info "websockets: http://localhost:4000/health"
-    docker compose -f docker-compose.yml exec frontend npx prisma migrate dev --name init --url "postgresql://postgres:postgres@db:5432/aqua_temp"
+
+        print_info "Application des migrations Prisma..."
+        docker compose -f docker-compose.yml exec frontend \
+            pnpm prisma migrate deploy --config prisma/prisma.config.ts
+        print_success "Migrations Prisma appliquées"
 }
 
 # Redémarrer les services
 restart_services() {
     print_header "Redémarrage des services"
     docker compose restart
-    docker compose -f docker-compose.yml exec frontend npx add prisma migrate dev --name init --url "postgresql://postgres:postgres@db:5432/aqua_temp"
+
+        print_info "Application des migrations Prisma..."
+        docker compose -f docker-compose.yml exec frontend \
+            pnpm prisma migrate deploy --config prisma/prisma.config.ts
+        print_success "Migrations Prisma appliquées"
+
     print_success "Services redémarrés"
 }
 

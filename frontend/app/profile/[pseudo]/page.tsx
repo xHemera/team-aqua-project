@@ -1,10 +1,9 @@
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { resolveProfileIcon } from "@/lib/profile-icons";
 import prisma from "@/lib/prisma";
 import ProfileClientView from "./ProfileClientView";
-
-const DEFAULT_AVATAR_URL = "https://archives.bulbagarden.net/media/upload/e/e8/Spr_B2W2_Alder.png";
 
 type ProfilePageProps = {
   params: Promise<{ pseudo: string }>;
@@ -33,12 +32,8 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     select: {
       id: true,
       name: true,
+      avatarId: true,
       image: true,
-      avatar: {
-        select: {
-          url: true,
-        },
-      },
     },
   });
 
@@ -46,8 +41,11 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     notFound();
   }
 
-  const avatar = profileUser.avatar?.url ?? profileUser.image ?? DEFAULT_AVATAR_URL;
-  
+  const avatar = resolveProfileIcon({
+    id: profileUser.avatarId,
+    url: profileUser.image,
+  }).url;
+
   return (
     <ProfileClientView
       profileName={profileUser.name}

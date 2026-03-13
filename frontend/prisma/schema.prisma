@@ -72,10 +72,13 @@ model Inbox_users {
 }
 
 model Avatar {
-  id    String @id @default(cuid())
-  name  String
-  url   String
-  users User[]
+  id          String @id @default(cuid())
+  name        String
+  type        String
+  url         String
+  accent      String
+  accentHover String
+  users       User[]
 }
 
 model User {
@@ -84,6 +87,8 @@ model User {
   email         String
   emailVerified Boolean   @default(false)
   image         String?
+  profileBackground String?
+  profileBanner String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   avatarId      String?

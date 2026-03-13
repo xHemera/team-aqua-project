@@ -62,7 +62,7 @@ services:
     restart: unless-stopped
     working_dir: /app
     ports:
-      - "4000:4000"
+      - "4001:4001"
     volumes:
       - ./websockets:/app
       - /app/node_modules
@@ -70,7 +70,7 @@ services:
     environment:
       NODE_ENV: development
       DATABASE_URL: postgresql://postgres:postgres@db:5432/aqua_temp
-      PORT: 4000
+      PORT: 4001
     depends_on:
       db:
         condition: service_healthy

@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { socket } from "../socket"
-
+import AuthPageLayout from "@/components/AuthPageLayout";
 
 // Page d'entrée: connexion + création de compte (mode toggle)
 export default function LoginPage() {
@@ -28,7 +27,7 @@ export default function LoginPage() {
         if (session?.data?.session) {
           router.push("/home");
         }
-      } catch (error) {
+      } catch {
         // Pas de session, on reste sur la page de login
       }
     };
@@ -86,105 +85,85 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="relative isolate flex min-h-screen items-center justify-center overflow-hidden px-4 py-10 text-white">
-      {/* Fond global du site */}
-      <div
-        className="absolute inset-0 z-0"
-        style={{
-          backgroundImage: "var(--site-bg-image)",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          filter: "blur(12px)",
-          transform: "scale(1.08)",
-        }}
-      />
-      <div className="absolute inset-0 z-[1] bg-black/35" />
-      {/* Carte auth */}
-      <div className="relative z-10 w-full max-w-md rounded-3xl border border-[#3c3650] bg-[#15131d]/85 p-6 shadow-2xl backdrop-blur-md sm:p-8">
-        <div className="mb-4 w-full py-2">
-          <Image
-            src="/logo.png"
-            alt="Logo"
-            width={500}
-            height={250}
-            className="mx-auto"
-          />
-        </div>
-        <div className="w-full">
-            <form onSubmit={onSubmit} className="space-y-4">
-              {isRegisterMode && (
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
-                    <i className="fa-regular fa-id-card"></i>
-                  </div>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Nom"
-                    className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[#8e82ff] focus:outline-none"
-                    required
-                  />
-                </div>
-              )}
-
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
-                  <i className="fa-regular fa-user"></i>
-                </div>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email"
-                  className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[#8e82ff] focus:outline-none"
-                  required
-                />
+    <AuthPageLayout>
+      <div className="w-full">
+        <form onSubmit={onSubmit} className="space-y-4">
+          {isRegisterMode && (
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
+                <i className="fa-regular fa-id-card"></i>
               </div>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Nom"
+                className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[var(--accent-color)] focus:outline-none"
+                required
+              />
+            </div>
+          )}
 
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
-                  <i className="fa-solid fa-lock"></i>
-                </div>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mot de passe"
-                  className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[#8e82ff] focus:outline-none"
-                  required
-                  minLength={8}
-                />
-              </div>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
+              <i className="fa-regular fa-user"></i>
+            </div>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
+              className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[var(--accent-color)] focus:outline-none"
+              required
+            />
+          </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsRegisterMode(!isRegisterMode);
-                    setMessage("");
-                  }}
-                  className="rounded-xl border border-[#3c3650] bg-[#302a45] py-3 font-semibold text-gray-100 transition-colors hover:bg-[#3a3355]"
-                >
-                  {isRegisterMode ? "Se connecter" : "S'inscrire"}
-                </button>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
+              <i className="fa-solid fa-lock"></i>
+            </div>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Mot de passe"
+              className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[var(--accent-color)] focus:outline-none"
+              required
+              minLength={8}
+            />
+          </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="rounded-xl border border-[#b4a8ff]/70 bg-[#8e82ff] py-3 font-semibold text-white transition-colors hover:bg-[#7d71ec] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {loading ? "..." : (isRegisterMode ? "Créer un compte" : "Connexion")}
-                </button>
-              </div>
-              {message && (
-                <p className={`text-center text-sm ${message.includes("succès") || message.includes("réussie") ? "text-green-400" : "text-red-400"}`}>
-                  {message}
-                </p>
-              )}
-            </form>
-        </div>
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              type="button"
+              onClick={() => {
+                setIsRegisterMode(!isRegisterMode);
+                setMessage("");
+              }}
+              className="rounded-xl border border-[#3c3650] bg-[#302a45] py-3 font-semibold text-gray-100 transition-colors hover:bg-[#3a3355]"
+            >
+              {isRegisterMode ? "Se connecter" : "S'inscrire"}
+            </button>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] py-3 font-semibold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading ? "..." : isRegisterMode ? "Créer un compte" : "Connexion"}
+            </button>
+          </div>
+          {message && (
+            <p
+              className={`text-center text-sm ${
+                message.includes("succès") || message.includes("réussie") ? "text-green-400" : "text-red-400"
+              }`}
+            >
+              {message}
+            </p>
+          )}
+        </form>
       </div>
-    </main>
+    </AuthPageLayout>
   );
 }

@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { resolveProfileIcon } from "@/lib/profile-icons";
 import { headers } from "next/headers";
 
 export async function GET() {
@@ -16,11 +17,44 @@ export async function GET() {
         name: true,
         email: true,
         avatarId: true,
-        avatar: { select: { id: true, name: true, url: true } },
+        image: true,
+        profileBackground: true,
+        profileBanner: true,
+        avatar: {
+          select: {
+            id: true,
+            name: true,
+            url: true,
+          },
+        },
       },
     });
 
-    return Response.json(user);
+    if (!user) {
+      return Response.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const fallbackAvatar = resolveProfileIcon({ id: user.avatarId, url: user.image });
+    const dbAvatar = user.avatar ?? {
+      id: fallbackAvatar.id,
+      name: fallbackAvatar.name,
+      url: fallbackAvatar.url,
+    };
+    const avatarMeta = resolveProfileIcon({ id: dbAvatar.id, url: dbAvatar.url });
+
+    return Response.json({
+      ...user,
+      profileBackground: user.profileBackground ?? undefined,
+      profileBanner: user.profileBanner ?? undefined,
+      avatar: {
+        id: dbAvatar.id,
+        name: dbAvatar.name,
+        url: dbAvatar.url,
+        type: avatarMeta.type,
+        accent: avatarMeta.accent,
+        accentHover: avatarMeta.accentHover,
+      },
+    });
   } catch (error) {
     console.error("Error fetching profile:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
@@ -35,29 +69,76 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
-    const { avatarId } = body as { avatarId: string };
+    const { avatarId, profileBackground, profileBanner } = body as {
+      avatarId?: string;
+      profileBackground?: string | null;
+      profileBanner?: string | null;
+    };
 
-    if (!avatarId) {
-      return Response.json({ error: "avatarId is required" }, { status: 400 });
+    // Validate and find avatar if provided
+    let nextAvatar = null;
+    if (avatarId) {
+      nextAvatar = await prisma.avatar.findUnique({
+        where: { id: avatarId },
+        select: {
+          id: true,
+          name: true,
+          url: true,
+        },
+      });
+
+      if (!nextAvatar) {
+        return Response.json({ error: "Avatar not found" }, { status: 404 });
+      }
     }
 
-    const avatarExists = await prisma.avatar.findUnique({ where: { id: avatarId } });
-    if (!avatarExists) {
-      return Response.json({ error: "Avatar not found" }, { status: 404 });
+    // Build update data
+    const updateData: any = {};
+    if (avatarId && nextAvatar) {
+      updateData.avatarId = nextAvatar.id;
+      updateData.image = nextAvatar.url;
+    }
+    if (profileBackground !== undefined) {
+      updateData.profileBackground = profileBackground;
+    }
+    if (profileBanner !== undefined) {
+      updateData.profileBanner = profileBanner;
     }
 
     const updated = await prisma.user.update({
       where: { id: session.user.id },
-      data: { avatarId },
+      data: updateData,
       select: {
         id: true,
         name: true,
         avatarId: true,
-        avatar: { select: { id: true, name: true, url: true } },
+        profileBackground: true,
+        profileBanner: true,
+        avatar: {
+          select: {
+            id: true,
+            name: true,
+            url: true,
+          },
+        },
       },
     });
 
-    return Response.json(updated);
+    const avatarMeta = nextAvatar
+      ? resolveProfileIcon({ id: nextAvatar.id, url: nextAvatar.url })
+      : resolveProfileIcon({ id: updated.avatarId, url: updated.avatar?.url });
+
+    return Response.json({
+      ...updated,
+      avatar: {
+        id: updated.avatar?.id ?? nextAvatar?.id,
+        name: updated.avatar?.name ?? nextAvatar?.name,
+        url: updated.avatar?.url ?? nextAvatar?.url,
+        type: avatarMeta.type,
+        accent: avatarMeta.accent,
+        accentHover: avatarMeta.accentHover,
+      },
+    });
   } catch (error) {
     console.error("Error updating profile:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
