@@ -7,7 +7,7 @@ import { socket } from "../../socket"
 import { authClient } from "@/lib/auth-client";
 import AppPageShell from "@/components/AppPageShell";
 import { DEFAULT_PROFILE_ICON, PROFILE_ICONS } from "@/lib/profile-icons";
-import { addContact}  from "./contact"
+import { contact }  from "./index"
 import prisma from "@/lib/prisma";
 
 const esper = PROFILE_ICONS.find((icon) => icon.type === "esper")?.url ?? DEFAULT_PROFILE_ICON.url;
@@ -68,8 +68,7 @@ export default function SocialPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
 
-  const [users, setUsers] = useState<ChatUser[]>([
-  ]);
+  const users = await contact.getUsers();
 
   const [selectedUser, setSelectedUser] = useState("");
   const [message, setMessage] = useState("");
@@ -83,10 +82,7 @@ export default function SocialPage() {
   });
 
   //a modifier ou supprimer
-  const currentUser = useMemo(
-    () => users.find((user) => user.name === selectedUser) ?? users[0],
-    [selectedUser, users],
-  );
+  const currentUser = contact.getCurrentUser(userPseudo!);
 
   const currentMessages = useMemo(
     () => messagesByUser[selectedUser] ?? [],
@@ -136,7 +132,6 @@ export default function SocialPage() {
 
     return () => clearTimeout(timeoutId);
   }, [inviteNotification]);
-
   const selectUser = (userName: string) => {
     setSelectedUser(userName);
     setUsers((prevUsers) =>

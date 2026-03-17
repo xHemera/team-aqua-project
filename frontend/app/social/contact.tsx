@@ -2,7 +2,19 @@
 import prisma from "@/lib/prisma";
 
 
-//creation d'une inbox et de deux inbos_users
+export async function getUsers()
+{
+    return await prisma.user.findMany();
+}
+
+export async function getCurrentUser(current: string)
+{
+    return await prisma.user.findFirst({
+        where: { name: current }
+    })
+}
+
+//creation d'une inbox et de deux inbox_users
 export async function addContact(currentUser: string, addUser: string)
 {
     if (!currentUser || !addUser) return;
