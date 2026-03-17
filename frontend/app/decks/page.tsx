@@ -2,7 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { socket } from "../../socket"
+import { authClient } from "@/lib/auth-client";
 import { useState, useEffect } from "react";
+import AppPageShell from "@/components/AppPageShell";
 
 const deckImages: Record<string, string> = {
   Flygon: "/decks/flygon-icon.png",
@@ -90,58 +93,98 @@ const isValidCardName = (name: string): boolean => {
   return Boolean(cardNameMap[canonicalizeCardName(name)]);
 };
 
-// Page des decks
-export default function DecksPage() {
-  const router = useRouter();
-  const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
-  const [previewCard, setPreviewCard] = useState<{ name: string; filename: string } | null>(null);
-  const [decks, setDecks] = useState<Record<string, DeckData>>({});
-  const [deckList, setDeckList] = useState<Array<{ name: string; icon: string }>>([
+
+const getInitialDeckData = () => {
+  const fallbackDeckList = [
     { name: "Flygon", icon: deckImages.Flygon },
     { name: "Ceruledge", icon: deckImages.Ceruledge },
     { name: "Toxtricity", icon: deckImages.Toxtricity },
     { name: "Zacian", icon: deckImages.Zacian },
-  ]);
+  ];
+
+  const fallbackDecks: Record<string, DeckData> = {
+    Flygon: { cards: [] },
+    Ceruledge: { cards: [] },
+    Toxtricity: { cards: [] },
+    Zacian: { cards: [] },
+  };
+
+  if (typeof window === "undefined") {
+    return {
+      decks: fallbackDecks,
+      deckList: fallbackDeckList,
+    };
+  }
+
+  const saved = localStorage.getItem("decks");
+  if (!saved) {
+    return {
+      decks: fallbackDecks,
+      deckList: fallbackDeckList,
+    };
+  }
+
+  const parsedDecks = JSON.parse(saved) as Record<string, DeckData>;
+  const savedDeckNames = Object.keys(parsedDecks);
+
+  if (savedDeckNames.length === 0) {
+    return {
+      decks: fallbackDecks,
+      deckList: fallbackDeckList,
+    };
+  }
+
+  return {
+    decks: parsedDecks,
+    deckList: savedDeckNames.map((name) => ({
+      name,
+      icon: deckImages[name] || deckImages.Flygon,
+    })),
+  };
+};
+
+// Page des decks
+export default function DecksPage() {
+  const router = useRouter();
+  const initialDeckData = getInitialDeckData();
+  const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
+  const [previewCard, setPreviewCard] = useState<{ name: string; filename: string } | null>(null);
+  const [decks, setDecks] = useState<Record<string, DeckData>>(initialDeckData.decks);
+  const [deckList, setDeckList] = useState<Array<{ name: string; icon: string }>>(initialDeckData.deckList);
   const [newCardName, setNewCardName] = useState("");
   const [cardError, setCardError] = useState("");
   const [invalidCards, setInvalidCards] = useState<Set<string>>(new Set());
   const [isRenamingDeck, setIsRenamingDeck] = useState(false);
   const [deckNameDraft, setDeckNameDraft] = useState("");
   const [deckNameError, setDeckNameError] = useState("");
+  const [userPseudo, setUserPseudo] = useState<string | null>(null);
 
-  const getDeckIcon = (deckName: string) => {
-    return deckImages[deckName] || deckImages.Flygon;
-  };
-
-  // Charger les decks depuis localStorage
   useEffect(() => {
-    const saved = localStorage.getItem("decks");
-    if (saved) {
-      const parsedDecks: Record<string, DeckData> = JSON.parse(saved);
-      setDecks(parsedDecks);
+    const getUserData = async () => {
+      const { data } = await authClient.getSession();
+      if (data?.user?.name)
+      {
+        setUserPseudo(data.user.name);
+      };
+    };
+    getUserData();
+  });
 
-      const savedDeckNames = Object.keys(parsedDecks);
-      if (savedDeckNames.length > 0) {
-        setDeckList(
-          savedDeckNames.map((name) => ({
-            name,
-            icon: getDeckIcon(name),
-          }))
-        );
-      }
-    } else {
-      // Initialiser les decks vides
-      const newDecks: Record<string, DeckData> = {};
-      deckList.forEach((deck) => {
-        newDecks[deck.name] = { cards: [] };
-      });
-      setDecks(newDecks);
-    }
-  }, []);
+  useEffect(() => {
+    if (socket.connected || !userPseudo) return;
+    socket.connect()
+    socket.emit("login", userPseudo);
+    socket.on("online_users", (users) => {
+      console.log("Users from Redis:", users);
+    });
+  });
 
   // Sauvegarder les decks dans localStorage
   const saveDeck = (deckName: string, data: DeckData) => {
-    const updated = { ...decks, [deckName]: data };
+    const normalizedData: DeckData = {
+      cards: data.cards.map((card) => ({ ...card })),
+    };
+    const updated = { ...decks, [deckName]: normalizedData };
     setDecks(updated);
     localStorage.setItem("decks", JSON.stringify(updated));
   };
@@ -161,6 +204,7 @@ export default function DecksPage() {
     setCardError("");
 
     const currentDeck = decks[deckName] || { cards: [] };
+    const nextCards = currentDeck.cards.map((card) => ({ ...card }));
     const total = getTotalCards(deckName);
 
     if (total >= 60) {
@@ -168,7 +212,7 @@ export default function DecksPage() {
       return;
     }
 
-    const existingCard = currentDeck.cards.find(
+    const existingCard = nextCards.find(
       (card) => card.name.toLowerCase() === newCardName.toLowerCase()
     );
 
@@ -179,28 +223,31 @@ export default function DecksPage() {
       }
       existingCard.count += 1;
     } else {
-      currentDeck.cards.push({
+      nextCards.push({
         id: `${Date.now()}-${Math.random()}`,
         name: newCardName,
         count: 1,
       });
     }
 
-    saveDeck(deckName, currentDeck);
+    saveDeck(deckName, { cards: nextCards });
     setNewCardName("");
   };
 
   const removeCard = (deckName: string, cardId: string) => {
     const currentDeck = decks[deckName];
-    const cardIndex = currentDeck.cards.findIndex((card) => card.id === cardId);
+    if (!currentDeck) return;
+
+    const nextCards = currentDeck.cards.map((card) => ({ ...card }));
+    const cardIndex = nextCards.findIndex((card) => card.id === cardId);
 
     if (cardIndex !== -1) {
-      if (currentDeck.cards[cardIndex].count > 1) {
-        currentDeck.cards[cardIndex].count -= 1;
+      if (nextCards[cardIndex].count > 1) {
+        nextCards[cardIndex].count -= 1;
       } else {
-        currentDeck.cards.splice(cardIndex, 1);
+        nextCards.splice(cardIndex, 1);
       }
-      saveDeck(deckName, currentDeck);
+      saveDeck(deckName, { cards: nextCards });
     }
   };
 
@@ -214,11 +261,12 @@ export default function DecksPage() {
       return;
     }
 
-    const card = currentDeck.cards.find((item) => item.id === cardId);
+    const nextCards = currentDeck.cards.map((item) => ({ ...item }));
+    const card = nextCards.find((item) => item.id === cardId);
     if (!card) return;
 
     card.count += 1;
-    saveDeck(deckName, currentDeck);
+    saveDeck(deckName, { cards: nextCards });
   };
 
   const addNewDeck = () => {
@@ -312,21 +360,8 @@ export default function DecksPage() {
   };
 
   return (
-    <main className="relative isolate min-h-screen overflow-hidden text-white">
-      {/* Fond global */}
-      <div
-        className="absolute inset-0 z-0"
-        style={{
-          backgroundImage: "var(--site-bg-image)",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          filter: "blur(10px)",
-          transform: "scale(1.08)",
-        }}
-      />
-      <div className="absolute inset-0 z-[1] bg-black/25" />
-
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-6 sm:px-8 sm:py-8">
+    <AppPageShell containerClassName="max-w-6xl flex-col px-4 py-6 sm:px-8 sm:py-8">
+      <div className="w-full">
         <header className="mb-6 flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">My Decks</h1>
           <div className="flex gap-3">
@@ -339,7 +374,7 @@ export default function DecksPage() {
             </button>
             <button
               onClick={() => router.push("/social")}
-              className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#b4a8ff]/60 bg-[#1f1b2d]/90 text-white shadow-lg transition-colors hover:bg-[#2b2540]"
+              className="flex h-11 w-11 items-center justify-center rounded-xl border border-[color:var(--accent-border)] bg-[#1f1b2d]/90 text-white shadow-lg transition-colors hover:bg-[#2b2540]"
               aria-label="Aller au social"
             >
               <i className="fa-regular fa-comment-dots"></i>
@@ -355,7 +390,7 @@ export default function DecksPage() {
                 <button
                   key={deck.name}
                   onClick={() => openDeckPopup(deck.name)}
-                  className="group relative overflow-hidden rounded-2xl border border-[#3c3650] bg-[#242033] p-6 transition-all hover:border-[#8e82ff]/60 hover:bg-[#302a45]"
+                  className="group relative overflow-hidden rounded-2xl border border-[#3c3650] bg-[#242033] p-6 transition-all hover:border-[color:var(--accent-border)] hover:bg-[#302a45]"
                 >
                   <div className="mb-4 flex items-center justify-center">
                     <Image
@@ -367,7 +402,7 @@ export default function DecksPage() {
                       style={{ imageRendering: "pixelated" }}
                     />
                   </div>
-                  <p className="text-center text-lg font-semibold text-white group-hover:text-[#b4a8ff]">
+                  <p className="text-center text-lg font-semibold text-white group-hover:text-[var(--accent-color)]">
                     {deck.name}
                   </p>
                   <p className="text-center text-sm text-gray-400 mt-2">
@@ -382,7 +417,7 @@ export default function DecksPage() {
 
         <button
           onClick={addNewDeck}
-          className="fixed bottom-6 right-4 z-20 inline-flex h-14 items-center gap-3 rounded-full border border-[#b4a8ff]/60 bg-[#8e82ff] px-5 text-base font-semibold text-white shadow-2xl transition-colors hover:bg-[#7d71ec] sm:bottom-8 sm:right-8"
+          className="fixed bottom-6 right-4 z-20 inline-flex h-14 items-center gap-3 rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] px-5 text-base font-semibold text-white shadow-2xl transition-colors hover:bg-[var(--accent-hover)] sm:bottom-8 sm:right-8"
         >
           <i className="fa-solid fa-plus text-lg"></i>
           New
@@ -419,7 +454,7 @@ export default function DecksPage() {
                         }
                       }}
                       placeholder="Nom du deck"
-                      className="w-full rounded-lg border border-[#8e82ff]/60 bg-[#242033] px-3 py-2 text-white placeholder:text-gray-500 focus:border-[#b4a8ff] focus:outline-none"
+                      className="w-full rounded-lg border border-[color:var(--accent-border)] bg-[#242033] px-3 py-2 text-white placeholder:text-gray-500 focus:border-[var(--accent-color)] focus:outline-none"
                     />
                     <button
                       type="button"
@@ -450,7 +485,7 @@ export default function DecksPage() {
                         setDeckNameDraft(selectedDeck);
                         setDeckNameError("");
                       }}
-                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#b4a8ff]/60 bg-[#242033] text-white transition-colors hover:bg-[#302a45]"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[color:var(--accent-border)] bg-[#242033] text-white transition-colors hover:bg-[#302a45]"
                       aria-label="Renommer le deck"
                     >
                       <i className="fa-solid fa-pen"></i>
@@ -497,7 +532,7 @@ export default function DecksPage() {
                           key={card.id}
                           className="relative group"
                         >
-                          <div className="relative overflow-hidden rounded-lg border border-[#3c3650] bg-[#242033] aspect-[2.5/3.5] hover:border-[#8e82ff]/60 transition-all">
+                          <div className="relative overflow-hidden rounded-lg border border-[#3c3650] bg-[#242033] aspect-[2.5/3.5] hover:border-[color:var(--accent-border)] transition-all">
                             {/* Image de la carte */}
                             <button
                               type="button"
@@ -506,17 +541,18 @@ export default function DecksPage() {
                                   setPreviewCard({ name: card.name, filename: normalized });
                                 }
                               }}
-                              className="w-full h-full bg-gradient-to-br from-[#8e82ff]/20 to-[#3c3650] flex items-center justify-center relative overflow-hidden"
+                              className="w-full h-full bg-gradient-to-br from-[var(--accent-soft)] to-[#3c3650] flex items-center justify-center relative overflow-hidden"
                             >
                               {hasError ? (
-                                <p className="text-xs text-red-500 text-center p-2">Cette carte n'existe pas</p>
+                                <p className="text-xs text-red-500 text-center p-2">Cette carte n&apos;existe pas</p>
                               ) : (
-                                <img
+                                <Image
                                   src={`/cards/${encodeURIComponent(normalized)}.png`}
                                   alt={card.name}
-                                  className="w-full h-full object-cover"
+                                  fill
+                                  className="object-cover"
                                   onError={() => {
-                                    setInvalidCards(prev => new Set([...prev, card.id]));
+                                    setInvalidCards((prev) => new Set([...prev, card.id]));
                                   }}
                                 />
                               )}
@@ -524,7 +560,7 @@ export default function DecksPage() {
                             
                             {/* Badge de quantité (polygone bas-centre) */}
                             <div
-                              className="absolute bottom-1 left-1/2 z-20 flex h-10 w-14 -translate-x-1/2 items-center justify-center border border-[#b4a8ff]/80 bg-gradient-to-br from-[#8e82ff] to-[#5e54d6] text-base font-bold text-white shadow-lg"
+                              className="absolute bottom-1 left-1/2 z-20 flex h-10 w-14 -translate-x-1/2 items-center justify-center border border-[color:var(--accent-border)] bg-gradient-to-br from-[var(--accent-color)] to-[var(--accent-hover)] text-base font-bold text-white shadow-lg"
                               style={{ clipPath: "polygon(0 0, 100% 0, 100% 68%, 50% 100%, 0 68%)" }}
                             >
                               {card.count}
@@ -572,18 +608,18 @@ export default function DecksPage() {
                       setNewCardName(e.target.value);
                       if (cardError) setCardError("");
                     }}
-                    onKeyPress={(e) => {
+                    onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         addCard(selectedDeck);
                       }
                     }}
                     placeholder="Nom de la carte..."
-                    className="flex-1 rounded-lg border border-[#3c3650] bg-[#242033] px-3 py-2 text-white placeholder:text-gray-500 focus:border-[#8e82ff] focus:outline-none transition-colors"
+                    className="flex-1 rounded-lg border border-[#3c3650] bg-[#242033] px-3 py-2 text-white placeholder:text-gray-500 focus:border-[var(--accent-color)] focus:outline-none transition-colors"
                   />
                   <button
                     onClick={() => addCard(selectedDeck)}
                     disabled={getTotalCards(selectedDeck) >= 60}
-                    className="flex h-10 items-center gap-2 rounded-lg bg-[#8e82ff] px-4 py-2 text-sm font-medium text-white hover:bg-[#7d71ec] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex h-10 items-center gap-2 rounded-lg bg-[var(--accent-color)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <i className="fa-solid fa-plus"></i>
                     Add
@@ -601,14 +637,16 @@ export default function DecksPage() {
           className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => setPreviewCard(null)}
         >
-          <img
+          <Image
             src={`/cards/${encodeURIComponent(previewCard.filename)}.png`}
             alt={previewCard.name}
+            width={1000}
+            height={1400}
             className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />
         </div>
       )}
-    </main>
+    </AppPageShell>
   );
 }

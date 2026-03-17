@@ -62,15 +62,24 @@ start_services() {
     docker compose up --build -d
     print_success "Services démarrés"
     print_info "Frontend: http://localhost:3000"
-    print_info "websockets: http://localhost:4000/health"
-    docker compose -f docker-compose.yml exec frontend npx prisma migrate dev --name init --url "postgresql://postgres:postgres@db:5432/aqua_temp"
+    print_info "websockets: http://localhost:4001/health"
+
+        print_info "Application des migrations Prisma..."
+        docker compose -f docker-compose.yml exec frontend \
+            pnpm prisma migrate deploy --config prisma/prisma.config.ts
+        print_success "Migrations Prisma appliquées"
 }
 
 # Redémarrer les services
 restart_services() {
     print_header "Redémarrage des services"
     docker compose restart
-    docker compose -f docker-compose.yml exec frontend npx add prisma migrate dev --name init --url "postgresql://postgres:postgres@db:5432/aqua_temp"
+
+        print_info "Application des migrations Prisma..."
+        docker compose -f docker-compose.yml exec frontend \
+            pnpm prisma migrate deploy --config prisma/prisma.config.ts
+        print_success "Migrations Prisma appliquées"
+
     print_success "Services redémarrés"
 }
 
@@ -98,9 +107,8 @@ show_logs() {
     print_header "Logs des services"
     echo "1. Tous"
     echo "2. Frontend"
-    echo "3. websockets"
+    echo "3. Websockets"
     echo "4. Database"
-    echo "5. Game Engine"
     read -p "Service: " service_choice
     
     case $service_choice in
@@ -108,7 +116,6 @@ show_logs() {
         2) docker compose logs frontend -f ;;
         3) docker compose logs websockets -f ;;
         4) docker compose logs db -f ;;
-        5) docker compose logs game-engine -f ;;
         *) print_error "Choix invalide" ;;
     esac
 }
@@ -121,7 +128,7 @@ check_status() {
     
     # Tester les endpoints
     print_info "Test du websockets..."
-    if curl -s http://localhost:4000/health > /dev/null 2>&1; then
+    if curl -s http://localhost:4001/health > /dev/null 2>&1; then
         print_success "websockets: OK"
     else
         print_error "websockets: KO"
@@ -162,11 +169,11 @@ test_services() {
     print_header "Test des services"
     
     echo "websockets Health:"
-    curl -s http://localhost:4000/health | jq '.' 2>/dev/null || curl -s http://localhost:4000/health
+    curl -s http://localhost:4001/health | jq '.' 2>/dev/null || curl -s http://localhost:4001/health
     
     echo ""
     echo "Utilisateurs (premiers 3):"
-    curl -s http://localhost:4000/api/users | jq '.[0:3]' 2>/dev/null || curl -s http://localhost:4000/api/users
+    curl -s http://localhost:4001/api/users | jq '.[0:3]' 2>/dev/null || curl -s http://localhost:4001/api/users
 }
 
 # Boucle principale

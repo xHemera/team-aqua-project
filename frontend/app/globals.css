@@ -4,6 +4,10 @@
   --background: #ffffff;
   --foreground: #171717;
   --site-bg-image: url("https://p4.wallpaperbetter.com/wallpaper/162/64/1018/gengar-ghastly-ghosts-haunter-wallpaper-preview.jpg");
+  --accent-color: #8e82ff;
+  --accent-hover: #7d71ec;
+  --accent-soft: rgba(142, 130, 255, 0.22);
+  --accent-border: rgba(180, 168, 255, 0.68);
 }
 
 @theme inline {

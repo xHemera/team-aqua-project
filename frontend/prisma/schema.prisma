@@ -9,14 +9,14 @@ datasource db {
 
 model Friends {
   friendIds    Int[]
-  userId       String    @id
+  userId       String    @id @default(cuid())
   request_sent Boolean
   created_at   DateTime @default(now())
   user         User?   @relation(fields: [userId], references: [id])
 }
 
 model Decks {
-  id        String    @id
+  id        String    @id @default(cuid())
   title     String?
   image     String?
   body      String?
@@ -27,7 +27,7 @@ model Decks {
 }
 
 model Cards {
-  id       String    @id
+  id       String		@id @default(cuid())
   type     String
   element  String?
   hp       Int?
@@ -39,43 +39,45 @@ model Cards {
   weakness String?
   resist   String?
   deckId   String?
-  deck     Decks?  @relation(fields: [deckId], references: [id])
+  deck     Decks?		@relation(fields: [deckId], references: [id])
 }
 
 model Messages {
-  id        String    @id
+  id        String    @id @default(cuid())
   user_id   String
   inbox_id  String
   message   String?
-  createdAt DateTime @default(now())
-  user      User?   @relation(fields: [user_id], references: [id])
-  inbox     Inbox?   @relation(fields: [inbox_id], references: [id])
+  createdAt DateTime	@default(now())
+  user      User?			@relation(fields: [user_id], references: [id])
+  inbox     Inbox?		@relation(fields: [inbox_id], references: [id])
 }
 
 model Inbox {
-  id       			String    @id
-  inboxuid          String?
-  last_message      String?
-  last_sent_user_id String
-  createdAt         DateTime      @default(now())
-  inboxUser         Inbox_users[]
-  messages          Messages[]
-  user              User?        @relation(fields: [last_sent_user_id], references: [id])
+	id       			    String    @id @default(cuid())
+	last_message      String?
+	last_sent_user_id String?
+	createdAt         DateTime  @default(now())
+	inboxUser					Inbox_users[]
+	messages          Messages[]
+	user              User?     @relation(fields: [last_sent_user_id], references: [id])
 }
 
 model Inbox_users {
-  id		    String    @id
+  id		    String    @id @default(cuid())
   inbox_id	String
   user_id   String
-  user		  User? @relation(fields: [user_id], references: [id])
-  inbox		  Inbox? @relation(fields: [inbox_id], references: [id])
+  user		  User?			@relation(fields: [user_id], references: [id])
+  inbox		  Inbox?		@relation(fields: [inbox_id], references: [id])
 }
 
 model Avatar {
-  id    String @id @default(cuid())
-  name  String
-  url   String
-  users User[]
+  id          String @id @default(cuid())
+  name        String
+  type        String
+  url         String
+  accent      String
+  accentHover String
+  users       User[]
 }
 
 model User {
@@ -84,6 +86,8 @@ model User {
   email         String
   emailVerified Boolean   @default(false)
   image         String?
+  profileBackground String?
+  profileBanner String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   avatarId      String?

@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       message: "votre invitation a bien ete envoyer",
       user: {
         name: targetUser.name,
-        avatarUrl: targetUser.avatar?.url ?? targetUser.image,
+        avatarUrl: targetUser.image ?? targetUser.avatar?.url,
       },
     });
   } catch (error) {

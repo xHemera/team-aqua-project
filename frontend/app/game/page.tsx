@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 
 // Plateau de jeu (maquette statique) + menu pause

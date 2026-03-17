@@ -1,30 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-
-const defaultBackground = "/public/ectoplasme.jpg";
-
-const normalizeBackgroundValue = (value: string) => {
-  const rawValue = (value || "").trim();
-
-  if (!rawValue) {
-    return defaultBackground;
-  }
-
-  const withoutDeclaration = rawValue.replace(/^background(-image)?\s*:\s*/i, "").trim();
-
-  if (withoutDeclaration.startsWith("url(")) {
-    const insideUrl = withoutDeclaration.slice(4, -1).trim().replace(/^['"]|['"]$/g, "");
-    return insideUrl || defaultBackground;
-  }
-
-  return withoutDeclaration;
-};
-
-const toCssImageValue = (value: string) => {
-  const normalized = normalizeBackgroundValue(value);
-  return `url("${normalized.replace(/"/g, '\\"')}")`;
-};
+import { DEFAULT_SITE_BACKGROUND, toCssImageValue } from "@/lib/background-utils";
 
 export default function BackgroundPreferenceSync() {
   useEffect(() => {
@@ -35,9 +12,9 @@ export default function BackgroundPreferenceSync() {
         localStorage.getItem("background") ||
         localStorage.getItem("wallpaper") ||
         localStorage.getItem("customBackground") ||
-        defaultBackground;
+        DEFAULT_SITE_BACKGROUND;
 
-      document.documentElement.style.setProperty("--site-bg-image", toCssImageValue(source));
+      document.documentElement.style.setProperty("--site-bg-image", toCssImageValue(source, DEFAULT_SITE_BACKGROUND));
     };
 
     applyBackground();
