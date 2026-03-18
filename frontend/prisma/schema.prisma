@@ -63,11 +63,12 @@ model Inbox {
 }
 
 model Inbox_users {
-  id		    String    @id @default(cuid())
-  inbox_id	String
-  user_id   String
-  user		  User?			@relation(fields: [user_id], references: [id])
-  inbox		  Inbox?		@relation(fields: [inbox_id], references: [id])
+  id		          String    @id @default(cuid())
+  inbox_id	      String
+  user_id         String
+  unread_messages Int?
+  user		  User?			      @relation(fields: [user_id], references: [id])
+  inbox		  Inbox?		      @relation(fields: [inbox_id], references: [id])
 }
 
 model Avatar {

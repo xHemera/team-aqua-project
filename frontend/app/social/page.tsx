@@ -14,18 +14,41 @@ const esper = PROFILE_ICONS.find((icon) => icon.type === "esper")?.url ?? DEFAUL
 const dragon = PROFILE_ICONS.find((icon) => icon.type === "dragon")?.url ?? DEFAULT_PROFILE_ICON.url;
 const mizu = PROFILE_ICONS.find((icon) => icon.type === "mizu")?.url ?? DEFAULT_PROFILE_ICON.url;
 
+type Avatar = {
+  url: string;
+  id: string;
+  name: string;
+  type: string;
+  accent: string;
+  accentHover: string;
+};
+
+type User = {
+  id:            string
+  name:          string
+  email:         string
+  emailVerified: Boolean
+  image:         string | null
+  profileBackground: string | null
+  profileBanner: string | null
+  createdAt:     Date
+  updatedAt:     Date
+  avatarId:      string | null
+  avatar:        Avatar | null
+  // accounts:      Account[]
+  // decks:         Decks[]
+  // friends:       Friends[]
+  // inboxUser:     Inbox_users[]
+  // messages:      Messages[]
+  // inbox:         Inbox[]
+}
+
 type Attachment = {
   id: string;
   name: string;
   sizeLabel: string;
   type: string;
   previewUrl: string;
-};
-
-type ChatUser = {
-  name: string;
-  avatar: string;
-  unreadCount: number;
 };
 
 type ChatMessage = {
@@ -63,12 +86,9 @@ const buildAttachmentFromFile = (file: File): Attachment => ({
 });
 
 export default function SocialPage() {
-
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
-
-  const users = await contact.getUsers();
 
   const [selectedUser, setSelectedUser] = useState("");
   const [message, setMessage] = useState("");
@@ -80,9 +100,9 @@ export default function SocialPage() {
   const [userPseudo, setUserPseudo] = useState<string | null>(null)
   const [messagesByUser, setMessagesByUser] = useState<Record<string, ChatMessage[]>>({
   });
+  const [users, setUsers] = useState<User[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  //a modifier ou supprimer
-  const currentUser = contact.getCurrentUser(userPseudo!);
 
   const currentMessages = useMemo(
     () => messagesByUser[selectedUser] ?? [],
@@ -102,13 +122,30 @@ export default function SocialPage() {
   });
 
   useEffect(() => {
-    if (socket.connected || !userPseudo) return;
-    socket.connect()
-    socket.emit("login", userPseudo);
-    socket.on("online_users", (users) => {
-      console.log("Users from Redis:", users);
-    });
+    async function fetchUsers() {
+    if (!userPseudo) return;
+      const u = await contact.getUsers();
+      const cU = await contact.getCurrentUser(userPseudo);
+      setUsers(u);
+      setCurrentUser(cU);
+    }
+    fetchUsers();
+  }, [userPseudo]);
+
+  useEffect(() => {
+  if (!userPseudo || socket.connected) return;
+
+  socket.connect();
+  socket.emit("login", userPseudo);
+
+  socket.on("online_users", (users) => {
+    console.log("Users from Redis:", users);
   });
+
+  return () => {
+    socket.off("online_users");
+  };
+}, [userPseudo]);
 
   useEffect(() => {
     messageListRef.current?.scrollTo({
@@ -132,15 +169,8 @@ export default function SocialPage() {
 
     return () => clearTimeout(timeoutId);
   }, [inviteNotification]);
-  const selectUser = (userName: string) => {
-    setSelectedUser(userName);
-    setUsers((prevUsers) =>
-      prevUsers.map((user) =>
-        user.name === userName ? { ...user, unreadCount: 0 } : user,
-      ),
-    );
-  };
 
+  
   const openAddContactModal = () => {
     if (isInviting) return;
     setInviteUsername("");
@@ -165,7 +195,7 @@ export default function SocialPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username }),
       });
-      addContact(userPseudo!, inviteUsername);
+      contact.addContact(userPseudo!, inviteUsername);
       const payload = (await response.json()) as {
         error?: string;
         user?: { name: string; avatarUrl?: string | null };
@@ -181,21 +211,6 @@ export default function SocialPage() {
 
       const foundName = payload.user.name;
       const foundAvatar = payload.user.avatarUrl || DEFAULT_PROFILE_ICON.url;
-
-      setUsers((prevUsers) => {
-        if (prevUsers.some((user) => user.name === foundName)) {
-          return prevUsers;
-        }
-
-        return [
-          ...prevUsers,
-          {
-            name: foundName,
-            avatar: foundAvatar,
-            unreadCount: 0,
-          },
-        ];
-      });
 
       setMessagesByUser((prevMessages) => {
         if (prevMessages[foundName]) {
@@ -281,9 +296,6 @@ export default function SocialPage() {
     }
   };
 
-
-
-
   return (
     <AppPageShell>
       {inviteNotification && (
@@ -350,13 +362,18 @@ export default function SocialPage() {
             </div>
 
             <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
-              {users.map((user) => {
+              {
+                users.map((user) => {
                 const isActive = selectedUser === user.name;
 
                 return (
                   <button
                     key={user.name}
-                    onClick={() => selectUser(user.name)}
+                    onClick={async () => {
+                      const next = await contact.selectUser(user.name);
+                      setSelectedUser(next)
+                      }
+                    }
                     className={`relative flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors ${
                       isActive
                         ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)] text-white"
@@ -365,7 +382,7 @@ export default function SocialPage() {
                   >
                     <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-visible">
                       <Image
-                        src={user.avatar}
+                        src={user.avatar?.url ?? DEFAULT_PROFILE_ICON.url}
                         alt={user.name}
                         width={64}
                         height={64}
@@ -374,11 +391,11 @@ export default function SocialPage() {
                       />
                     </div>
                     <span className="truncate font-semibold">{user.name}</span>
-                    {user.unreadCount > 0 && (
+                    {/* {user.unreadCount > 0 && (
                       <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
                         {user.unreadCount}
                       </span>
-                    )}
+                    )} */}
                   </button>
                 );
               })}
@@ -398,19 +415,19 @@ export default function SocialPage() {
             <header className="flex items-center justify-between border-b border-[#3c3650] bg-[#242033] px-5 py-4">
               <div className="flex items-center gap-3">
                 <div className="relative flex h-10 w-10 items-center justify-center overflow-visible">
-                  {/* <Image
-                    src={currentUser.avatar}
-                    alt={currentUser.name}
+                  {/* { <Image
+                    src={currentUser.avatar?.url ?? DEFAULT_PROFILE_ICON.url}
+                    alt={currentUser!.name}
                     width={64}
                     height={64}
                     className="h-12 w-12 rounded-lg border border-[#3c3650] object-cover"
                     unoptimized
-                  /> */}
+                  /> } */}
                 </div>
-                {/* <div>
-                  <h2 className="text-xl font-bold">{currentUser.name}</h2>
+                { <div>
+                  {/* <h2 className="text-xl font-bold">{currentUser!.name}</h2> */}
                   {hasDraft && <p className="text-xs text-[#b4a8ff]">En train d’écrire...</p>}
-                </div> */}
+                </div>}
               </div>
 
               <button
