@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { socket } from "../../socket"
 const alder = "https://archives.bulbagarden.net/media/upload/e/e8/Spr_B2W2_Alder.png";
@@ -50,8 +50,6 @@ const getInitialDeckState = () => {
 
 // Page principale: navigation rapide, lancement de partie et sélection de deck
 export default function Home() {
-
-  const router = useRouter();
   // États UI de la page
   const [showPopup, setShowPopup] = useState(false);
   const [selectedDeck, setSelectedDeck] = useState("Flygon");
@@ -115,6 +113,8 @@ export default function Home() {
     }
   }, [selectedDeck]);
 
+  const profileHref = userPseudo ? `/profile/${encodeURIComponent(userPseudo)}` : "/not-connected";
+
   // Gère la fermeture du menu deck au clic extérieur / touche Escape
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -138,16 +138,6 @@ export default function Home() {
     };
   }, []);
   
-  // Redirige vers la page profil réelle de l'utilisateur connecté
-  const handleProfileClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    const { data } = await authClient.getSession();
-    if (data?.user?.name) {
-      router.push(`/profile/${data.user.name}`);
-    } else {
-      router.push("/not-connected");
-    }
-  };
   return (
     <AppPageShell containerClassName="w-full max-w-[92rem] flex-col px-0 py-0">
       {/* Animations locales de notification et loader */}
@@ -215,23 +205,28 @@ export default function Home() {
       {/* Header */}
       <header className="relative z-10 flex w-full items-center justify-end px-4 py-4 sm:px-8 sm:py-6">
         <div className="flex gap-4 rounded-2xl border border-[#3c3650] bg-[#15131d]/85 px-4 py-3 shadow-2xl backdrop-blur-md">
+          {/* Search Icon */}
+          <Link href="/search" className="w-16 h-16 bg-[#242033] rounded-xl flex items-center justify-center border border-[#3c3650] hover:bg-[#302a45] transition-colors shadow-lg">
+            <i className="fa-solid fa-magnifying-glass text-white text-2xl"></i>
+          </Link>
+
           {/* Decks Icon */}
-          <a href="/decks" className="w-16 h-16 bg-[#242033] rounded-xl flex items-center justify-center border border-[#3c3650] hover:bg-[#302a45] transition-colors shadow-lg">
+          <Link href="/decks" className="w-16 h-16 bg-[#242033] rounded-xl flex items-center justify-center border border-[#3c3650] hover:bg-[#302a45] transition-colors shadow-lg">
             <i className="fa-solid fa-box-archive text-white text-2xl"></i>
-          </a>
+          </Link>
           
           {/* Social/Chat Icon with notification */}
-          <a href="/social" className="w-16 h-16 bg-[#242033] rounded-xl flex items-center justify-center border border-[#3c3650] hover:bg-[#302a45] transition-colors shadow-lg relative">
+          <Link href="/social" className="w-16 h-16 bg-[#242033] rounded-xl flex items-center justify-center border border-[#3c3650] hover:bg-[#302a45] transition-colors shadow-lg relative">
             <i className="fa-regular fa-comment-dots text-white text-2xl"></i>
             <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
               1
             </div>
-          </a>
+          </Link>
           
           {/* Settings Icon */}
-          <a href="#" onClick={handleProfileClick} className="w-16 h-16 bg-[#242033] rounded-xl flex items-center justify-center border border-[#3c3650] hover:bg-[#302a45] transition-colors shadow-lg">
+          <Link href={profileHref} className="w-16 h-16 bg-[#242033] rounded-xl flex items-center justify-center border border-[#3c3650] hover:bg-[#302a45] transition-colors shadow-lg">
             <i className="fa-solid fa-user-gear text-white text-2xl"></i>
-          </a>
+          </Link>
         </div>
       </header>
 
@@ -256,7 +251,7 @@ export default function Home() {
                 unoptimized
               />
               <div className="bg-[var(--accent-color)] bg-opacity-75 bg-gradient-to-r px-8 py-3 border-3 border-[color:var(--accent-border)] rounded-lg shadow-lg hover:scale-110 transition-all cursor-pointer">
-                <a href="#" onClick={handleProfileClick} className="text-white font-bold text-lg hover:text-gray-200">{userPseudo || "Pseudo"}</a>
+                <Link href={profileHref} className="text-white font-bold text-lg hover:text-gray-200">{userPseudo || "Pseudo"}</Link>
               </div>
             </div>
           </div>
