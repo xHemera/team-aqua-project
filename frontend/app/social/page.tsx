@@ -76,6 +76,7 @@ const toSizeLabel = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
 };
 
+//creation d'un fichier a partager
 const buildAttachmentFromFile = (file: File): Attachment => ({
   id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
   name: file.name,
@@ -111,6 +112,7 @@ export default function SocialPage() {
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
 
 
+  //recupere le nom d'utilisateur actuel
   useEffect(() => {
     const getUserData = async () => {
       const { data } = await authClient.getSession();
@@ -120,6 +122,7 @@ export default function SocialPage() {
     getUserData();
   });
 
+  //recupere les utilisateurs de la db
   useEffect(() => {
     async function fetchUsers() {
     if (!userPseudo) return;
@@ -131,6 +134,7 @@ export default function SocialPage() {
     fetchUsers();
   }, [userPseudo]);
 
+  //reconnecte les sockets si refresh
   useEffect(() => {
   if (!userPseudo || socket.connected) return;
 
@@ -146,71 +150,89 @@ export default function SocialPage() {
   };
 }, [userPseudo]);
 
-  useEffect(() => {
-    messageListRef.current?.scrollTo({
-      top: messageListRef.current.scrollHeight,
-      behavior: "smooth",
-    });
-  }, [selectedUser, currentMessages.length]);
+//permet de scroll la conversation
+useEffect(() => {
+  messageListRef.current?.scrollTo({
+    top: messageListRef.current.scrollHeight,
+    behavior: "smooth",
+  });
+}, [selectedUser, currentMessages.length]);
 
-  useEffect(() => {
-    return () => {
-      draftAttachments.forEach((attachment) => URL.revokeObjectURL(attachment.previewUrl));
-    };
-  }, [draftAttachments]);
+useEffect(() => {
+  return () => {
+    draftAttachments.forEach((attachment) => URL.revokeObjectURL(attachment.previewUrl));
+  };
+}, [draftAttachments]);
 
-  useEffect(() => {
-    if (!inviteNotification) return;
+//timer pour les notifications
+useEffect(() => {
+  if (!inviteNotification) return;
 
-    const timeoutId = setTimeout(() => {
-      setInviteNotification(null);
-    }, 3000);
+  const timeoutId = setTimeout(() => {
+    setInviteNotification(null);
+  }, 3000);
 
-    return () => clearTimeout(timeoutId);
-  }, [inviteNotification]);
+  return () => clearTimeout(timeoutId);
+}, [inviteNotification]);
 
-  
+  //ouvre une demande de conversation
   const openAddContactModal = () => {
     if (isInviting) return;
     setInviteUsername("");
     setIsAddContactModalOpen(true);
   };
 
+  //ferme la demande de conversation
   const closeAddContactModal = () => {
     if (isInviting) return;
     setIsAddContactModalOpen(false);
     setInviteUsername("");
   };
 
-  //cree une nouvelle discussion
+  //cree une nouvelle conversation
   const submitContactInvite = async () => {
     const username = inviteUsername.trim();
     if (isInviting || !username) return;
     try {
       setIsInviting(true);
 
+      
       const response = await fetch("/api/social/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username }),
       });
-      contact.addContact(userPseudo!, inviteUsername);
       const payload = (await response.json()) as {
         error?: string;
         user?: { name: string; avatarUrl?: string | null };
       };
+      if (payload.error === "vous ne pouvez pas vous inviter")
+      {
+        setInviteNotification({
+          type: "error",
+          message: payload.error,
+        });
+        return ;
+      }
+      if (await contact.alreadyAdded(userPseudo!, inviteUsername) === false)
+      {
+        setInviteNotification({
+          type: "error",
+          message: payload.error ?? "une discussion a deja ete cree.",
+        });
+        return;
+      }
+      contact.addContact(userPseudo!, inviteUsername);
 
       if (!response.ok || !payload.user) {
         setInviteNotification({
           type: "error",
-          message: payload.error ?? "ce joueur n'existe pas",
+          message: payload.error ?? "ce joueur n'existe pas.",
         });
         return;
       }
 
       const foundName = payload.user.name;
-      const foundAvatar = payload.user.avatarUrl || DEFAULT_PROFILE_ICON.url;
-
       setMessagesByUser((prevMessages) => {
         if (prevMessages[foundName]) {
           return prevMessages;
@@ -238,7 +260,6 @@ export default function SocialPage() {
       setIsInviting(false);
     }
   };
-  //fin de la fonction a modifier
 
   const handlePickAttachments = () => {
     fileInputRef.current?.click();

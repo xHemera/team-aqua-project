@@ -54,6 +54,33 @@ export async function addContact(currentUser: string, addUser: string)
     })
 }
 
+export async function alreadyAdded(currentUser: string, addUser: string)
+{
+	if (!currentUser || !addUser) return;
+    const user1 = await prisma.user.findFirst({
+        where: { name: currentUser }
+    })
+    const user2 = await prisma.user.findFirst({
+        where: { name: addUser }
+    })
+    const inboxes = await prisma.inbox.findMany({
+        select: { inboxUser: { select: { user_id: true } } }
+    });
+
+	if (inboxes.length === 0) return true;
+
+    for (const inbox of inboxes)
+    {
+        const ids = inbox.inboxUser.map(inboxUser => inboxUser.user_id);
+
+		if (ids.includes(user1!.id) && ids.includes(user2!.id))
+		{
+			return false
+		}
+    };
+	return true;
+}
+
 export async function selectUser(userName: string)
 {
 	const user = await prisma.user.findFirst({
