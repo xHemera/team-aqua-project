@@ -7,6 +7,8 @@ export async function getUsers()
     return await prisma.user.findMany({
         include: {
             avatar: true,
+			inbox: { include: { inboxUser: true } },
+			inboxUser: true
         }
     })
 }
@@ -17,6 +19,8 @@ export async function getCurrentUser(current: string)
         where: { name: current },
         include: {
             avatar: true,
+			inbox: { include: { inboxUser: true } },
+			inboxUser: true
         }
     })
     if (!user)
@@ -75,7 +79,7 @@ export async function alreadyAdded(currentUser: string, addUser: string)
 
 		if (ids.includes(user1!.id) && ids.includes(user2!.id))
 		{
-			return false
+			return false;
 		}
     };
 	return true;

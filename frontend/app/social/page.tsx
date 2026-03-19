@@ -13,50 +13,67 @@ const esper = PROFILE_ICONS.find((icon) => icon.type === "esper")?.url ?? DEFAUL
 const dragon = PROFILE_ICONS.find((icon) => icon.type === "dragon")?.url ?? DEFAULT_PROFILE_ICON.url;
 const mizu = PROFILE_ICONS.find((icon) => icon.type === "mizu")?.url ?? DEFAULT_PROFILE_ICON.url;
 
+type Inbox_users = {
+	id:								string;
+	inbox_id:					string;
+	user_id:					string;
+	unread_messages:	number | null;
+};
+
+type Inbox = {
+  id: 								string;
+  last_message: 			string | null;
+  last_sent_user_id:  string | null;
+  createdAt:  				Date;
+  inboxUser:  				Inbox_users[];
+	//messages:					Messages[];
+};
+
 type Avatar = {
-  url: string;
-  id: string;
-  name: string;
-  type: string;
-  accent: string;
-  accentHover: string;
+  url:					string;
+  id:						string;
+  name:					string;
+  type:					string;
+  accent: 			string;
+  accentHover:	string;
+	users?:				any;
 };
 
 type User = {
-  id:            string
-  name:          string
-  email:         string
-  emailVerified: Boolean
-  image:         string | null
-  profileBackground: string | null
-  profileBanner: string | null
-  createdAt:     Date
-  updatedAt:     Date
-  avatarId:      string | null
-  avatar:        Avatar | null
-  // accounts:      Account[]
-  // decks:         Decks[]
-  // friends:       Friends[]
-  // inboxUser:     Inbox_users[]
-  // messages:      Messages[]
-  // inbox:         Inbox[]
-}
+  id:            			string;
+  name:          			string;
+  email:         			string;
+  emailVerified:			Boolean;
+  image:        			string | null;
+  profileBackground:	string | null;
+  profileBanner: 			string | null;
+  createdAt:    			Date;
+  updatedAt:    			Date;
+  avatarId:      			string | null;
+  avatar:        			Avatar | null;
+  // accounts:      	Account[];
+  // decks:        		Decks[];
+  // friends:       	Friends[];
+  inboxUser:     			Inbox_users[];
+  // messages:      	Messages[];
+  inbox:         			Inbox[];
+};
 
 type Attachment = {
-  id: string;
-  name: string;
-  sizeLabel: string;
-  type: string;
+  id: 				string;
+  name: 			string;
+  sizeLabel:	string;
+  type: 			string;
   previewUrl: string;
 };
 
 type ChatMessage = {
-  id: string;
-  sender: string;
-  text: string;
-  isMine: boolean;
-  sentAt: string;
-  attachments: Attachment[];
+  id: 					string;
+  sender: 			string;
+  text: 				string;
+  isMine: 			boolean;
+  sentAt: 			string;
+  attachments:	Attachment[];
 };
 
 type InviteNotification = {
@@ -111,7 +128,6 @@ export default function SocialPage() {
 
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
 
-
   //recupere le nom d'utilisateur actuel
   useEffect(() => {
     const getUserData = async () => {
@@ -136,44 +152,50 @@ export default function SocialPage() {
 
   //reconnecte les sockets si refresh
   useEffect(() => {
-  if (!userPseudo || socket.connected) return;
+		if (!userPseudo || socket.connected) return;
 
-  socket.connect();
-  socket.emit("login", userPseudo);
+		socket.connect();
+		socket.emit("login", userPseudo);
 
-  socket.on("online_users", (users) => {
-    console.log("Users from Redis:", users);
-  });
+		socket.on("online_users", (users) => {
+			console.log("Users from Redis:", users);
+		});
 
-  return () => {
-    socket.off("online_users");
-  };
-}, [userPseudo]);
+		return () => {
+			socket.off("online_users");
+		};
+	}, [userPseudo]);
 
-//permet de scroll la conversation
-useEffect(() => {
-  messageListRef.current?.scrollTo({
-    top: messageListRef.current.scrollHeight,
-    behavior: "smooth",
-  });
-}, [selectedUser, currentMessages.length]);
+	//permet de scroll la conversation
+	useEffect(() => {
+		messageListRef.current?.scrollTo({
+			top: messageListRef.current.scrollHeight,
+			behavior: "smooth",
+		});
+	}, [selectedUser, currentMessages.length]);
 
-useEffect(() => {
-  return () => {
-    draftAttachments.forEach((attachment) => URL.revokeObjectURL(attachment.previewUrl));
-  };
-}, [draftAttachments]);
+	useEffect(() => {
+		return () => {
+			draftAttachments.forEach((attachment) => URL.revokeObjectURL(attachment.previewUrl));
+		};
+	}, [draftAttachments]);
 
-//timer pour les notifications
-useEffect(() => {
-  if (!inviteNotification) return;
+	//timer pour les notifications
+	useEffect(() => {
+		if (!inviteNotification) return;
 
-  const timeoutId = setTimeout(() => {
-    setInviteNotification(null);
-  }, 3000);
+		const timeoutId = setTimeout(() => {
+			setInviteNotification(null);
+		}, 3000);
 
-  return () => clearTimeout(timeoutId);
-}, [inviteNotification]);
+		return () => clearTimeout(timeoutId);
+	}, [inviteNotification]);
+
+	//Loading screen pour que currentUser soit cree
+	if (!currentUser)
+	{
+		return <div>Loading...</div>;
+	}
 
   //ouvre une demande de conversation
   const openAddContactModal = () => {
@@ -196,7 +218,7 @@ useEffect(() => {
     try {
       setIsInviting(true);
 
-      
+      //cree une reponse appropriee et configure des variables
       const response = await fetch("/api/social/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -206,6 +228,7 @@ useEffect(() => {
         error?: string;
         user?: { name: string; avatarUrl?: string | null };
       };
+      //return si on s'invite
       if (payload.error === "vous ne pouvez pas vous inviter")
       {
         setInviteNotification({
@@ -214,6 +237,7 @@ useEffect(() => {
         });
         return ;
       }
+      //check si l'inbox existe deja
       if (await contact.alreadyAdded(userPseudo!, inviteUsername) === false)
       {
         setInviteNotification({
@@ -222,8 +246,10 @@ useEffect(() => {
         });
         return;
       }
+      //cree une nouvelle inbox pour les utilisateurs
       contact.addContact(userPseudo!, inviteUsername);
 
+      //renvoit si le joueur n'existe pas
       if (!response.ok || !payload.user) {
         setInviteNotification({
           type: "error",
@@ -285,9 +311,7 @@ useEffect(() => {
     });
   };
 
-
-
-  //Ecrire et envoyer un message
+  //Envoyer un message
   const sendMessage = () => {
     const cleanMessage = message.trim();
     if (!cleanMessage && draftAttachments.length === 0) return;
@@ -385,7 +409,13 @@ useEffect(() => {
               {
                 users.map((user) => {
                 const isActive = selectedUser === user.name;
-
+                if (user.name === userPseudo)
+                  return null;
+								const hasConversation = currentUser.inbox.some(inbox => {
+									const ids = inbox.inboxUser.map(iu => iu.user_id);
+									return ids.includes(user.id);
+								});
+								if (!hasConversation) return;
                 return (
                   <button
                     key={user.name}
@@ -435,17 +465,17 @@ useEffect(() => {
             <header className="flex items-center justify-between border-b border-[#3c3650] bg-[#242033] px-5 py-4">
               <div className="flex items-center gap-3">
                 <div className="relative flex h-10 w-10 items-center justify-center overflow-visible">
-                  {/* { <Image
-                    src={currentUser.avatar?.url ?? DEFAULT_PROFILE_ICON.url}
-                    alt={currentUser!.name}
+                  <Image
+                    src={currentUser?.avatar?.url ?? DEFAULT_PROFILE_ICON.url}
+                    alt={currentUser?.name ?? "default"}
                     width={64}
                     height={64}
                     className="h-12 w-12 rounded-lg border border-[#3c3650] object-cover"
                     unoptimized
-                  /> } */}
+                  />
                 </div>
                 { <div>
-                  {/* <h2 className="text-xl font-bold">{currentUser!.name}</h2> */}
+                  { <h2 className="text-xl font-bold">{currentUser?.name ?? "default"}</h2> }
                   {hasDraft && <p className="text-xs text-[#b4a8ff]">En train d’écrire...</p>}
                 </div>}
               </div>
