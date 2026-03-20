@@ -30,6 +30,32 @@ print_info() {
     echo -e "${YELLOW}ℹ $1${NC}"
 }
 
+run_prisma_migrations() {
+    print_info "Application des migrations Prisma..."
+
+    if ! docker compose ps --services --filter status=running | grep -q '^frontend$'; then
+        print_info "Frontend pas encore démarré; migrations Prisma laissées au conteneur frontend"
+        return 0
+    fi
+
+    local attempts=0
+    local max_attempts=12
+
+    until docker compose exec -T frontend bunx prisma migrate deploy --config prisma/prisma.config.ts; do
+        attempts=$((attempts + 1))
+        if [ "$attempts" -ge "$max_attempts" ]; then
+            print_info "Impossible d'appliquer les migrations Prisma via dev.sh (frontend en restart)."
+            print_info "Le conteneur frontend exécute déjà 'prisma migrate deploy' au démarrage."
+            return 0
+        fi
+
+        print_info "Frontend pas encore prêt, nouvelle tentative dans 3s... ($attempts/$max_attempts)"
+        sleep 3
+    done
+
+    print_success "Migrations Prisma appliquées"
+}
+
 # Vérifier que Docker est en cours d'exécution
 check_docker() {
     if ! docker info > /dev/null 2>&1; then
@@ -64,10 +90,7 @@ start_services() {
     print_info "Frontend: http://localhost:3000"
     print_info "websockets: http://localhost:4001/health"
 
-        print_info "Application des migrations Prisma..."
-        docker compose -f docker-compose.yml exec frontend \
-            bunx prisma migrate deploy --config prisma/prisma.config.ts
-        print_success "Migrations Prisma appliquées"
+    run_prisma_migrations
 }
 
 # Redémarrer les services
@@ -75,10 +98,7 @@ restart_services() {
     print_header "Redémarrage des services"
     docker compose restart
 
-        print_info "Application des migrations Prisma..."
-        docker compose -f docker-compose.yml exec frontend \
-            bunx prisma migrate deploy --config prisma/prisma.config.ts
-        print_success "Migrations Prisma appliquées"
+    run_prisma_migrations
 
     print_success "Services redémarrés"
 }

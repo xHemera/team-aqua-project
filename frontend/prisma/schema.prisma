@@ -89,9 +89,6 @@ model User {
   image         String?
   profileBackground String?
   profileBanner String?
-email         String
-  emailVerified Boolean   @default(false)
-  image         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   avatarId      String?
