@@ -4,8 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import AppPageShell from "@/components/AppPageShell";
+import Button from "@/components/atoms/Button";
+import Card from "@/components/atoms/Card";
+import IconButton from "@/components/atoms/IconButton";
+import Input from "@/components/atoms/Input";
 import { authClient } from "@/lib/auth-client";
 import { applyBackgroundPreferenceToDocument, buildBackgroundStyle, DEFAULT_SITE_BACKGROUND, normalizeImageValue } from "@/lib/background-utils";
+import { persistAvatarPreference } from "@/lib/avatar-preference";
 import { applyAccentPalette, resolveProfileIcon } from "@/lib/profile-icons";
 
 type AvatarEntry = { id: string; name: string; type: string; url: string; accent: string; accentHover: string };
@@ -123,12 +128,11 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
         const profileRes = await fetch("/api/profile");
         if (profileRes.ok) {
           profile = await profileRes.json();
-          if (profile.avatar) {
+          if (profile?.avatar) {
             setSelectedAvatarId(profile.avatar.id);
             setDraftAvatarId(profile.avatar.id);
             setAvatar(profile.avatar.url);
-            localStorage.setItem("avatar", profile.avatar.url);
-            localStorage.setItem("avatarId", profile.avatar.id);
+            persistAvatarPreference(profile.avatar.url, profile.avatar.id);
             applyAccentPalette(resolveProfileIcon({ id: profile.avatar.id, url: profile.avatar.url }));
           }
         }
@@ -207,8 +211,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
       if (updated.avatar) {
         setSelectedAvatarId(updated.avatar.id);
         setAvatar(updated.avatar.url);
-        localStorage.setItem("avatar", updated.avatar.url);
-        localStorage.setItem("avatarId", updated.avatar.id);
+        persistAvatarPreference(updated.avatar.url, updated.avatar.id);
         applyAccentPalette(resolveProfileIcon({ id: updated.avatar.id, url: updated.avatar.url }));
       }
       if (updated.profileBackground !== undefined) {
@@ -236,24 +239,28 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
       <div className="mx-auto flex h-full w-full max-w-6xl flex-col overflow-y-auto pr-1">
         <header className="mb-5 flex items-center justify-end gap-3">
           {isOwnProfile && (
-            <button
+            <Button
+              type="button"
               onClick={openCustomizationPanel}
+              variant="ghost"
               className="inline-flex h-11 items-center gap-2 rounded-xl border border-[color:var(--accent-border)] bg-[#1f1b2d]/90 px-3 text-sm font-medium text-white shadow-lg transition-colors hover:bg-[#2b2540]"
               aria-label="Personnaliser le profil"
             >
               <i className="fa-solid fa-sliders"></i>
               <span className="hidden sm:inline">Personnaliser</span>
-            </button>
+            </Button>
           )}
 
           {isOwnProfile && (
-            <button
+            <IconButton
+              type="button"
               onClick={handleLogout}
+              variant="ghost"
               className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-400/80 bg-red-500/90 text-white shadow-lg transition-colors hover:bg-red-500"
               aria-label="Déconnexion"
             >
               <i className="fa-solid fa-right-from-bracket"></i>
-            </button>
+            </IconButton>
           )}
         </header>
 
@@ -367,19 +374,21 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
           className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm"
           onClick={() => setShowCustomizationPanel(false)}
         >
-          <aside
-            className="w-[min(680px,calc(100vw-2rem))] max-h-[90vh] overflow-y-auto rounded-2xl border border-[#3c3650] bg-[#15131d] p-6 shadow-2xl"
+          <Card
+            className="w-[min(680px,calc(100vw-2rem))] max-h-[90vh] overflow-y-auto rounded-2xl bg-[#15131d] p-6"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-white">Personnalisation du profil</h3>
-              <button
+              <IconButton
+                type="button"
                 onClick={() => setShowCustomizationPanel(false)}
-                className="rounded-md bg-[#242033] px-2 py-1 text-sm text-gray-200 transition-colors hover:bg-[#302a45]"
+                size="sm"
+                className="rounded-md bg-[#242033] text-sm text-gray-200 transition-colors hover:bg-[#302a45]"
                 aria-label="Fermer"
               >
                 ✕
-              </button>
+              </IconButton>
             </div>
 
             <div className="space-y-4">
@@ -387,11 +396,13 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                 <p className="mb-2 text-sm font-medium text-gray-200">Photo de profil</p>
                 <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
                   {avatars.map((av) => (
-                    <button
+                    <Button
                       key={av.id}
+                      type="button"
+                      variant="ghost"
                       onClick={() => setDraftAvatarId(av.id)}
                       title={av.name}
-                      className="flex items-center justify-center bg-transparent p-0"
+                      className="flex h-auto items-center justify-center border-0 bg-transparent p-0 hover:bg-transparent"
                     >
                       <Image
                         src={av.url}
@@ -405,7 +416,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                         }`}
                         unoptimized
                       />
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
@@ -413,12 +424,12 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-200">Fond d&apos;écran du site</label>
                 <div className="flex gap-2">
-                  <input
+                  <Input
                     type="url"
                     value={draftBackground}
                     onChange={(event) => setDraftBackground(event.target.value)}
                     placeholder="https://..."
-                    className="min-w-0 flex-1 rounded-lg border border-[#3c3650] bg-[#242033] px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-gray-500 focus:border-[var(--accent-color)]"
+                    className="min-w-0 flex-1 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500"
                   />
                   <input
                     ref={bgUploadRef}
@@ -431,26 +442,27 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                       e.target.value = "";
                     }}
                   />
-                  <button
+                  <Button
                     type="button"
                     onClick={() => bgUploadRef.current?.click()}
-                    className="flex items-center gap-1.5 rounded-lg border border-[#3c3650] bg-[#242033] px-3 py-2 text-sm text-gray-200 transition-colors hover:bg-[#302a45] whitespace-nowrap"
+                    variant="ghost"
+                    className="h-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-200 whitespace-nowrap"
                   >
                     <i className="fa-solid fa-upload text-xs" />
                     Fichier
-                  </button>
+                  </Button>
                 </div>
               </div>
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-200">Bannière de profil</label>
                 <div className="flex gap-2">
-                  <input
+                  <Input
                     type="url"
                     value={draftBanner}
                     onChange={(event) => setDraftBanner(event.target.value)}
                     placeholder="https://..."
-                    className="min-w-0 flex-1 rounded-lg border border-[#3c3650] bg-[#242033] px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-gray-500 focus:border-[var(--accent-color)]"
+                    className="min-w-0 flex-1 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500"
                   />
                   <input
                     ref={bannerUploadRef}
@@ -463,33 +475,37 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                       e.target.value = "";
                     }}
                   />
-                  <button
+                  <Button
                     type="button"
                     onClick={() => bannerUploadRef.current?.click()}
-                    className="flex items-center gap-1.5 rounded-lg border border-[#3c3650] bg-[#242033] px-3 py-2 text-sm text-gray-200 transition-colors hover:bg-[#302a45] whitespace-nowrap"
+                    variant="ghost"
+                    className="h-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-200 whitespace-nowrap"
                   >
                     <i className="fa-solid fa-upload text-xs" />
                     Fichier
-                  </button>
+                  </Button>
                 </div>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-1">
-                <button
+                <Button
+                  type="button"
                   onClick={() => setShowCustomizationPanel(false)}
-                  className="rounded-lg border border-[#3c3650] bg-[#242033] px-4 py-2 text-sm text-gray-200 transition-colors hover:bg-[#302a45]"
+                  variant="ghost"
+                  className="h-auto rounded-lg px-4 py-2 text-sm text-gray-200"
                 >
                   Annuler
-                </button>
-                <button
+                </Button>
+                <Button
+                  type="button"
                   onClick={handleSaveCustomization}
-                  className="rounded-lg border border-[color:var(--accent-border)] bg-[var(--accent-color)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-hover)]"
+                  className="h-auto rounded-lg px-4 py-2 text-sm font-semibold text-white"
                 >
                   Enregistrer
-                </button>
+                </Button>
               </div>
             </div>
-          </aside>
+          </Card>
         </div>
       )}
     </AppPageShell>

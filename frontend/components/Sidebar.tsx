@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { DEFAULT_PROFILE_ICON } from "@/lib/profile-icons";
 import Button from "@/components/atoms/Button";
+import { useAvatarPreference } from "@/hooks/useAvatarPreference";
 
 const NAV_ITEMS = [
   { href: "/home", icon: "fa-solid fa-house", label: "Accueil" },
@@ -17,29 +18,13 @@ const NAV_ITEMS = [
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [avatar, setAvatar] = useState(DEFAULT_PROFILE_ICON.url);
+  const avatar = useAvatarPreference(DEFAULT_PROFILE_ICON.url);
   const [pseudo, setPseudo] = useState<string | null>(null);
 
   useEffect(() => {
-    const syncAvatar = async () => {
-      await Promise.resolve();
-      const savedAvatar = localStorage.getItem("avatar");
-      if (savedAvatar) setAvatar(savedAvatar);
-    };
-
-    void syncAvatar();
-
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "avatar" && e.newValue) setAvatar(e.newValue);
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-
     authClient.getSession().then(({ data }) => {
       if (data?.user?.name) setPseudo(data.user.name);
     });
-
-    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   const handleProfileClick = async (e: React.MouseEvent) => {

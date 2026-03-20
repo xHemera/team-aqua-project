@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import Button from "@/components/atoms/Button";
+import DeckOptionItem from "@/components/molecules/home/DeckOptionItem";
 
 type DeckSelectorProps = {
   selectedDeck: string;
@@ -11,6 +12,7 @@ type DeckSelectorProps = {
   onSelectDeck: (deck: string) => void;
 };
 
+// Organism: selecteur complet de deck (trigger + liste) compose a partir d'atoms et molecules.
 export default function DeckSelector({
   selectedDeck,
   availableDecks,
@@ -46,7 +48,6 @@ export default function DeckSelector({
 
   return (
     <div ref={deckMenuRef} className="relative w-[18rem]">
-      {/* Usage atomique: Button sert de declencheur commun pour les interactions de selection. */}
       <Button
         type="button"
         onClick={() => setShowDeckDropdown((prev) => !prev)}
@@ -91,35 +92,16 @@ export default function DeckSelector({
           aria-label="Selection du deck"
         >
           {availableDecks.map((deck) => (
-            <Button
+            <DeckOptionItem
               key={deck}
-              type="button"
-              onClick={() => {
+              deck={deck}
+              selected={selectedDeck === deck}
+              icon={deckIcons[deck] || "/decks/flygon-icon.png"}
+              onSelect={() => {
                 onSelectDeck(deck);
                 setShowDeckDropdown(false);
               }}
-              role="option"
-              aria-selected={selectedDeck === deck}
-              variant={selectedDeck === deck ? "primary" : "ghost"}
-              className={`h-auto w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-left ${
-                selectedDeck === deck
-                  ? "bg-[var(--accent-soft)]"
-                  : "text-gray-200 hover:bg-[#242033]"
-              }`}
-            >
-              <div className="flex h-10 w-10 items-center justify-center">
-                <Image
-                  src={deckIcons[deck] || "/decks/flygon-icon.png"}
-                  alt={deck}
-                  width={40}
-                  height={40}
-                  className="h-10 w-10 object-contain"
-                  style={{ imageRendering: "pixelated" }}
-                />
-              </div>
-              <span className="flex-1 text-base font-semibold">{deck}</span>
-              {selectedDeck === deck && <i className="fa-solid fa-check text-[var(--accent-color)]"></i>}
-            </Button>
+            />
           ))}
 
           {availableDecks.length === 0 && (

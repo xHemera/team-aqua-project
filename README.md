@@ -11,6 +11,7 @@
 - [Rôles](#rôles)
 - [Commandes utiles](#commandes-utiles)
 - [Configuration](#configuration)
+- [Frontend UI](#frontend-ui)
 
 ---
 
@@ -258,6 +259,15 @@ docker compose exec websockets bun run prisma:push
 # Générer le client Prisma
 docker compose exec websockets bunx prisma generate
 ```
+
+---
+
+## 🎨 Frontend UI
+
+Documentation frontend orientee atomic design:
+
+- Guide d'usage: `frontend/docs/frontend-atomic-guide.md`
+- Objectif: standardiser les composants, reduire la duplication, clarifier le "pourquoi/comment" d'utilisation des briques UI.
 
 ### Frontend (Better Auth)
 

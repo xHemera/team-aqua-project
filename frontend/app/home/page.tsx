@@ -5,13 +5,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import AppPageShell from "@/components/AppPageShell";
-import DeckSelector from "@/components/home/DeckSelector";
-import MatchmakingModal from "@/components/home/MatchmakingModal";
-import NotificationToast from "@/components/home/NotificationToast";
-import PlayCta from "@/components/home/PlayCta";
+import DeckSelector from "@/components/organisms/home/DeckSelector";
+import MatchmakingModal from "@/components/organisms/home/MatchmakingModal";
+import NotificationToast from "@/components/organisms/home/NotificationToast";
+import PlayCta from "@/components/organisms/home/PlayCta";
 import { DEFAULT_PROFILE_ICON } from "@/lib/profile-icons";
 import { DEFAULT_DECKS, DECK_ICONS, useDeckPreferences } from "@/hooks/useDeckPreferences";
 import Button from "@/components/atoms/Button";
+import { useAvatarPreference } from "@/hooks/useAvatarPreference";
 
 // Page principale: navigation rapide, lancement de partie et sélection de deck
 export default function Home() {
@@ -19,38 +20,17 @@ export default function Home() {
   const [showPopup, setShowPopup] = useState(false);
   const [showNotification, setShowNotification] = useState(true);
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
-  const [avatar, setAvatar] = useState(DEFAULT_PROFILE_ICON.url);
+  const avatar = useAvatarPreference(DEFAULT_PROFILE_ICON.url);
   const { selectedDeck, setSelectedDeck, availableDecks } = useDeckPreferences(DEFAULT_DECKS);
 
   useEffect(() => {
-    const syncAvatarFromStorage = async () => {
-      await Promise.resolve();
-      const savedAvatar = localStorage.getItem("avatar");
-      if (savedAvatar) {
-        setAvatar(savedAvatar);
-      }
-    };
-
-    void syncAvatarFromStorage();
-
     const getUserData = async () => {
       const { data } = await authClient.getSession();
       if (data?.user?.name) {
         setUserPseudo(data.user.name);
       }
     };
-    getUserData();
-
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === "avatar" && event.newValue) {
-        setAvatar(event.newValue);
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-    };
+    void getUserData();
   }, []);
 
   useEffect(() => {

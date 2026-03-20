@@ -1,14 +1,15 @@
 "use client";
 
-import styles from "./HomePage.module.css";
 import Button from "@/components/atoms/Button";
 import Card from "@/components/atoms/Card";
+import styles from "./HomePage.module.css";
 
 type MatchmakingModalProps = {
   open: boolean;
   onClose: () => void;
 };
 
+// Organism: modal de recherche de partie pour la home.
 export default function MatchmakingModal({ open, onClose }: MatchmakingModalProps) {
   if (!open) {
     return null;
@@ -16,7 +17,6 @@ export default function MatchmakingModal({ open, onClose }: MatchmakingModalProp
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      {/* Usage atomique: Card fournit la base de surface modale reutilisable. */}
       <Card
         className="mx-4 w-full max-w-sm rounded-lg border-0 bg-gradient-to-br from-gray-300 to-gray-200 p-8"
         role="dialog"

@@ -1,19 +1,19 @@
 "use client";
 
-import styles from "./HomePage.module.css";
 import Button from "@/components/atoms/Button";
+import styles from "./HomePage.module.css";
 
 type PlayCtaProps = {
   onPlay: () => void;
 };
 
+// Organism: bloc CTA principal de la home.
 export default function PlayCta({ onPlay }: PlayCtaProps) {
   return (
     <div
       className={`origin-center transform-gpu bg-black p-0.5 shadow-2xl transition-transform hover:scale-105 ${styles.hexOuter}`}
     >
       <div className={`bg-[#ffdb4c] p-2 ${styles.hexInner}`}>
-        {/* Usage atomique: Button est stylise ici comme CTA principal tout en gardant la meme base comportementale. */}
         <Button
           type="button"
           onClick={onPlay}
