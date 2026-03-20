@@ -11,6 +11,7 @@ import NotificationToast from "@/components/home/NotificationToast";
 import PlayCta from "@/components/home/PlayCta";
 import { DEFAULT_PROFILE_ICON } from "@/lib/profile-icons";
 import { DEFAULT_DECKS, DECK_ICONS, useDeckPreferences } from "@/hooks/useDeckPreferences";
+import Button from "@/components/atoms/Button";
 
 // Page principale: navigation rapide, lancement de partie et sélection de deck
 export default function Home() {
@@ -102,15 +103,14 @@ export default function Home() {
               priority
               unoptimized
             />
-            <div className="cursor-pointer rounded-lg border-2 border-[color:var(--accent-border)] bg-[var(--accent-color)] px-8 py-3 shadow-lg transition-all hover:scale-105">
-              <button
-                type="button"
-                onClick={handleProfileClick}
-                className="text-lg font-bold text-white hover:text-gray-200"
-              >
-                {userPseudo || "Pseudo"}
-              </button>
-            </div>
+            {/* Usage atomique: Button remplace le CTA profil local pour mutualiser hover/focus/disabled. */}
+            <Button
+              type="button"
+              onClick={handleProfileClick}
+              className="h-auto rounded-lg border-2 px-8 py-3 text-lg font-bold shadow-lg transition-transform hover:scale-105"
+            >
+              {userPseudo || "Pseudo"}
+            </Button>
           </div>
         </div>
       </div>

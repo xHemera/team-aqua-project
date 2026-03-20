@@ -4,6 +4,9 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import AppPageShell from "@/components/AppPageShell";
 import { DEFAULT_PROFILE_ICON, PROFILE_ICONS } from "@/lib/profile-icons";
+import Button from "@/components/atoms/Button";
+import Input from "@/components/atoms/Input";
+import Card from "@/components/atoms/Card";
 
 const esper = PROFILE_ICONS.find((icon) => icon.type === "esper")?.url ?? DEFAULT_PROFILE_ICON.url;
 const dragon = PROFILE_ICONS.find((icon) => icon.type === "dragon")?.url ?? DEFAULT_PROFILE_ICON.url;
@@ -406,14 +409,15 @@ export default function SocialPage() {
           className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 px-4"
           onClick={closeAddFriendModal}
         >
-          <div
-            className="w-full max-w-md rounded-2xl border border-[#3c3650] bg-[#1b1826] p-5 shadow-2xl"
+          {/* Usage atomique: Card standardise le conteneur modal pour les interactions sociales. */}
+          <Card
+            className="w-full max-w-md bg-[#1b1826] p-5"
             onClick={(event) => event.stopPropagation()}
           >
             <h3 className="text-lg font-bold text-white">entrez le nom d&apos;utilisateur</h3>
             <p className="mt-1 text-sm text-gray-300">Saisis le pseudo du joueur pour envoyer une invitation.</p>
 
-            <input
+            <Input
               type="text"
               value={inviteUsername}
               onChange={(event) => setInviteUsername(event.target.value)}
@@ -424,27 +428,28 @@ export default function SocialPage() {
                 }
               }}
               placeholder="Pseudo du joueur"
-              className="mt-4 w-full rounded-xl border border-[#3c3650] bg-[#242033] px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-[var(--accent-color)]"
+              className="mt-4 py-2 text-sm"
               autoFocus
             />
 
             <div className="mt-4 flex items-center justify-end gap-2">
-              <button
+              <Button
                 onClick={closeAddFriendModal}
                 disabled={isInviting}
-                className="rounded-xl border border-[#3c3650] bg-[#242033] px-4 py-2 text-sm font-semibold text-gray-200 transition-colors hover:bg-[#302a45] disabled:cursor-not-allowed disabled:opacity-50"
+                variant="ghost"
+                className="h-10 px-4 py-2 text-sm"
               >
                 Annuler
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={submitFriendInvite}
                 disabled={isInviting || inviteUsername.trim().length === 0}
-                className="rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-10 px-4 py-2 text-sm font-bold"
               >
                 {isInviting ? "Recherche..." : "Envoyer"}
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
@@ -456,12 +461,12 @@ export default function SocialPage() {
             </div>
 
             <div className="border-b border-[#3c3650] p-3">
-              <input
+              <Input
                 type="text"
                 value={contactSearch}
                 onChange={(event) => setContactSearch(event.target.value)}
                 placeholder="Rechercher un contact..."
-                className="w-full rounded-xl border border-[#3c3650] bg-[#242033] px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-[var(--accent-color)]"
+                className="py-2 text-sm"
               />
             </div>
 
@@ -470,10 +475,11 @@ export default function SocialPage() {
                 const isActive = selectedUser === user.name;
 
                 return (
-                  <button
+                  <Button
                     key={user.name}
                     onClick={() => selectUser(user.name)}
-                    className={`relative flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors ${
+                    variant={isActive ? "primary" : "ghost"}
+                    className={`relative flex w-full justify-start items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors ${
                       isActive
                         ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)] text-white"
                         : "border-[#3c3650] bg-[#242033] text-gray-200 hover:bg-[#302a45]"
@@ -495,7 +501,7 @@ export default function SocialPage() {
                         {user.unreadCount}
                       </span>
                     )}
-                  </button>
+                  </Button>
                 );
               })}
 
@@ -507,13 +513,13 @@ export default function SocialPage() {
             </div>
 
             <div className="border-t border-[#3c3650] p-3">
-              <button
+              <Button
                 onClick={openAddFriendModal}
                 disabled={isInviting}
-                className="w-full rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] py-2 font-bold text-white transition-colors hover:bg-[var(--accent-hover)]"
+                className="h-10 w-full py-2 font-bold"
               >
                 {isInviting ? "Recherche..." : "+ Nouveau contact"}
-              </button>
+              </Button>
             </div>
           </aside>
 
@@ -613,13 +619,15 @@ export default function SocialPage() {
                     >
                       <i className="fa-regular fa-paperclip" />
                       <span className="max-w-[14rem] truncate">{attachment.name}</span>
-                      <button
+                      <Button
                         onClick={() => removeDraftAttachment(attachment.id)}
-                        className="text-gray-300 transition-colors hover:text-white"
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto border-0 bg-transparent p-0 text-gray-300 hover:bg-transparent hover:text-white"
                         aria-label={`Supprimer ${attachment.name}`}
                       >
                         <i className="fa-solid fa-xmark" />
-                      </button>
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -635,31 +643,32 @@ export default function SocialPage() {
                   accept="image/*,.pdf,.txt,.doc,.docx"
                 />
 
-                <button
+                <Button
                   onClick={handlePickAttachments}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
+                  variant="secondary"
+                  className="h-9 w-9 rounded-full border-0 bg-[#302a45] p-0 hover:bg-[#3b3457]"
                   aria-label="Ajouter des pièces jointes"
                 >
                   <i className="fa-solid fa-paperclip" />
-                </button>
+                </Button>
 
-                <input
+                <Input
                   type="text"
                   placeholder={`Envoyez un message à @${selectedUser}`}
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
                   onKeyDown={handleInputKeyDown}
-                  className="flex-1 bg-transparent px-1 text-sm text-gray-200 outline-none placeholder:text-gray-500"
+                  className="h-auto flex-1 border-0 bg-transparent px-1 py-0 text-sm focus:border-transparent"
                 />
 
-                <button
+                <Button
                   onClick={sendMessage}
                   disabled={!hasDraft}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="h-9 w-9 rounded-full p-0"
                   aria-label="Envoyer"
                 >
                   <i className="fa-solid fa-paper-plane" />
-                </button>
+                </Button>
               </div>
             </footer>
           </section>

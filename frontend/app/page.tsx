@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import AuthPageLayout from "@/components/AuthPageLayout";
+import Button from "@/components/atoms/Button";
+import IconField from "@/components/molecules/IconField";
 
 // Page d'entrée: connexion + création de compte (mode toggle)
 export default function LoginPage() {
@@ -76,69 +78,57 @@ export default function LoginPage() {
       <div className="w-full">
         <form onSubmit={onSubmit} className="space-y-4">
           {isRegisterMode && (
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
-                <i className="fa-regular fa-id-card"></i>
-              </div>
-              <input
+            <>
+              {/* Usage molecule/atom: IconField reutilise Input pour garder un style homogene. */}
+              <IconField
+                iconClassName="fa-regular fa-id-card"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Nom"
-                className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[var(--accent-color)] focus:outline-none"
                 required
               />
-            </div>
+            </>
           )}
 
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
-              <i className="fa-regular fa-user"></i>
-            </div>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
-              className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[var(--accent-color)] focus:outline-none"
-              required
-            />
-          </div>
+          <IconField
+            iconClassName="fa-regular fa-user"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+            required
+          />
 
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
-              <i className="fa-solid fa-lock"></i>
-            </div>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mot de passe"
-              className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[var(--accent-color)] focus:outline-none"
-              required
-              minLength={8}
-            />
-          </div>
+          <IconField
+            iconClassName="fa-solid fa-lock"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Mot de passe"
+            required
+            minLength={8}
+          />
 
           <div className="grid grid-cols-2 gap-4">
-            <button
+            {/* Usage atomique: Button remplace les boutons inline pour reutilisation maximale. */}
+            <Button
               type="button"
               onClick={() => {
                 setIsRegisterMode(!isRegisterMode);
                 setMessage("");
               }}
-              className="rounded-xl border border-[#3c3650] bg-[#302a45] py-3 font-semibold text-gray-100 transition-colors hover:bg-[#3a3355]"
+              variant="secondary"
             >
               {isRegisterMode ? "Se connecter" : "S'inscrire"}
-            </button>
+            </Button>
 
-            <button
+            <Button
               type="submit"
               disabled={loading}
-              className="rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] py-3 font-semibold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? "..." : isRegisterMode ? "Créer un compte" : "Connexion"}
-            </button>
+            </Button>
           </div>
           {message && (
             <p

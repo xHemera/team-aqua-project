@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { DEFAULT_PROFILE_ICON } from "@/lib/profile-icons";
+import Button from "@/components/atoms/Button";
 
 const NAV_ITEMS = [
   { href: "/home", icon: "fa-solid fa-house", label: "Accueil" },
@@ -76,11 +77,13 @@ export default function Sidebar() {
       <div className="flex-1" />
 
       {/* Avatar / Profil */}
-      <a
-        href="#"
+      {/* Usage atomique: Button offre un comportement uniforme pour l'action profil. */}
+      <Button
+        type="button"
         onClick={handleProfileClick}
         title={pseudo ?? "Profil"}
-        className={`flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border shadow-lg transition-colors ${
+        variant="ghost"
+        className={`!h-14 !w-14 !p-0 !px-0 !py-0 overflow-hidden rounded-xl border shadow-lg ${
           isProfileActive
             ? "border-[color:var(--accent-border)]"
             : "border-[#3c3650] hover:border-[color:var(--accent-border)]"
@@ -91,10 +94,11 @@ export default function Sidebar() {
           alt="Avatar"
           width={56}
           height={56}
-          className="h-full w-full object-cover"
+          // On affiche l'avatar complet (sans crop) en exploitant toute la case disponible.
+          className="h-full w-full bg-[#1b1826] object-contain"
           unoptimized
         />
-      </a>
+      </Button>
     </aside>
   );
 }

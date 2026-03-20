@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import Button from "@/components/atoms/Button";
 
 type DeckSelectorProps = {
   selectedDeck: string;
@@ -45,10 +46,12 @@ export default function DeckSelector({
 
   return (
     <div ref={deckMenuRef} className="relative w-[18rem]">
-      <button
+      {/* Usage atomique: Button sert de declencheur commun pour les interactions de selection. */}
+      <Button
         type="button"
         onClick={() => setShowDeckDropdown((prev) => !prev)}
-        className="flex h-16 w-full items-center gap-3 rounded-2xl border border-[#3c3650] bg-[#15131d]/90 px-3 text-white shadow-xl transition-colors hover:bg-[#211d2e]"
+        variant="ghost"
+        className="h-16 w-full justify-start gap-3 rounded-2xl bg-[#15131d]/90 px-3 shadow-xl hover:bg-[#211d2e]"
         aria-haspopup="listbox"
         aria-expanded={showDeckDropdown}
       >
@@ -79,7 +82,7 @@ export default function DeckSelector({
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
-      </button>
+      </Button>
 
       {showDeckDropdown && (
         <div
@@ -88,7 +91,7 @@ export default function DeckSelector({
           aria-label="Selection du deck"
         >
           {availableDecks.map((deck) => (
-            <button
+            <Button
               key={deck}
               type="button"
               onClick={() => {
@@ -97,9 +100,10 @@ export default function DeckSelector({
               }}
               role="option"
               aria-selected={selectedDeck === deck}
-              className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
+              variant={selectedDeck === deck ? "primary" : "ghost"}
+              className={`h-auto w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-left ${
                 selectedDeck === deck
-                  ? "bg-[var(--accent-soft)] text-white"
+                  ? "bg-[var(--accent-soft)]"
                   : "text-gray-200 hover:bg-[#242033]"
               }`}
             >
@@ -115,7 +119,7 @@ export default function DeckSelector({
               </div>
               <span className="flex-1 text-base font-semibold">{deck}</span>
               {selectedDeck === deck && <i className="fa-solid fa-check text-[var(--accent-color)]"></i>}
-            </button>
+            </Button>
           ))}
 
           {availableDecks.length === 0 && (

@@ -1,6 +1,8 @@
 "use client";
 
 import styles from "./HomePage.module.css";
+import Button from "@/components/atoms/Button";
+import Card from "@/components/atoms/Card";
 
 type MatchmakingModalProps = {
   open: boolean;
@@ -14,8 +16,9 @@ export default function MatchmakingModal({ open, onClose }: MatchmakingModalProp
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div
-        className="mx-4 w-full max-w-sm rounded-lg bg-gradient-to-br from-gray-300 to-gray-200 p-8 shadow-2xl"
+      {/* Usage atomique: Card fournit la base de surface modale reutilisable. */}
+      <Card
+        className="mx-4 w-full max-w-sm rounded-lg border-0 bg-gradient-to-br from-gray-300 to-gray-200 p-8"
         role="dialog"
         aria-modal="true"
         aria-labelledby="matchmaking-title"
@@ -27,15 +30,16 @@ export default function MatchmakingModal({ open, onClose }: MatchmakingModalProp
             <span className={styles.dot2}>.</span>
             <span className={styles.dot3}>.</span>
           </h2>
-          <button
+          <Button
             type="button"
             onClick={onClose}
-            className="rounded-lg bg-gray-500 px-4 py-3 text-lg font-bold uppercase text-gray-800 transition-transform hover:scale-105"
+            variant="secondary"
+            className="rounded-lg border-0 bg-gray-500 px-4 py-3 text-lg font-bold uppercase text-gray-800 transition-transform hover:scale-105 hover:bg-gray-600"
           >
             Annuler
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
