@@ -16,6 +16,21 @@ type ProfileClientViewProps = {
   isOwnProfile: boolean;
 };
 
+type ProfilePayload = {
+  avatar?: {
+    id: string;
+    url: string;
+  };
+  profileBackground?: string | null;
+  profileBanner?: string | null;
+};
+
+type ProfilePatchPayload = {
+  profileBackground: string;
+  profileBanner: string;
+  avatarId?: string;
+};
+
 const defaultBanner = "https://www.katebackdrop.fr/cdn/shop/files/B4035519.jpg?v=1710741683&width=600";
 const defaultBackground = DEFAULT_SITE_BACKGROUND;
 
@@ -100,7 +115,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
 
     const initOwnProfile = async () => {
       const avatarsRes = await fetch("/api/avatars");
-      let profile: any = null;
+      let profile: ProfilePayload | null = null;
       if (avatarsRes.ok) {
         const avatarList: AvatarEntry[] = await avatarsRes.json();
         setAvatars(avatarList);
@@ -172,7 +187,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
   };
 
   const handleSaveCustomization = async () => {
-    const patchBody: any = {
+    const patchBody: ProfilePatchPayload = {
       profileBackground: draftBackground,
       profileBanner: draftBanner,
     };

@@ -77,22 +77,16 @@ const defaultMessagesByUser: Record<string, ChatMessage[]> = {
   Sauralt: [],
 };
 
-const getInitialSocialState = () => {
-  if (typeof window === "undefined") {
-    return {
-      users: defaultUsers,
-      messagesByUser: defaultMessagesByUser,
-      selectedUser: "SunMiaou",
-    };
-  }
+const fallbackSocialState = {
+  users: defaultUsers,
+  messagesByUser: defaultMessagesByUser,
+  selectedUser: "SunMiaou",
+};
 
+const getSocialStateFromStorage = () => {
   const savedState = localStorage.getItem(SOCIAL_STORAGE_KEY);
   if (!savedState) {
-    return {
-      users: defaultUsers,
-      messagesByUser: defaultMessagesByUser,
-      selectedUser: "SunMiaou",
-    };
+    return fallbackSocialState;
   }
 
   try {
@@ -115,11 +109,7 @@ const getInitialSocialState = () => {
       selectedUser,
     };
   } catch {
-    return {
-      users: defaultUsers,
-      messagesByUser: defaultMessagesByUser,
-      selectedUser: "SunMiaou",
-    };
+    return fallbackSocialState;
   }
 };
 
@@ -144,12 +134,11 @@ const buildAttachmentFromFile = (file: File): Attachment => ({
 });
 
 export default function SocialPage() {
-  const initialSocialState = getInitialSocialState();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
 
-  const [users, setUsers] = useState<ChatUser[]>(initialSocialState.users);
-  const [selectedUser, setSelectedUser] = useState(initialSocialState.selectedUser);
+  const [users, setUsers] = useState<ChatUser[]>(fallbackSocialState.users);
+  const [selectedUser, setSelectedUser] = useState(fallbackSocialState.selectedUser);
   const [message, setMessage] = useState("");
   const [draftAttachments, setDraftAttachments] = useState<Attachment[]>([]);
   const [inviteNotification, setInviteNotification] = useState<InviteNotification | null>(null);
@@ -159,8 +148,20 @@ export default function SocialPage() {
   const [contactSearch, setContactSearch] = useState("");
 
   const [messagesByUser, setMessagesByUser] = useState<Record<string, ChatMessage[]>>(
-    initialSocialState.messagesByUser,
+    fallbackSocialState.messagesByUser,
   );
+
+  useEffect(() => {
+    const syncSocialStateFromStorage = async () => {
+      await Promise.resolve();
+      const hydratedSocialState = getSocialStateFromStorage();
+      setUsers(hydratedSocialState.users);
+      setMessagesByUser(hydratedSocialState.messagesByUser);
+      setSelectedUser(hydratedSocialState.selectedUser);
+    };
+
+    void syncSocialStateFromStorage();
+  }, []);
 
   const currentUser = useMemo(
     () => users.find((user) => user.name === selectedUser) ?? users[0],
@@ -226,7 +227,9 @@ export default function SocialPage() {
     const handleEscapeModal = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       if (isAddFriendModalOpen) {
-        closeAddFriendModal();
+        if (isInviting) return;
+        setIsAddFriendModalOpen(false);
+        setInviteUsername("");
       }
     };
 

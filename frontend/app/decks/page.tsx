@@ -113,40 +113,34 @@ const normalizeDeckIcon = (icon: string | undefined) => {
 
 const isEnergyCardName = (name: string) => resolveCardFilename(name).endsWith("_energy");
 
-const getInitialDeckData = () => {
-  const fallbackDeckList = [
-    { name: "Flygon", icon: deckImages.Flygon },
-    { name: "Ceruledge", icon: deckImages.Ceruledge },
-    { name: "Toxtricity", icon: deckImages.Toxtricity },
-    { name: "Zacian", icon: deckImages.Zacian },
-  ];
+const fallbackDeckList = [
+  { name: "Flygon", icon: deckImages.Flygon },
+  { name: "Ceruledge", icon: deckImages.Ceruledge },
+  { name: "Toxtricity", icon: deckImages.Toxtricity },
+  { name: "Zacian", icon: deckImages.Zacian },
+];
 
-  const fallbackDecks: Record<string, DeckData> = {
-    Flygon: { cards: [] },
-    Ceruledge: { cards: [] },
-    Toxtricity: { cards: [] },
-    Zacian: { cards: [] },
-  };
+const fallbackDecks: Record<string, DeckData> = {
+  Flygon: { cards: [] },
+  Ceruledge: { cards: [] },
+  Toxtricity: { cards: [] },
+  Zacian: { cards: [] },
+};
 
-  const fallbackDeckIcons: DeckIcons = Object.fromEntries(
-    fallbackDeckList.map((deck) => [deck.name, deck.icon])
-  );
+const fallbackDeckIcons: DeckIcons = Object.fromEntries(
+  fallbackDeckList.map((deck) => [deck.name, deck.icon])
+);
 
-  if (typeof window === "undefined") {
-    return {
-      decks: fallbackDecks,
-      deckList: fallbackDeckList.map((deck) => ({ name: deck.name })),
-      deckIcons: fallbackDeckIcons,
-    };
-  }
+const fallbackDeckData = {
+  decks: fallbackDecks,
+  deckList: fallbackDeckList.map((deck) => ({ name: deck.name })),
+  deckIcons: fallbackDeckIcons,
+};
 
+const getDeckDataFromStorage = () => {
   const saved = localStorage.getItem("decks");
   if (!saved) {
-    return {
-      decks: fallbackDecks,
-      deckList: fallbackDeckList.map((deck) => ({ name: deck.name })),
-      deckIcons: fallbackDeckIcons,
-    };
+    return fallbackDeckData;
   }
 
   const parsedDecks = JSON.parse(saved) as Record<string, DeckData>;
@@ -155,11 +149,7 @@ const getInitialDeckData = () => {
   const savedDeckNames = Object.keys(parsedDecks);
 
   if (savedDeckNames.length === 0) {
-    return {
-      decks: fallbackDecks,
-      deckList: fallbackDeckList.map((deck) => ({ name: deck.name })),
-      deckIcons: fallbackDeckIcons,
-    };
+    return fallbackDeckData;
   }
 
   const deckIcons: DeckIcons = Object.fromEntries(
@@ -175,12 +165,11 @@ const getInitialDeckData = () => {
 
 // Page des decks
 export default function DecksPage() {
-  const initialDeckData = getInitialDeckData();
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [previewCard, setPreviewCard] = useState<{ name: string; filename: string } | null>(null);
-  const [decks, setDecks] = useState<Record<string, DeckData>>(initialDeckData.decks);
-  const [deckList, setDeckList] = useState<Array<{ name: string }>>(initialDeckData.deckList);
-  const [deckIcons, setDeckIcons] = useState<DeckIcons>(initialDeckData.deckIcons);
+  const [decks, setDecks] = useState<Record<string, DeckData>>(fallbackDeckData.decks);
+  const [deckList, setDeckList] = useState<Array<{ name: string }>>(fallbackDeckData.deckList);
+  const [deckIcons, setDeckIcons] = useState<DeckIcons>(fallbackDeckData.deckIcons);
   const [cardError, setCardError] = useState("");
   const [invalidCards, setInvalidCards] = useState<Set<string>>(new Set());
   const [isRenamingDeck, setIsRenamingDeck] = useState(false);
@@ -188,6 +177,18 @@ export default function DecksPage() {
   const [deckNameError, setDeckNameError] = useState("");
   const [availableCardQuery, setAvailableCardQuery] = useState("");
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
+
+  useEffect(() => {
+    const syncDecksFromStorage = async () => {
+      await Promise.resolve();
+      const hydratedDeckData = getDeckDataFromStorage();
+      setDecks(hydratedDeckData.decks);
+      setDeckList(hydratedDeckData.deckList);
+      setDeckIcons(hydratedDeckData.deckIcons);
+    };
+
+    void syncDecksFromStorage();
+  }, []);
 
   const selectedDeckIcon = selectedDeck ? deckIcons[selectedDeck] || deckImages.Flygon : deckImages.Flygon;
 
@@ -239,19 +240,6 @@ export default function DecksPage() {
     return card?.count || 0;
   };
 
-  const isCardAtCopyLimit = (deckName: string, cardName: string) => {
-    if (isEnergyCardName(cardName)) return false;
-
-    const currentDeck = decks[deckName];
-    if (!currentDeck) return false;
-
-    const card = currentDeck.cards.find(
-      (item) => canonicalizeCardName(item.name) === canonicalizeCardName(cardName)
-    );
-
-    return (card?.count || 0) >= MAX_NON_ENERGY_COPIES;
-  };
-
   const addCardByName = (deckName: string, cardName: string) => {
     const name = cardName.trim();
     if (!name) return;
@@ -289,7 +277,7 @@ export default function DecksPage() {
       existingCard.count += 1;
     } else {
       nextCards.push({
-        id: `${Date.now()}-${Math.random()}`,
+        id: crypto.randomUUID(),
         name,
         count: 1,
       });

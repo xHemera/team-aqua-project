@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { resolveProfileIcon } from "@/lib/profile-icons";
+import type { Prisma } from "@prisma/client";
 import { headers } from "next/headers";
 
 export async function GET() {
@@ -93,7 +94,7 @@ export async function PATCH(request: Request) {
     }
 
     // Build update data
-    const updateData: any = {};
+    const updateData: Prisma.UserUpdateInput = {};
     if (avatarId && nextAvatar) {
       updateData.avatarId = nextAvatar.id;
       updateData.image = nextAvatar.url;

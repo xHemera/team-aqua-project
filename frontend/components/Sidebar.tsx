@@ -20,8 +20,13 @@ export default function Sidebar() {
   const [pseudo, setPseudo] = useState<string | null>(null);
 
   useEffect(() => {
-    const savedAvatar = localStorage.getItem("avatar");
-    if (savedAvatar) setAvatar(savedAvatar);
+    const syncAvatar = async () => {
+      await Promise.resolve();
+      const savedAvatar = localStorage.getItem("avatar");
+      if (savedAvatar) setAvatar(savedAvatar);
+    };
+
+    void syncAvatar();
 
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "avatar" && e.newValue) setAvatar(e.newValue);
