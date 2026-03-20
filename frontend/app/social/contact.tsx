@@ -119,3 +119,31 @@ export async function getAvatar (userName: string)
     })
     return user?.avatar?.name;
 }
+
+export async function addMsg(msg: string, sender: string, receiver: string)
+{
+    if (!sender || !receiver) return;
+    const user1 = await prisma.user.findFirst({
+        where: { name: sender }
+    })
+    const user2 = await prisma.user.findFirst({
+        where: { name: receiver }
+    })
+    const inboxes = await prisma.inbox.findMany({
+        include: { inboxUser: true, messages:true }
+    });
+
+	if (inboxes.length === 0) return;
+
+    for (const inbox of inboxes)
+    {
+        const ids = inbox.inboxUser.map(inboxUser => inboxUser.user_id);
+
+		if (ids.includes(user1!.id) && ids.includes(user2!.id))
+		{
+			const messages = await prisma.messages.update({
+                
+            })
+		}
+    };
+}
