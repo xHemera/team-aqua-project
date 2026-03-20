@@ -3,6 +3,13 @@
 import { useEffect, useState } from "react";
 import { AVATAR_CHANGED_EVENT, AVATAR_STORAGE_KEY, readAvatarPreference } from "@/lib/avatar-preference";
 
+/**
+ * Objective: keep avatar URL synchronized across tabs and mounted client views.
+ * Usage: use in any client component rendering current user avatar.
+ * Input: fallback avatar URL.
+ * Output: latest known avatar URL.
+ * Special cases: listens to both `storage` and custom `site-avatar-changed` events.
+ */
 export function useAvatarPreference(fallbackAvatar: string) {
   const [avatar, setAvatar] = useState(fallbackAvatar);
 

@@ -42,12 +42,14 @@ type InviteNotification = {
 
 const SOCIAL_STORAGE_KEY = "social-chat-state";
 
+// HARDCODE: seeded contacts used as temporary mock social graph.
 const defaultUsers = [
   { name: "Sauralt", avatar: esper, unreadCount: 0 },
   { name: "Xoco", avatar: dragon, unreadCount: 1 },
   { name: "SunMiaou", avatar: mizu, unreadCount: 0 },
 ] as ChatUser[];
 
+// HARDCODE: seeded chat history used until message persistence is DB-backed.
 const defaultMessagesByUser: Record<string, ChatMessage[]> = {
   SunMiaou: [
     {
@@ -80,12 +82,20 @@ const defaultMessagesByUser: Record<string, ChatMessage[]> = {
   Sauralt: [],
 };
 
+// HARDCODE: fallback social state when no local persisted data exists.
 const fallbackSocialState = {
   users: defaultUsers,
   messagesByUser: defaultMessagesByUser,
   selectedUser: "SunMiaou",
 };
 
+/**
+ * Objective: hydrate social screen state from localStorage.
+ * Usage: called once on mount to restore local conversation state.
+ * Input: none.
+ * Output: social state object with users/messages/selected user.
+ * Special cases: invalid JSON falls back to hardcoded seed state.
+ */
 const getSocialStateFromStorage = () => {
   const savedState = localStorage.getItem(SOCIAL_STORAGE_KEY);
   if (!savedState) {
@@ -128,6 +138,13 @@ const toSizeLabel = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
 };
 
+/**
+ * Objective: convert a browser file into app attachment payload.
+ * Usage: used by attachment picker before drafting a message.
+ * Input: browser `File` object.
+ * Output: attachment metadata + temporary object URL.
+ * Special cases: generated ID is client-side and not globally unique.
+ */
 const buildAttachmentFromFile = (file: File): Attachment => ({
   id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
   name: file.name,
@@ -263,6 +280,13 @@ export default function SocialPage() {
     setInviteUsername("");
   };
 
+  /**
+   * Objective: invite a user by pseudo and initialize local chat context.
+   * Usage: called from add-friend modal submit actions.
+   * Input: none (uses `inviteUsername` state).
+   * Output: none (mutates state and notification banner).
+   * Special cases: ignores empty input and prevents concurrent submissions.
+   */
   const submitFriendInvite = async () => {
     const username = inviteUsername.trim();
     if (isInviting || !username) return;
@@ -359,6 +383,13 @@ export default function SocialPage() {
     });
   };
 
+  /**
+   * Objective: append a new message to current conversation.
+   * Usage: called on send button and Enter key shortcut.
+   * Input: none (uses message and attachment draft states).
+   * Output: none (updates message list and resets draft state).
+   * Special cases: blocks sending when text and attachment draft are both empty.
+   */
   const sendMessage = () => {
     const cleanMessage = message.trim();
     if (!cleanMessage && draftAttachments.length === 0) return;

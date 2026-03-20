@@ -36,9 +36,12 @@ type ProfilePatchPayload = {
   avatarId?: string;
 };
 
+// HARDCODE: temporary default banner until user banners are fully managed in DB.
 const defaultBanner = "https://www.katebackdrop.fr/cdn/shop/files/B4035519.jpg?v=1710741683&width=600";
+// HARDCODE: fallback app background value from frontend configuration.
 const defaultBackground = DEFAULT_SITE_BACKGROUND;
 
+// HARDCODE: temporary mocked match history while battle history API is pending.
 const matchHistory = [
   {
     result: "Victoire",
@@ -78,6 +81,7 @@ const matchHistory = [
   },
 ];
 
+// HARDCODE: static deck icon map used for history presentation.
 const deckpublic: Record<string, string> = {
   Flygon: "/decks/flygon-icon.png",
   Ceruledge: "/decks/ceruledge-icon.png",
@@ -99,6 +103,13 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
   const bgUploadRef = useRef<HTMLInputElement>(null);
   const bannerUploadRef = useRef<HTMLInputElement>(null);
 
+  /**
+   * Objective: convert uploaded file to Data URL for instant local preview.
+   * Usage: used by profile customization upload inputs.
+   * Input: browser `File` object.
+   * Output: promise resolving to Data URL string.
+   * Special cases: rejects on FileReader errors.
+   */
   const fileToDataUrl = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -190,6 +201,13 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
     setShowCustomizationPanel(true);
   };
 
+  /**
+   * Objective: persist profile customization (avatar/background/banner) to API.
+   * Usage: called when user confirms profile customization panel.
+   * Input: none (reads draft states).
+   * Output: none (state updates + local preference sync).
+   * Special cases: sends `avatarId` only when avatar changed.
+   */
   const handleSaveCustomization = async () => {
     const patchBody: ProfilePatchPayload = {
       profileBackground: draftBackground,

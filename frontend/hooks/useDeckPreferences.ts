@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+// HARDCODE: temporary deck icon registry until deck metadata is sourced from backend.
 export const DECK_ICONS: Record<string, string> = {
   Flygon: "/decks/flygon-icon.png",
   Ceruledge: "/decks/ceruledge-icon.png",
@@ -9,6 +10,7 @@ export const DECK_ICONS: Record<string, string> = {
   Zacian: "/decks/zacian-icon.png",
 };
 
+// HARDCODE: default deck list used when storage is empty.
 export const DEFAULT_DECKS = ["Flygon", "Ceruledge", "Toxtricity", "Zacian"];
 
 type DeckState = {
@@ -16,6 +18,13 @@ type DeckState = {
   selectedDeck: string;
 };
 
+/**
+ * Objective: derive a hydration-safe deck state from browser storage.
+ * Usage: called by `useDeckPreferences` during initialization and storage updates.
+ * Input: fallback deck names.
+ * Output: normalized available decks + selected deck.
+ * Special cases: returns fallback data for SSR and invalid JSON payloads.
+ */
 const getInitialDeckState = (defaultDecks: string[]): DeckState => {
   if (typeof window === "undefined") {
     return { availableDecks: defaultDecks, selectedDeck: defaultDecks[0] ?? "" };
@@ -52,6 +61,13 @@ const getInitialDeckState = (defaultDecks: string[]): DeckState => {
   }
 };
 
+/**
+ * Objective: expose deck preference state synchronized with localStorage.
+ * Usage: consumed by pages/components that let users pick and persist a deck.
+ * Input: optional fallback deck list.
+ * Output: `selectedDeck`, `setSelectedDeck`, and `availableDecks`.
+ * Special cases: reacts to cross-tab storage changes for `decks` and `selectedDeck`.
+ */
 export function useDeckPreferences(defaultDecks: string[] = DEFAULT_DECKS) {
   const fallbackDeck = defaultDecks[0] ?? "";
   const [selectedDeck, setSelectedDeck] = useState(fallbackDeck);

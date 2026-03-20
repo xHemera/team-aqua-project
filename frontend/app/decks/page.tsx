@@ -7,6 +7,7 @@ import Button from "@/components/atoms/Button";
 import Input from "@/components/atoms/Input";
 import Card from "@/components/atoms/Card";
 
+// HARDCODE: default deck icon assets until deck metadata is provided by backend.
 const deckImages: Record<string, string> = {
   Flygon: "/decks/flygon-icon.png",
   Ceruledge: "/decks/ceruledge-icon.png",
@@ -29,6 +30,7 @@ type DeckData = {
 
 type DeckIcons = Record<string, string>;
 
+// HARDCODE: allowed card pool displayed in deck builder until DB-backed catalog is integrated.
 const cardFileBases = [
   "absol",
   "alcremie",
@@ -74,7 +76,13 @@ const cardFileBases = [
 const deckIconChoices = [BLANK_DECK_ICON, ...Object.values(deckImages)];
 const MAX_NON_ENERGY_COPIES = 4;
 
-// Fonction pour normaliser le nom de la carte en nom de fichier
+/**
+ * Objective: normalize card labels into file-friendly identifiers.
+ * Usage: shared by card filename resolution and lookup helpers.
+ * Input: user-facing card name.
+ * Output: normalized lowercase string with underscores.
+ * Special cases: strips optional `.png` suffix.
+ */
 const normalizeCardName = (name: string): string => {
   return name
     .toLowerCase()
@@ -116,6 +124,7 @@ const normalizeDeckIcon = (icon: string | undefined) => {
 
 const isEnergyCardName = (name: string) => resolveCardFilename(name).endsWith("_energy");
 
+// HARDCODE: temporary fallback deck definitions when localStorage is empty.
 const fallbackDeckList = [
   { name: "Flygon", icon: deckImages.Flygon },
   { name: "Ceruledge", icon: deckImages.Ceruledge },
@@ -140,6 +149,13 @@ const fallbackDeckData = {
   deckIcons: fallbackDeckIcons,
 };
 
+/**
+ * Objective: hydrate deck builder state from browser storage.
+ * Usage: called on page initialization.
+ * Input: none.
+ * Output: normalized decks, deck list, and deck icons.
+ * Special cases: returns fallback hardcoded deck data when storage is empty.
+ */
 const getDeckDataFromStorage = () => {
   const saved = localStorage.getItem("decks");
   if (!saved) {
@@ -205,7 +221,13 @@ export default function DecksPage() {
     });
   }, [availableCardQuery]);
 
-  // Sauvegarder les decks dans localStorage
+  /**
+   * Objective: persist a single deck update and keep React state in sync.
+   * Usage: called by all card/deck mutation handlers.
+   * Input: target deck name + next deck data.
+   * Output: none (state + localStorage side effects).
+   * Special cases: clones card entries to avoid accidental shared references.
+   */
   const saveDeck = (deckName: string, data: DeckData) => {
     const normalizedData: DeckData = {
       cards: data.cards.map((card) => ({ ...card })),
@@ -243,6 +265,13 @@ export default function DecksPage() {
     return card?.count || 0;
   };
 
+  /**
+   * Objective: add one card copy in a deck while enforcing game limits.
+   * Usage: triggered from available-card grid interactions.
+   * Input: deck name and user-selected card name.
+   * Output: none (state/storage mutation or validation error message).
+   * Special cases: validates card existence, 60-card limit, and non-energy copy cap.
+   */
   const addCardByName = (deckName: string, cardName: string) => {
     const name = cardName.trim();
     if (!name) return;
@@ -372,6 +401,13 @@ export default function DecksPage() {
     setCardError("");
   };
 
+  /**
+   * Objective: rename selected deck with uniqueness and empty-value guards.
+   * Usage: called from rename action in deck modal header.
+   * Input: none (reads current draft and selected deck state).
+   * Output: none (state/storage mutation or UI validation error).
+   * Special cases: no-op when name is unchanged; updates associated deck icon key.
+   */
   const renameSelectedDeck = () => {
     if (!selectedDeck) return;
 
