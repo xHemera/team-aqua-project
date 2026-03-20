@@ -62,11 +62,11 @@ start_services() {
     docker compose up --build -d
     print_success "Services démarrés"
     print_info "Frontend: http://localhost:3000"
-    print_info "websockets: http://localhost:4000/health"
+    print_info "websockets: http://localhost:4001/health"
 
         print_info "Application des migrations Prisma..."
         docker compose -f docker-compose.yml exec frontend \
-            pnpm prisma migrate deploy --config prisma/prisma.config.ts
+            bunx prisma migrate deploy --config prisma/prisma.config.ts
         print_success "Migrations Prisma appliquées"
 }
 
@@ -77,7 +77,7 @@ restart_services() {
 
         print_info "Application des migrations Prisma..."
         docker compose -f docker-compose.yml exec frontend \
-            pnpm prisma migrate deploy --config prisma/prisma.config.ts
+            bunx prisma migrate deploy --config prisma/prisma.config.ts
         print_success "Migrations Prisma appliquées"
 
     print_success "Services redémarrés"
@@ -130,7 +130,7 @@ check_status() {
     
     # Tester les endpoints
     print_info "Test du websockets..."
-    if curl -s http://localhost:4000/health > /dev/null 2>&1; then
+    if curl -s http://localhost:4001/health > /dev/null 2>&1; then
         print_success "websockets: OK"
     else
         print_error "websockets: KO"
@@ -171,11 +171,11 @@ test_services() {
     print_header "Test des services"
     
     echo "websockets Health:"
-    curl -s http://localhost:4000/health | jq '.' 2>/dev/null || curl -s http://localhost:4000/health
+    curl -s http://localhost:4001/health | jq '.' 2>/dev/null || curl -s http://localhost:4001/health
     
     echo ""
     echo "Utilisateurs (premiers 3):"
-    curl -s http://localhost:4000/api/users | jq '.[0:3]' 2>/dev/null || curl -s http://localhost:4000/api/users
+    curl -s http://localhost:4001/api/users | jq '.[0:3]' 2>/dev/null || curl -s http://localhost:4001/api/users
 }
 
 # Boucle principale

@@ -2,12 +2,13 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "bun@1.2.5",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "auth:migrate": "npx @better-auth/cli migrate --yes"
+    "auth:migrate": "better-auth migrate --yes"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.4.1",

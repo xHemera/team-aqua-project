@@ -65,7 +65,7 @@ cd team-aqua-project
 
 1.1. **Installation de paquet locaux**
 ```bash
-npm install --save-dev @types/react @types/react-dom
+bun add -d @types/react @types/react-dom
 ```
 
 2. **Lancer les services**
@@ -250,23 +250,23 @@ docker compose exec -T db psql -U postgres -d aqua_temp < backup.sql
 
 ```bash
 # Ouvrir Prisma Studio
-docker compose exec websockets pnpm prisma:studio
+docker compose exec websockets bun run prisma:studio
 
 # Pousser le schéma vers la DB
-docker compose exec websockets pnpm prisma:push
+docker compose exec websockets bun run prisma:push
 
 # Générer le client Prisma
-docker compose exec websockets pnpm prisma generate
+docker compose exec websockets bunx prisma generate
 ```
 
 ### Frontend (Better Auth)
 
 ```bash
 # Exécuter les migrations Better Auth
-docker compose exec frontend pnpm auth:migrate
+docker compose exec frontend bun run auth:migrate
 
 # Installer les dépendances
-docker compose exec frontend pnpm install
+docker compose exec frontend bun install
 ```
 
 ---
@@ -278,7 +278,7 @@ docker compose exec frontend pnpm install
 Le projet inclut plusieurs optimisations :
 - ⚡ **Healthcheck optimisé** : Base de données prête en ~4s (au lieu de 10s)
 - 🔄 **Restart policies** : Redémarrage automatique en cas d'erreur
-- 📦 **Volumes persistés** : node_modules et pnpm store mis en cache
+- 📦 **Volumes persistés** : node_modules et cache Bun mis en cache
 - 📄 **Logs optimisés** : Messages clairs et concis
 - ⏱️ **Temps de démarrage** : Initialisation réduite de 30s à 20s
 
@@ -327,8 +327,8 @@ docker compose down
 docker compose down -v
 
 # Nettoyer les caches locaux
-rm -rf frontend/node_modules frontend/.next frontend/.pnpm-store
-rm -rf websockets/node_modules websockets/.pnpm-store websockets/dist
+rm -rf frontend/node_modules frontend/.next frontend/.bun
+rm -rf websockets/node_modules websockets/.bun websockets/dist
 
 # Nettoyer les images Docker
 docker system prune -a

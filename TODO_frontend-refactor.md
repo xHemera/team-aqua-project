@@ -294,28 +294,28 @@ diff --git a/frontend/app/home/page.tsx b/frontend/app/home/page.tsx
 
 ## Commands
 - [ ] **REF-CMD-1.1 [Install Dependencies]**:
-  - **Local**: `cd frontend && pnpm add -D vitest @testing-library/react @testing-library/jest-dom jsdom playwright @axe-core/playwright @next/bundle-analyzer`
-  - **CI**: `cd frontend && pnpm install --frozen-lockfile`
+  - **Local**: `cd frontend && bun add -d vitest @testing-library/react @testing-library/jest-dom jsdom playwright @axe-core/playwright @next/bundle-analyzer`
+  - **CI**: `cd frontend && bun install --frozen-lockfile`
 
 - [ ] **REF-CMD-1.2 [Lint & Typecheck]**:
-  - **Local**: `cd frontend && pnpm lint && pnpm exec tsc --noEmit`
-  - **CI**: `cd frontend && pnpm lint && pnpm exec tsc --noEmit`
+  - **Local**: `cd frontend && bun run lint && bunx tsc --noEmit`
+  - **CI**: `cd frontend && bun run lint && bunx tsc --noEmit`
 
 - [ ] **REF-CMD-1.3 [Unit Tests]**:
-  - **Local**: `cd frontend && pnpm test`
-  - **CI**: `cd frontend && pnpm test -- --runInBand`
+  - **Local**: `cd frontend && bun test`
+  - **CI**: `cd frontend && bun test -- --runInBand`
 
 - [ ] **REF-CMD-1.4 [E2E + Accessibility]**:
-  - **Local**: `cd frontend && pnpm playwright install && pnpm test:e2e && pnpm test:a11y`
-  - **CI**: `cd frontend && pnpm playwright install --with-deps && pnpm test:e2e && pnpm test:a11y`
+  - **Local**: `cd frontend && bunx playwright install && bun run test:e2e && bun run test:a11y`
+  - **CI**: `cd frontend && bunx playwright install --with-deps && bun run test:e2e && bun run test:a11y`
 
 - [ ] **REF-CMD-1.5 [Build Validation]**:
-  - **Local**: `cd frontend && pnpm build && pnpm start`
-  - **CI**: `cd frontend && pnpm build`
+  - **Local**: `cd frontend && bun run build && bun run start`
+  - **CI**: `cd frontend && bun run build`
 
 - [ ] **REF-CMD-1.6 [Performance Regression Check]**:
-  - **Local**: `cd frontend && pnpm analyze`
-  - **CI**: `cd frontend && pnpm build` (with analyzer artifact upload in workflow)
+  - **Local**: `cd frontend && bun run analyze`
+  - **CI**: `cd frontend && bun run build` (with analyzer artifact upload in workflow)
 
 ## Quality Assurance Task Checklist
 - [ ] **REF-QA-1.1 [Build Integrity]**: Next.js build passes without errors.
