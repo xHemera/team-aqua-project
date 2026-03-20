@@ -1,351 +1,215 @@
 # Team Aqua Project
 
-> Projet full-stack avec authentification, gestion de rôles et architecture Docker
+Full-stack project with a Next.js frontend, PostgreSQL, and containerized development tooling.
 
-## 📑 Table des matières
+## Overview
 
-- [Présentation](#présentation)
-- [Installation](#installation)
-- [Architecture](#architecture)
-- [Authentification](#authentification)
-- [Rôles](#rôles)
-- [Commandes utiles](#commandes-utiles)
-- [Configuration](#configuration)
-- [Frontend UI](#frontend-ui)
+This repository contains:
+- A modern frontend application built with Next.js App Router, React 19, TypeScript, Better Auth, and Prisma.
+- A websocket service workspace (currently scaffolded and containerized for iterative development).
+- A PostgreSQL database managed through Docker Compose.
+- A shell-based developer helper (`dev.sh`) for common local operations.
 
----
+## Tech Stack
 
-## 🎯 Présentation
+- Frontend: Next.js 16, React 19, TypeScript, Tailwind CSS v4
+- Auth: Better Auth
+- ORM / DB access: Prisma + PostgreSQL
+- Realtime workspace: Socket.IO service (`websockets/`)
+- Package manager: Bun (`bun@1.2.5`)
+- Local orchestration: Docker Compose
 
-Projet web moderne avec :
-- **Frontend** : Next.js 16 + TailwindCSS + Better Auth
-- **websockets** : Express + Prisma + PostgreSQL
-- **Authentification** : Better Auth avec gestion de sessions
-- **Gestion de rôles** : Système admin/utilisateur
-- **Containerisation** : Docker Compose pour l'environnement complet
+## Repository Structure
 
-### Fonctionnalités
+```text
+team-aqua-project/
+├── frontend/                # Next.js app (main product surface)
+│   ├── app/                 # App Router pages and API routes
+│   ├── components/          # Atomic design components
+│   ├── hooks/               # Shared React hooks
+│   ├── lib/                 # Shared frontend utilities
+│   ├── prisma/              # Frontend Prisma schema/migrations
+│   └── docs/                # Frontend-specific documentation
+├── websockets/              # Socket service workspace (Bun + TS)
+├── game-engine/             # Reserved workspace
+├── docker-compose.yml       # Local dev services
+└── dev.sh                   # Interactive dev helper script
+```
 
-- ✅ Inscription et connexion sécurisées
-- ✅ Dashboard administrateur avec liste des utilisateurs
-- ✅ Page d'accueil pour utilisateurs standards
-- ✅ Système de rôles (admin/user)
-- ✅ Base de données PostgreSQL persistante
-- ✅ API REST avec Express
+## Services and Ports
 
----
+When started via Docker Compose:
+- Frontend: `http://localhost:3000`
+- Websocket workspace: `http://localhost:4001`
+- PostgreSQL: `localhost:5432`
 
-## 🚀 Installation
+## Quick Start (Recommended)
 
-### Prérequis
+### Prerequisites
 
-- [Docker](https://www.docker.com/) et Docker Compose
-- Ports disponibles : 3000 (frontend), 4000 (websockets), 5432 (database)
+- Docker + Docker Compose
 
-### Démarrage rapide
+### Start with helper script
 
-**Option 1 : Script de développement interactif (recommandé)**
 ```bash
 ./dev.sh
 ```
 
-Menu interactif avec toutes les commandes :
-- 🚀 Démarrer/redémarrer/arrêter
-- 📊 Logs en temps réel
-- 🔍 Statut des services
-- 👤 Gestion des admins
-- 🗄️ Accès base de données
+The script provides a menu to:
+- start/restart/stop services,
+- inspect logs and service status,
+- access PostgreSQL,
+- promote an existing user to admin,
+- run basic service checks.
 
-**Option 2 : Commandes manuelles**
+### Start manually
 
-1. **Cloner le projet**
-```bash
-git clone git@github.com:xHemera/team-aqua-project.git
-cd team-aqua-project
-```
-
-1.1. **Installation de paquet locaux**
-```bash
-bun add -d @types/react @types/react-dom
-```
-
-2. **Lancer les services**
 ```bash
 docker compose up --build -d
 ```
 
-3. **Accéder à l'application**
-- Frontend : [http://localhost:3000](http://localhost:3000)
-- websockets API : [http://localhost:4000/health](http://localhost:4000/health)
+Then open:
+- `http://localhost:3000`
 
-4. **Créer votre compte**
-- Ouvrez http://localhost:3000
-- Cliquez sur "S'inscrire"
-- Remplissez le formulaire
+## Local Development Without Docker (Optional)
 
-### Vérification rapide
+If you prefer running services directly:
+
+### Prerequisites
+
+- Bun `1.2.5+`
+- A running PostgreSQL instance
+
+### Frontend
 
 ```bash
-# Vérifier tous les services
-docker compose ps
-
-# Tester le websockets
-curl http://localhost:4000/health
-
-# Tester le frontend
-open http://localhost:3000  # ou visitez dans votre navigateur
+cd frontend
+bun install
+bunx prisma generate
+bun run dev
 ```
 
----
+### Websocket workspace
 
-## 🏗️ Architecture
-
-```
-team-aqua-project/
-├── frontend/          # Next.js 16 (port 3000)
-│   ├── app/
-│   │   ├── page.tsx           # Page de login
-│   │   ├── dashboard/         # Dashboard admin
-│   │   ├── home/              # Page utilisateur
-│   │   └── api/               # API routes Next.js
-│   └── lib/
-│       ├── auth.ts            # Configuration Better Auth
-│       └── auth-client.ts     # Client Better Auth
-├── websockets/           # Express + Prisma (port 4000)
-│   ├── src/
-│   │   └── index.ts           # API REST
-│   ├── lib/
-│   │   └── prisma.ts          # Client Prisma
-│   └── prisma/
-│       └── schema.prisma      # Schéma base de données
-├── db/                # PostgreSQL (port 5432)
-└── game-engine/       # Service placeholder (port 5000)
+```bash
+cd websockets
+bun install
+bun run dev
 ```
 
-### Services Docker
+Note:
+- If Bun is not installed on your host machine, use Docker Compose workflows instead.
 
-| Service | Port | Description |
-|---------|------|-------------|
-| `frontend` | 3000 | Application Next.js |
-| `websockets` | 4000 | API Express |
-| `db` | 5432 | PostgreSQL 16 |
-| `game-engine` | 5000 | Service en attente |
+## Environment Variables
 
----
+Current Compose setup defines these variables:
 
-## 🔐 Authentification
+### Frontend
 
-Le projet utilise **Better Auth** pour gérer l'authentification :
+- `NODE_ENV=development`
+- `BETTER_AUTH_URL=http://localhost:3000`
+- `BETTER_AUTH_SECRET=dev-secret-change-me-please-at-least-32-characters`
+- `BETTER_AUTH_DATABASE_URL=postgres://postgres:postgres@db:5432/aqua_temp`
+- `DATABASE_URL=postgresql://postgres:postgres@db:5432/aqua_temp`
 
-- Inscription avec email/mot de passe/nom
-- Connexion avec sessions sécurisées
-- Déconnexion
-- Protection des routes
+### Websocket workspace
 
-### Tables de la base de données
+- `NODE_ENV=development`
+- `DATABASE_URL=postgresql://postgres:postgres@db:5432/aqua_temp`
+- `PORT=4001`
 
-Better Auth crée automatiquement les tables :
-- `user` - Utilisateurs
-- `session` - Sessions actives
-- `account` - Comptes liés (OAuth future)
-- `verification` - Tokens de vérification
+## Common Commands
 
-### Utilisateur de test
+### Docker lifecycle
 
-Un utilisateur admin de test est créé automatiquement au démarrage :
-
-```
-Email: test@example.com
-Password: password123
-Rôle: admin
+```bash
+docker compose up -d
+docker compose up --build -d
+docker compose down
+docker compose down -v
 ```
 
-⚠️ **Note** : Cet utilisateur est recréé automatiquement à chaque fois que vous démarrez Docker Compose avec une base de données vide (après `docker compose down -v` ou `docker system prune`).
+### Logs
 
----
+```bash
+docker compose logs -f
+docker compose logs frontend -f
+docker compose logs websockets -f
+docker compose logs db -f
+```
 
-## 👥 Rôles
+### Frontend commands
 
-Le système distingue deux types d'utilisateurs :
+```bash
+cd frontend
+bun install
+bun run lint
+bun run build
+bun run start
+bun run auth:migrate
+```
 
-### Admin
-- Accès au **dashboard** (`/dashboard`)
-- Peut voir tous les utilisateurs
-- Peut voir les rôles de chaque utilisateur
+### Websocket workspace commands
 
-### Utilisateur standard
-- Accès à la page **home** (`/home`)
-- Accès refusé au dashboard
+```bash
+cd websockets
+bun install
+bun run dev
+bun run build
+bun run start
+bun run prisma:generate
+bun run prisma:push
+bun run prisma:studio
+```
 
-### Promouvoir un utilisateur en admin
+### Database access
+
+```bash
+docker compose exec db psql -U postgres -d aqua_temp
+```
+
+Promote a user to admin:
 
 ```bash
 docker compose exec db psql -U postgres -d aqua_temp -c \
   "UPDATE \"user\" SET role = 'admin' WHERE email = 'email@example.com';"
 ```
 
-### Rétrograder un admin en utilisateur
+## Frontend Routes (Current)
 
-```bash
-docker compose exec db psql -U postgres -d aqua_temp -c \
-  "UPDATE \"user\" SET role = 'user' WHERE email = 'email@example.com';"
-```
+Main app pages include:
+- `/` login/auth entry
+- `/register`
+- `/home`
+- `/decks`
+- `/social`
+- `/game`
+- `/profile/[pseudo]`
+- `/not-connected`
 
-### Voir tous les utilisateurs et leurs rôles
+Frontend API routes include:
+- `/api/auth/[...all]`
+- `/api/profile`
+- `/api/avatars`
+- `/api/social/invite`
 
-```bash
-docker compose exec db psql -U postgres -d aqua_temp -c \
-  "SELECT name, email, role, \"createdAt\" FROM \"user\" ORDER BY \"createdAt\";"
-```
+## Frontend UI Architecture
 
----
+The frontend follows an atomic design approach.
 
-## 🛠️ Commandes utiles
+See:
+- [frontend/docs/frontend-atomic-guide.md](frontend/docs/frontend-atomic-guide.md)
 
-### Script de développement
+## Troubleshooting
 
-```bash
-./dev.sh  # Menu interactif complet
-```
+- Compose starts but frontend is unavailable:
+  - Check `docker compose logs frontend -f`
+  - Ensure port `3000` is free.
+- Database connection issues:
+  - Verify `db` service health with `docker compose ps`.
+- Host missing Bun:
+  - Run everything through Docker instead of local Bun commands.
 
-### Docker
-
-```bash
-# Démarrer les services
-docker compose up -d
-
-# Rebuild et redémarrer
-docker compose up --build -d
-
-# Arrêter les services
-docker compose down
-
-# Voir les logs
-docker compose logs -f
-
-# Logs d'un service spécifique
-docker compose logs frontend -f
-docker compose logs websockets -f
-
-# Redémarrer un service
-docker compose restart websockets
-```
-
-### Base de données
-
-```bash
-# Accéder à PostgreSQL
-docker compose exec db psql -U postgres -d aqua_temp
-
-# Voir les tables
-docker compose exec db psql -U postgres -d aqua_temp -c "\dt"
-
-# Sauvegarder la base
-docker compose exec db pg_dump -U postgres aqua_temp > backup.sql
-
-# Restaurer la base
-docker compose exec -T db psql -U postgres -d aqua_temp < backup.sql
-```
-
-### websockets (Prisma)
-
-```bash
-# Ouvrir Prisma Studio
-docker compose exec websockets bun run prisma:studio
-
-# Pousser le schéma vers la DB
-docker compose exec websockets bun run prisma:push
-
-# Générer le client Prisma
-docker compose exec websockets bunx prisma generate
-```
-
----
-
-## 🎨 Frontend UI
-
-Documentation frontend orientee atomic design:
-
-- Guide d'usage: `frontend/docs/frontend-atomic-guide.md`
-- Objectif: standardiser les composants, reduire la duplication, clarifier le "pourquoi/comment" d'utilisation des briques UI.
-
-### Frontend (Better Auth)
-
-```bash
-# Exécuter les migrations Better Auth
-docker compose exec frontend bun run auth:migrate
-
-# Installer les dépendances
-docker compose exec frontend bun install
-```
-
----
-
-## ⚙️ Configuration
-
-### Optimisations
-
-Le projet inclut plusieurs optimisations :
-- ⚡ **Healthcheck optimisé** : Base de données prête en ~4s (au lieu de 10s)
-- 🔄 **Restart policies** : Redémarrage automatique en cas d'erreur
-- 📦 **Volumes persistés** : node_modules et cache Bun mis en cache
-- 📄 **Logs optimisés** : Messages clairs et concis
-- ⏱️ **Temps de démarrage** : Initialisation réduite de 30s à 20s
-
-### Variables d'environnement
-
-#### Frontend (docker-compose.yml)
-```yaml
-BETTER_AUTH_URL: http://localhost:3000
-BETTER_AUTH_SECRET: dev-secret-change-me-please-at-least-32-characters
-BETTER_AUTH_DATABASE_URL: postgres://postgres:postgres@db:5432/aqua_temp
-```
-
-#### websockets (docker-compose.yml)
-```yaml
-DATABASE_URL: postgresql://postgres:postgres@db:5432/aqua_temp
-PORT: 4000
-```
-
-### Ports utilisés
-
-- **3000** : Frontend Next.js
-- **4000** : websockets Express
-- **5000** : Game engine
-- **5432** : PostgreSQL
-
----
-
-## 📚 Documentation additionnelle
-
-- [OPTIMIZATIONS.md](OPTIMIZATIONS.md) - Détails des optimisations (performances, nettoyage)
-- [BEST_PRACTICES.md](BEST_PRACTICES.md) - Guide des bonnes pratiques de développement
-- [AUTH_README.md](AUTH_README.md) - Guide d'authentification détaillé (Better Auth)
-- [ROLES_README.md](ROLES_README.md) - Documentation complète du système de rôles
-- [setup-roles.sql](setup-roles.sql) - Scripts SQL de gestion des rôles
-- [test-auth.sh](test-auth.sh) - Script de test d'authentification
-
----
-
-## 🧹 Nettoyage
-
-```bash
-# Arrêter et supprimer tous les conteneurs
-docker compose down
-
-# Supprimer aussi les volumes (⚠️ efface la base de données)
-docker compose down -v
-
-# Nettoyer les caches locaux
-rm -rf frontend/node_modules frontend/.next frontend/.bun
-rm -rf websockets/node_modules websockets/.bun websockets/dist
-
-# Nettoyer les images Docker
-docker system prune -a
-```
-
----
-
-## 📝 License
+## License
 
 MIT
