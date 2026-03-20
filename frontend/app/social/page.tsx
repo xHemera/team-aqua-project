@@ -13,6 +13,14 @@ const esper = PROFILE_ICONS.find((icon) => icon.type === "esper")?.url ?? DEFAUL
 const dragon = PROFILE_ICONS.find((icon) => icon.type === "dragon")?.url ?? DEFAULT_PROFILE_ICON.url;
 const mizu = PROFILE_ICONS.find((icon) => icon.type === "mizu")?.url ?? DEFAULT_PROFILE_ICON.url;
 
+type Messages = {
+  id:         string;
+  user_id:    string;
+  inbox_id:   string;
+  messages:   string | null;
+  createdAt:  Date;
+}
+
 type Inbox_users = {
 	id:								string;
 	inbox_id:					string;
@@ -26,7 +34,7 @@ type Inbox = {
   last_sent_user_id:  string | null;
   createdAt:  				Date;
   inboxUser:  				Inbox_users[];
-	//messages:					Messages[];
+	messages:					  Messages[];
 };
 
 type Avatar = {
@@ -55,7 +63,7 @@ type User = {
   // decks:        		Decks[];
   // friends:       	Friends[];
   inboxUser:     			Inbox_users[];
-  // messages:      	Messages[];
+  messages:      	    Messages[];
   inbox:         			Inbox[];
 };
 
@@ -119,6 +127,7 @@ export default function SocialPage() {
   });
   const [users, setUsers] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [inboxes, setInboxes] = useState<Inbox[]>([]);
 
 
   const currentMessages = useMemo(
@@ -144,8 +153,10 @@ export default function SocialPage() {
     if (!userPseudo) return;
       const u = await contact.getUsers();
       const cU = await contact.getCurrentUser(userPseudo);
+      const i = await contact.getInboxes();
       setUsers(u);
       setCurrentUser(cU);
+      setInboxes(i);
     }
     fetchUsers();
   }, [userPseudo]);
@@ -411,11 +422,12 @@ export default function SocialPage() {
                 const isActive = selectedUser === user.name;
                 if (user.name === userPseudo)
                   return null;
-								const hasConversation = currentUser.inbox.some(inbox => {
+								const hasConversation = inboxes.some(inbox => {
 									const ids = inbox.inboxUser.map(iu => iu.user_id);
-									return ids.includes(user.id);
+									return ids.includes(user.id) && ids.includes(currentUser.id);
 								});
-								if (!hasConversation) return;
+                console.log(currentUser.inbox);
+								if (!hasConversation) return null;
                 return (
                   <button
                     key={user.name}

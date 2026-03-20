@@ -8,8 +8,19 @@ export async function getUsers()
         include: {
             avatar: true,
 			inbox: { include: { inboxUser: true } },
-			inboxUser: true
+			inboxUser: true,
+            messages: true,
         }
+    })
+}
+
+export async function getInboxes()
+{
+    return await prisma.inbox.findMany({
+        include: {
+            inboxUser: true,
+            messages: true,
+         }
     })
 }
 
@@ -20,7 +31,8 @@ export async function getCurrentUser(current: string)
         include: {
             avatar: true,
 			inbox: { include: { inboxUser: true } },
-			inboxUser: true
+			inboxUser: true,
+            messages: true,
         }
     })
     if (!user)
