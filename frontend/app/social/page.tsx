@@ -7,6 +7,7 @@ import { socket } from "../../socket"
 import { authClient } from "@/lib/auth-client";
 import AppPageShell from "@/components/AppPageShell";
 import { DEFAULT_PROFILE_ICON, PROFILE_ICONS } from "@/lib/profile-icons";
+import { addContact}  from "./contact"
 
 const esper = PROFILE_ICONS.find((icon) => icon.type === "esper")?.url ?? DEFAULT_PROFILE_ICON.url;
 const dragon = PROFILE_ICONS.find((icon) => icon.type === "dragon")?.url ?? DEFAULT_PROFILE_ICON.url;
@@ -80,6 +81,7 @@ export default function SocialPage() {
   const [messagesByUser, setMessagesByUser] = useState<Record<string, ChatMessage[]>>({
   });
 
+  //a modifier ou supprimer
   const currentUser = useMemo(
     () => users.find((user) => user.name === selectedUser) ?? users[0],
     [selectedUser, users],
@@ -155,10 +157,10 @@ export default function SocialPage() {
     setInviteUsername("");
   };
 
+  //cree une nouvelle discussion
   const submitContactInvite = async () => {
     const username = inviteUsername.trim();
     if (isInviting || !username) return;
-
     try {
       setIsInviting(true);
 
@@ -167,7 +169,7 @@ export default function SocialPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username }),
       });
-
+      addContact(userPseudo!, inviteUsername);
       const payload = (await response.json()) as {
         error?: string;
         user?: { name: string; avatarUrl?: string | null };
@@ -226,6 +228,7 @@ export default function SocialPage() {
       setIsInviting(false);
     }
   };
+  //fin de la fonction a modifier
 
   const handlePickAttachments = () => {
     fileInputRef.current?.click();
@@ -250,6 +253,8 @@ export default function SocialPage() {
       return prevAttachments.filter((item) => item.id !== attachmentId);
     });
   };
+
+
 
   //Ecrire et envoyer un message
   const sendMessage = () => {
@@ -279,6 +284,9 @@ export default function SocialPage() {
       sendMessage();
     }
   };
+
+
+
 
   return (
     <AppPageShell>
