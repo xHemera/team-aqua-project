@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 // Plateau de jeu (maquette statique) + menu pause
 export default function GamePage() {
+	const router = useRouter();
 	const [showMenu, setShowMenu] = useState(false);
 	// Collections de slots pour afficher les zones du plateau
 	const Bench = Array.from({ length: 1 }, (_, i) => i);
@@ -205,7 +207,7 @@ export default function GamePage() {
 								Resume
 							</button>
 							<button
-								onClick={() => window.location.href = '/home'}
+								onClick={() => router.push('/home')}
 								className="rounded-lg border border-red-400/80 bg-red-500/90 px-6 py-3 text-lg font-bold uppercase text-white transition-colors hover:bg-red-500"
 							>
 								Forfait

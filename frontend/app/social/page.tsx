@@ -102,16 +102,23 @@ export default function SocialPage() {
         setUserPseudo(data.user.name);
     };
     getUserData();
-  });
+  }, []);
 
   useEffect(() => {
     if (socket.connected || !userPseudo) return;
-    socket.connect()
+    socket.connect();
     socket.emit("login", userPseudo);
-    socket.on("online_users", (users) => {
+
+    const handleOnlineUsers = (users: string[]) => {
       console.log("Users from Redis:", users);
-    });
-  });
+    };
+
+    socket.on("online_users", handleOnlineUsers);
+
+    return () => {
+      socket.off("online_users", handleOnlineUsers);
+    };
+  }, [userPseudo]);
 
   useEffect(() => {
     messageListRef.current?.scrollTo({

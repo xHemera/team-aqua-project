@@ -160,6 +160,21 @@ export default function DecksPage() {
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!previewCard) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setPreviewCard(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [previewCard]);
+
+  useEffect(() => {
     const getUserData = async () => {
       const { data } = await authClient.getSession();
       if (data?.user?.name)
@@ -634,16 +649,19 @@ export default function DecksPage() {
 
       {previewCard && (
         <div
-          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => setPreviewCard(null)}
+          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              setPreviewCard(null);
+            }
+          }}
         >
           <Image
             src={`/cards/${encodeURIComponent(previewCard.filename)}.png`}
             alt={previewCard.name}
             width={1000}
             height={1400}
-            className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            className="h-auto w-auto max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
           />
         </div>
       )}

@@ -162,11 +162,13 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
         const nextSavedBackground = normalizeBackgroundValue(savedBackground);
         setProfileBackground(nextSavedBackground);
         setDraftBackground(nextSavedBackground);
+        localStorage.setItem("profileBackground", nextSavedBackground);
         document.documentElement.style.setProperty("--site-bg-image", toCssBackgroundImageValue(nextSavedBackground));
       } else if (profile?.profileBackground) {
         const nextBackground = normalizeBackgroundValue(profile.profileBackground);
         setProfileBackground(nextBackground);
         setDraftBackground(nextBackground);
+        localStorage.setItem("profileBackground", nextBackground);
         document.documentElement.style.setProperty("--site-bg-image", toCssBackgroundImageValue(nextBackground));
       }
 
@@ -220,6 +222,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
       if (updated.profileBackground !== undefined) {
         const normalized = normalizeBackgroundValue(updated.profileBackground);
         setProfileBackground(normalized);
+        localStorage.setItem("profileBackground", normalized);
         document.documentElement.style.setProperty("--site-bg-image", toCssBackgroundImageValue(normalized));
       }
       if (updated.profileBanner !== undefined) {
@@ -232,6 +235,28 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
 
   const handleLogout = async () => {
     setDisconnect(true);
+    await authClient.signOut();
+    router.push("/");
+  };
+
+  const handleDeleteProfile = async () => {
+    const shouldDelete = window.confirm("Supprimer définitivement votre profil ? Cette action est irréversible.");
+    if (!shouldDelete) return;
+
+    const res = await fetch("/api/profile", { method: "DELETE" });
+    if (!res.ok) {
+      alert("Impossible de supprimer le profil");
+      return;
+    }
+
+    setDisconnect(true);
+    localStorage.removeItem("avatar");
+    localStorage.removeItem("avatarId");
+    localStorage.removeItem("profileBackground");
+    localStorage.removeItem("background");
+    localStorage.removeItem("wallpaper");
+    localStorage.removeItem("customBackground");
+
     await authClient.signOut();
     router.push("/");
   };
@@ -268,6 +293,17 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
               aria-label="Déconnexion"
             >
               <i className="fa-solid fa-right-from-bracket"></i>
+            </button>
+          )}
+
+          {isOwnProfile && (
+            <button
+              onClick={handleDeleteProfile}
+              className="inline-flex h-11 items-center gap-2 rounded-xl border border-red-500/80 bg-red-700/90 px-3 text-sm font-medium text-white shadow-lg transition-colors hover:bg-red-700"
+              aria-label="Supprimer le profil"
+            >
+              <i className="fa-solid fa-user-xmark"></i>
+              <span className="hidden sm:inline">Supprimer le profil</span>
             </button>
           )}
         </header>
