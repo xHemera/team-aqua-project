@@ -4,6 +4,7 @@ import { CardType } from "./CardType";
 export class PokemonCard extends Card {
 	hp: number
 	stage: number
+	evolvedFrom: string;
 	// element: ElementType
 	// attacks: Attack[]
 
@@ -12,6 +13,7 @@ export class PokemonCard extends Card {
 		name: string,
 		hp: number,
 		stage: number,
+		evolvedFrom: string,
 		// element: ElementType,
 		// attacks: Attack[]
 	) {
@@ -19,6 +21,7 @@ export class PokemonCard extends Card {
 
 		this.hp = hp
 		this.stage = stage
+		this.evolvedFrom = evolvedFrom
 		// this.element = element
 		// this.attacks = attacks
 	}

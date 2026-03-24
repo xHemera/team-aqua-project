@@ -1,6 +1,5 @@
 import { PokemonCard } from "../cards/PokemonCard";
 import { GameState } from "../GameState";
-import { CardInstance } from "../instances/CardInstance";
 import { PokemonInstance } from "../instances/PokemonInstance";
 
 //Permet de deplacer un pokemon depuis la main vers le banc
