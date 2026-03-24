@@ -27,11 +27,10 @@ services:
     working_dir: /app
     command: >
       sh -c "
-      bun install --ignore-scripts &&
+      bun install &&
       bunx prisma generate &&
       bunx prisma migrate deploy --config prisma/prisma.config.ts &&
-      bun run build &&
-      bun run start -- --hostname 0.0.0.0
+      bun run dev
       "
     ports:
       - "3000:3000"
@@ -39,7 +38,7 @@ services:
       - ./frontend:/app
       - frontend_bun_cache:/home/bun/.bun/install/cache
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       BETTER_AUTH_URL: http://localhost:3000
       BETTER_AUTH_SECRET: dev-secret-change-me-please-at-least-32-characters
       BETTER_AUTH_DATABASE_URL: postgres://postgres:postgres@db:5432/aqua_temp
@@ -61,7 +60,7 @@ services:
     tty: true
     command: >
       sh -c "
-      bun install --ignore-scripts &&
+      bun install &&
       bun run src/index.ts
       "
     ports:
@@ -70,7 +69,7 @@ services:
       - ./websockets:/app
       - backend_bun_cache:/home/bun/.bun/install/cache
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       DATABASE_URL: postgresql://postgres:postgres@db:5432/aqua_temp
       PORT: 4001
     depends_on:

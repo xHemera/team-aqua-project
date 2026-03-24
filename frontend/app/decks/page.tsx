@@ -162,24 +162,28 @@ const getDeckDataFromStorage = () => {
     return fallbackDeckData;
   }
 
-  const parsedDecks = JSON.parse(saved) as Record<string, DeckData>;
-  const savedIcons = localStorage.getItem("deckIcons");
-  const parsedIcons = savedIcons ? (JSON.parse(savedIcons) as DeckIcons) : {};
-  const savedDeckNames = Object.keys(parsedDecks);
+  try {
+    const parsedDecks = JSON.parse(saved) as Record<string, DeckData>;
+    const savedIcons = localStorage.getItem("deckIcons");
+    const parsedIcons = savedIcons ? (JSON.parse(savedIcons) as DeckIcons) : {};
+    const savedDeckNames = Object.keys(parsedDecks);
 
-  if (savedDeckNames.length === 0) {
+    if (savedDeckNames.length === 0) {
+      return fallbackDeckData;
+    }
+
+    const deckIcons: DeckIcons = Object.fromEntries(
+      savedDeckNames.map((name) => [name, normalizeDeckIcon(parsedIcons[name] || deckImages[name] || deckImages.Flygon)])
+    );
+
+    return {
+      decks: parsedDecks,
+      deckList: savedDeckNames.map((name) => ({ name })),
+      deckIcons,
+    };
+  } catch {
     return fallbackDeckData;
   }
-
-  const deckIcons: DeckIcons = Object.fromEntries(
-    savedDeckNames.map((name) => [name, normalizeDeckIcon(parsedIcons[name] || deckImages[name] || deckImages.Flygon)])
-  );
-
-  return {
-    decks: parsedDecks,
-    deckList: savedDeckNames.map((name) => ({ name })),
-    deckIcons,
-  };
 };
 
 // Page des decks

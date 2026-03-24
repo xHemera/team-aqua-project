@@ -6,9 +6,9 @@ RUN apk add --no-cache postgresql16-client
 
 WORKDIR /app
 
-COPY package.json ./
+COPY package.json bun.lock ./
 
-RUN bun install --ignore-scripts
+RUN bun install --frozen-lockfile
 
 COPY prisma ./prisma
 

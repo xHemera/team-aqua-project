@@ -23,6 +23,7 @@ export default function DeckSelector({
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const deckMenuRef = useRef<HTMLDivElement | null>(null);
   const triggerButtonRef = useRef<HTMLButtonElement | null>(null);
+  const listboxRef = useRef<HTMLDivElement | null>(null);
 
   const normalizedAvailableDecks = useMemo(
     () => Array.from(new Set(availableDecks.filter(Boolean))),
@@ -70,6 +71,8 @@ export default function DeckSelector({
     const currentIndex = normalizedAvailableDecks.findIndex((deck) => deck === safeSelectedDeck);
     setHighlightedIndex(currentIndex >= 0 ? currentIndex : 0);
     setShowDeckDropdown(true);
+    // Focus the listbox after it renders so keyboard events are received.
+    setTimeout(() => listboxRef.current?.focus(), 0);
   };
 
   const toggleDropdown = () => {
@@ -188,11 +191,12 @@ export default function DeckSelector({
 
       {showDeckDropdown && (
         <div
+          ref={listboxRef}
           id="home-deck-selector-listbox"
           className="absolute top-[calc(100%+0.55rem)] z-30 max-h-[min(55vh,22rem)] w-full overflow-y-auto rounded-2xl border border-[#3c3650] bg-[#15131d] p-2 shadow-2xl"
           role="listbox"
           aria-label="Selection du deck"
-          tabIndex={-1}
+          tabIndex={0}
           onKeyDown={handleListboxKeyDown}
         >
           {normalizedAvailableDecks.map((deck, index) => (

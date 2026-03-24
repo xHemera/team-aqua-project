@@ -15,7 +15,7 @@ This repository contains:
 - Frontend: Next.js 16, React 19, TypeScript, Tailwind CSS v4
 - Auth: Better Auth
 - ORM / DB access: Prisma + PostgreSQL
-- Realtime workspace: Socket.IO service (`websockets/`)
+- Realtime workspace: HTTP service using `Bun.serve` (`websockets/`)
 - Package manager: Bun (`bun@1.2.5`)
 - Local orchestration: Docker Compose
 
