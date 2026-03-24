@@ -96,7 +96,7 @@ export async function PATCH(request: Request) {
     // Build update data
     const updateData: Prisma.UserUpdateInput = {};
     if (avatarId && nextAvatar) {
-      updateData.avatarId = nextAvatar.id;
+      updateData.avatar = { connect: { id: nextAvatar.id } };
       updateData.image = nextAvatar.url;
     }
     if (profileBackground !== undefined) {

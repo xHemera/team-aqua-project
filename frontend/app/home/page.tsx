@@ -44,7 +44,7 @@ export default function Home() {
       document.removeEventListener("keydown", handleEscapeModal);
     };
   }, []);
-  
+
   const handleProfileClick = async () => {
     const { data } = await authClient.getSession();
     if (data?.user?.name) {
@@ -73,7 +73,7 @@ export default function Home() {
 
           </div>
 
-          <div className="relative z-20 flex flex-col items-center justify-center gap-4 lg:items-end">
+          <div className="relative z-20 flex flex-col items-center justify-center gap-4">
             <Image
               src={avatar}
               alt="Avatar"
