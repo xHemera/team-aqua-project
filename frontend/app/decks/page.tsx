@@ -22,13 +22,20 @@ type Card = {
 };
 
 type DeckData = {
+  id: string;
+  title: string;
+  image?: string | null;
   cards: Card[];
+};
+
+type DecksResponse = {
+  decks: DeckData[];
 };
 
 const cardFileBases = [
   "absol",
   "alcremie",
-  "brock's_scouting",
+  "brock_scouting",
   "ceruledge",
   "charcadet",
   "darkness_energy",
@@ -44,12 +51,12 @@ const cardFileBases = [
   "flygon",
   "gligar",
   "gliscor",
-  "grimsley's_move",
+  "grimsley_move",
   "hilda",
-  "iris's_fighting_spirit",
+  "iris_fighting_spirit",
   "krokorok",
   "krookodile",
-  "lillie's_determination",
+  "lillie_determination",
   "milcery",
   "mimikyu",
   "moltres",
@@ -93,64 +100,12 @@ const isValidCardName = (name: string): boolean => {
   return Boolean(cardNameMap[canonicalizeCardName(name)]);
 };
 
-
-const getInitialDeckData = () => {
-  const fallbackDeckList = [
-    { name: "Flygon", icon: deckImages.Flygon },
-    { name: "Ceruledge", icon: deckImages.Ceruledge },
-    { name: "Toxtricity", icon: deckImages.Toxtricity },
-    { name: "Zacian", icon: deckImages.Zacian },
-  ];
-
-  const fallbackDecks: Record<string, DeckData> = {
-    Flygon: { cards: [] },
-    Ceruledge: { cards: [] },
-    Toxtricity: { cards: [] },
-    Zacian: { cards: [] },
-  };
-
-  if (typeof window === "undefined") {
-    return {
-      decks: fallbackDecks,
-      deckList: fallbackDeckList,
-    };
-  }
-
-  const saved = localStorage.getItem("decks");
-  if (!saved) {
-    return {
-      decks: fallbackDecks,
-      deckList: fallbackDeckList,
-    };
-  }
-
-  const parsedDecks = JSON.parse(saved) as Record<string, DeckData>;
-  const savedDeckNames = Object.keys(parsedDecks);
-
-  if (savedDeckNames.length === 0) {
-    return {
-      decks: fallbackDecks,
-      deckList: fallbackDeckList,
-    };
-  }
-
-  return {
-    decks: parsedDecks,
-    deckList: savedDeckNames.map((name) => ({
-      name,
-      icon: deckImages[name] || deckImages.Flygon,
-    })),
-  };
-};
-
 // Page des decks
 export default function DecksPage() {
   const router = useRouter();
-  const initialDeckData = getInitialDeckData();
-  const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
+  const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
   const [previewCard, setPreviewCard] = useState<{ name: string; filename: string } | null>(null);
-  const [decks, setDecks] = useState<Record<string, DeckData>>(initialDeckData.decks);
-  const [deckList, setDeckList] = useState<Array<{ name: string; icon: string }>>(initialDeckData.deckList);
+  const [decks, setDecks] = useState<DeckData[]>([]);
   const [newCardName, setNewCardName] = useState("");
   const [cardError, setCardError] = useState("");
   const [invalidCards, setInvalidCards] = useState<Set<string>>(new Set());
@@ -158,6 +113,27 @@ export default function DecksPage() {
   const [deckNameDraft, setDeckNameDraft] = useState("");
   const [deckNameError, setDeckNameError] = useState("");
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
+
+  const selectedDeck = decks.find((deck) => deck.id === selectedDeckId) ?? null;
+
+  const fetchDecks = async () => {
+    const response = await fetch("/api/decks", {
+      method: "GET",
+      cache: "no-store",
+    });
+
+    const data: unknown = await response.json();
+    if (!response.ok) {
+      const errorMessage =
+        typeof data === "object" && data !== null && "error" in data
+          ? String((data as { error?: string }).error ?? "Impossible de charger les decks")
+          : "Impossible de charger les decks";
+      throw new Error(errorMessage);
+    }
+
+    const parsed = data as DecksResponse;
+    setDecks(parsed.decks);
+  };
 
   useEffect(() => {
     if (!previewCard) return;
@@ -182,33 +158,45 @@ export default function DecksPage() {
         setUserPseudo(data.user.name);
       };
     };
-    getUserData();
-  });
+    void getUserData();
+  }, []);
 
   useEffect(() => {
-    if (socket.connected || !userPseudo) return;
-    socket.connect()
-    socket.emit("login", userPseudo);
-    socket.on("online_users", (users) => {
-      console.log("Users from Redis:", users);
-    });
-  });
-
-  // Sauvegarder les decks dans localStorage
-  const saveDeck = (deckName: string, data: DeckData) => {
-    const normalizedData: DeckData = {
-      cards: data.cards.map((card) => ({ ...card })),
+    const loadDecks = async () => {
+      try {
+        await fetchDecks();
+      } catch (error) {
+        console.error("Error loading decks:", error);
+      }
     };
-    const updated = { ...decks, [deckName]: normalizedData };
-    setDecks(updated);
-    localStorage.setItem("decks", JSON.stringify(updated));
+
+    void loadDecks();
+  }, []);
+
+  useEffect(() => {
+    if (!userPseudo) return;
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    const handleOnlineUsers = (users: string[]) => {
+      console.log("Users from Redis:", users);
+    };
+
+    socket.emit("login", userPseudo);
+    socket.on("online_users", handleOnlineUsers);
+
+    return () => {
+      socket.off("online_users", handleOnlineUsers);
+    };
+  }, [userPseudo]);
+
+  const getTotalCards = (deckId: string) => {
+    const deck = decks.find((item) => item.id === deckId);
+    return deck?.cards.reduce((sum, card) => sum + card.count, 0) || 0;
   };
 
-  const getTotalCards = (deckName: string) => {
-    return decks[deckName]?.cards.reduce((sum, card) => sum + card.count, 0) || 0;
-  };
-
-  const addCard = (deckName: string) => {
+  const addCard = async (deckId: string) => {
     if (!newCardName.trim()) return;
 
     if (!isValidCardName(newCardName)) {
@@ -218,103 +206,134 @@ export default function DecksPage() {
 
     setCardError("");
 
-    const currentDeck = decks[deckName] || { cards: [] };
-    const nextCards = currentDeck.cards.map((card) => ({ ...card }));
-    const total = getTotalCards(deckName);
+    try {
+      const response = await fetch("/api/decks/cards", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          deckId,
+          cardName: newCardName,
+        }),
+      });
 
-    if (total >= 60) {
-      alert("Deck is full! Maximum 60 cards.");
-      return;
-    }
-
-    const existingCard = nextCards.find(
-      (card) => card.name.toLowerCase() === newCardName.toLowerCase()
-    );
-
-    if (existingCard) {
-      if (total + 1 > 60) {
-        alert("Cannot exceed 60 cards!");
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        alert(data.error || "Impossible d'ajouter la carte");
         return;
       }
-      existingCard.count += 1;
-    } else {
-      nextCards.push({
-        id: `${Date.now()}-${Math.random()}`,
-        name: newCardName,
-        count: 1,
+
+      setNewCardName("");
+      await fetchDecks();
+    } catch (error) {
+      console.error("Error adding card:", error);
+      alert("Impossible d'ajouter la carte");
+    }
+  };
+
+  const removeCard = async (deckId: string, cardId: string) => {
+    try {
+      const response = await fetch("/api/decks/cards", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          deckId,
+          cardId,
+          action: "decrement",
+        }),
       });
-    }
 
-    saveDeck(deckName, { cards: nextCards });
-    setNewCardName("");
-  };
-
-  const removeCard = (deckName: string, cardId: string) => {
-    const currentDeck = decks[deckName];
-    if (!currentDeck) return;
-
-    const nextCards = currentDeck.cards.map((card) => ({ ...card }));
-    const cardIndex = nextCards.findIndex((card) => card.id === cardId);
-
-    if (cardIndex !== -1) {
-      if (nextCards[cardIndex].count > 1) {
-        nextCards[cardIndex].count -= 1;
-      } else {
-        nextCards.splice(cardIndex, 1);
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        alert(data.error || "Impossible de retirer la carte");
+        return;
       }
-      saveDeck(deckName, { cards: nextCards });
+
+      await fetchDecks();
+    } catch (error) {
+      console.error("Error removing card:", error);
+      alert("Impossible de retirer la carte");
     }
   };
 
-  const incrementCard = (deckName: string, cardId: string) => {
-    const currentDeck = decks[deckName];
-    if (!currentDeck) return;
+  const incrementCard = async (deckId: string, cardId: string) => {
+    try {
+      const response = await fetch("/api/decks/cards", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          deckId,
+          cardId,
+          action: "increment",
+        }),
+      });
 
-    const total = getTotalCards(deckName);
-    if (total >= 60) {
-      alert("Deck is full! Maximum 60 cards.");
-      return;
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        alert(data.error || "Impossible d'ajouter la carte");
+        return;
+      }
+
+      await fetchDecks();
+    } catch (error) {
+      console.error("Error incrementing card:", error);
+      alert("Impossible d'ajouter la carte");
     }
-
-    const nextCards = currentDeck.cards.map((item) => ({ ...item }));
-    const card = nextCards.find((item) => item.id === cardId);
-    if (!card) return;
-
-    card.count += 1;
-    saveDeck(deckName, { cards: nextCards });
   };
 
-  const addNewDeck = () => {
+  const addNewDeck = async () => {
     let index = 1;
     let deckName = `New Deck ${index}`;
 
-    while (decks[deckName]) {
+    const existingNames = new Set(decks.map((deck) => deck.title));
+
+    while (existingNames.has(deckName)) {
       index += 1;
       deckName = `New Deck ${index}`;
     }
 
-    const updatedDecks = { ...decks, [deckName]: { cards: [] } };
-    setDecks(updatedDecks);
-    localStorage.setItem("decks", JSON.stringify(updatedDecks));
+    try {
+      const response = await fetch("/api/decks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name: deckName }),
+      });
 
-    setDeckList((prev) => [...prev, { name: deckName, icon: deckImages.Flygon }]);
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        alert(data.error || "Impossible de créer le deck");
+        return;
+      }
+
+      await fetchDecks();
+    } catch (error) {
+      console.error("Error creating deck:", error);
+      alert("Impossible de créer le deck");
+    }
   };
 
-  const openDeckPopup = (deckName: string) => {
-    setSelectedDeck(deckName);
+  const openDeckPopup = (deck: DeckData) => {
+    setSelectedDeckId(deck.id);
     setIsRenamingDeck(false);
-    setDeckNameDraft(deckName);
+    setDeckNameDraft(deck.title);
     setDeckNameError("");
   };
 
   const closeDeckPopup = () => {
-    setSelectedDeck(null);
+    setSelectedDeckId(null);
     setIsRenamingDeck(false);
     setDeckNameDraft("");
     setDeckNameError("");
   };
 
-  const renameSelectedDeck = () => {
+  const renameSelectedDeck = async () => {
     if (!selectedDeck) return;
 
     const nextName = deckNameDraft.trim();
@@ -323,55 +342,74 @@ export default function DecksPage() {
       return;
     }
 
-    if (nextName === selectedDeck) {
+    if (nextName === selectedDeck.title) {
       setIsRenamingDeck(false);
       setDeckNameError("");
       return;
     }
 
-    if (decks[nextName]) {
+    const nameAlreadyUsed = decks.some((deck) => deck.title === nextName);
+    if (nameAlreadyUsed) {
       setDeckNameError("Un deck avec ce nom existe déjà");
       return;
     }
 
-    const previousName = selectedDeck;
-    const updatedDecks = { ...decks };
-    updatedDecks[nextName] = updatedDecks[previousName];
-    delete updatedDecks[previousName];
+    try {
+      const response = await fetch("/api/decks", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          deckId: selectedDeck.id,
+          name: nextName,
+        }),
+      });
 
-    setDecks(updatedDecks);
-    localStorage.setItem("decks", JSON.stringify(updatedDecks));
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setDeckNameError(data.error || "Impossible de renommer le deck");
+        return;
+      }
 
-    setDeckList((prev) =>
-      prev.map((deck) =>
-        deck.name === previousName
-          ? {
-              ...deck,
-              name: nextName,
-            }
-          : deck
-      )
-    );
-
-    setSelectedDeck(nextName);
-    setIsRenamingDeck(false);
-    setDeckNameError("");
+      await fetchDecks();
+      setIsRenamingDeck(false);
+      setDeckNameError("");
+    } catch (error) {
+      console.error("Error renaming deck:", error);
+      setDeckNameError("Impossible de renommer le deck");
+    }
   };
 
-  const deleteSelectedDeck = () => {
+  const deleteSelectedDeck = async () => {
     if (!selectedDeck) return;
 
-    const shouldDelete = window.confirm(`Supprimer le deck \"${selectedDeck}\" ?`);
+    const shouldDelete = window.confirm(`Supprimer le deck \"${selectedDeck.title}\" ?`);
     if (!shouldDelete) return;
 
-    const updatedDecks = { ...decks };
-    delete updatedDecks[selectedDeck];
+    try {
+      const response = await fetch("/api/decks", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          deckId: selectedDeck.id,
+        }),
+      });
 
-    setDecks(updatedDecks);
-    localStorage.setItem("decks", JSON.stringify(updatedDecks));
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        alert(data.error || "Impossible de supprimer le deck");
+        return;
+      }
 
-    setDeckList((prev) => prev.filter((deck) => deck.name !== selectedDeck));
-    closeDeckPopup();
+      await fetchDecks();
+      closeDeckPopup();
+    } catch (error) {
+      console.error("Error deleting deck:", error);
+      alert("Impossible de supprimer le deck");
+    }
   };
 
   return (
@@ -401,16 +439,16 @@ export default function DecksPage() {
           <div className="mb-8">
             <h2 className="mb-4 text-xl font-semibold tracking-tight">My Decks</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {deckList.map((deck) => (
+              {decks.map((deck) => (
                 <button
-                  key={deck.name}
-                  onClick={() => openDeckPopup(deck.name)}
+                  key={deck.id}
+                  onClick={() => openDeckPopup(deck)}
                   className="group relative overflow-hidden rounded-2xl border border-[#3c3650] bg-[#242033] p-6 transition-all hover:border-[color:var(--accent-border)] hover:bg-[#302a45]"
                 >
                   <div className="mb-4 flex items-center justify-center">
                     <Image
-                      src={deck.icon}
-                      alt={deck.name}
+                      src={deck.image || deckImages[deck.title] || deckImages.Flygon}
+                      alt={deck.title}
                       width={90}
                       height={90}
                       className="h-25 w-25 object-contain group-hover:scale-110 transition-transform"
@@ -418,10 +456,10 @@ export default function DecksPage() {
                     />
                   </div>
                   <p className="text-center text-lg font-semibold text-white group-hover:text-[var(--accent-color)]">
-                    {deck.name}
+                    {deck.title}
                   </p>
                   <p className="text-center text-sm text-gray-400 mt-2">
-                    {getTotalCards(deck.name)}/60
+                    {getTotalCards(deck.id)}/60
                   </p>
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
@@ -464,7 +502,7 @@ export default function DecksPage() {
                         if (e.key === "Enter") renameSelectedDeck();
                         if (e.key === "Escape") {
                           setIsRenamingDeck(false);
-                          setDeckNameDraft(selectedDeck);
+                          setDeckNameDraft(selectedDeck.title);
                           setDeckNameError("");
                         }
                       }}
@@ -482,7 +520,7 @@ export default function DecksPage() {
                       type="button"
                       onClick={() => {
                         setIsRenamingDeck(false);
-                        setDeckNameDraft(selectedDeck);
+                        setDeckNameDraft(selectedDeck.title);
                         setDeckNameError("");
                       }}
                       className="rounded-lg border border-gray-500/70 bg-gray-700/90 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-600"
@@ -492,12 +530,12 @@ export default function DecksPage() {
                   </div>
                 ) : (
                   <>
-                    <h3 className="truncate text-2xl font-bold text-white">{selectedDeck}</h3>
+                    <h3 className="truncate text-2xl font-bold text-white">{selectedDeck.title}</h3>
                     <button
                       type="button"
                       onClick={() => {
                         setIsRenamingDeck(true);
-                        setDeckNameDraft(selectedDeck);
+                        setDeckNameDraft(selectedDeck.title);
                         setDeckNameError("");
                       }}
                       className="flex h-9 w-9 items-center justify-center rounded-lg border border-[color:var(--accent-border)] bg-[#242033] text-white transition-colors hover:bg-[#302a45]"
@@ -531,15 +569,15 @@ export default function DecksPage() {
             <div className="p-6 max-h-[90vh] overflow-y-auto">
               <div className="mb-6">
                 <div className="mb-2 text-sm text-gray-400">
-                  Cards: {getTotalCards(selectedDeck)}/60
+                  Cards: {getTotalCards(selectedDeck.id)}/60
                 </div>
               </div>
 
               {/* Affichage en grille des cartes */}
-              {decks[selectedDeck]?.cards.length > 0 ? (
+              {selectedDeck.cards.length > 0 ? (
                 <div className="mb-6">
                   <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
-                    {decks[selectedDeck]?.cards.map((card) => {
+                    {selectedDeck.cards.map((card) => {
                       const normalized = resolveCardFilename(card.name);
                       const hasError = invalidCards.has(card.id);
                       return (
@@ -585,7 +623,7 @@ export default function DecksPage() {
                             <div className="absolute bottom-1 left-1 right-1 flex items-center justify-between gap-1">
                               <button
                                 type="button"
-                                onClick={() => removeCard(selectedDeck, card.id)}
+                                onClick={() => removeCard(selectedDeck.id, card.id)}
                                 className="flex h-11 w-11 items-center justify-center rounded-lg border border-red-400/70 bg-red-500/90 text-3xl font-black leading-none text-white transition-colors hover:bg-red-600"
                                 aria-label={`Retirer une copie de ${card.name}`}
                               >
@@ -593,8 +631,8 @@ export default function DecksPage() {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => incrementCard(selectedDeck, card.id)}
-                                disabled={getTotalCards(selectedDeck) >= 60}
+                                onClick={() => incrementCard(selectedDeck.id, card.id)}
+                                disabled={getTotalCards(selectedDeck.id) >= 60}
                                 className="flex h-11 w-11 items-center justify-center rounded-lg border border-emerald-400/70 bg-emerald-500/90 text-3xl font-black leading-none text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
                                 aria-label={`Ajouter une copie de ${card.name}`}
                               >
@@ -625,15 +663,15 @@ export default function DecksPage() {
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
-                        addCard(selectedDeck);
+                        void addCard(selectedDeck.id);
                       }
                     }}
                     placeholder="Nom de la carte..."
                     className="flex-1 rounded-lg border border-[#3c3650] bg-[#242033] px-3 py-2 text-white placeholder:text-gray-500 focus:border-[var(--accent-color)] focus:outline-none transition-colors"
                   />
                   <button
-                    onClick={() => addCard(selectedDeck)}
-                    disabled={getTotalCards(selectedDeck) >= 60}
+                    onClick={() => void addCard(selectedDeck.id)}
+                    disabled={getTotalCards(selectedDeck.id) >= 60}
                     className="flex h-10 items-center gap-2 rounded-lg bg-[var(--accent-color)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <i className="fa-solid fa-plus"></i>
