@@ -145,3 +145,46 @@ export async function PATCH(request: Request) {
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+export async function DELETE() {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const userId = session.user.id;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.inbox.updateMany({
+        where: { last_sent_user_id: userId },
+        data: { last_sent_user_id: null },
+      });
+
+      await tx.messages.deleteMany({ where: { user_id: userId } });
+      await tx.inbox_users.deleteMany({ where: { user_id: userId } });
+      await tx.friends.deleteMany({ where: { userId } });
+
+      const userDecks = await tx.decks.findMany({
+        where: { userId },
+        select: { id: true },
+      });
+      const deckIds = userDecks.map((deck) => deck.id);
+
+      if (deckIds.length > 0) {
+        await tx.cards.deleteMany({ where: { deckId: { in: deckIds } } });
+      }
+      await tx.decks.deleteMany({ where: { userId } });
+
+      await tx.session.deleteMany({ where: { userId } });
+      await tx.account.deleteMany({ where: { userId } });
+
+      await tx.user.delete({ where: { id: userId } });
+    });
+
+    return Response.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting profile:", error);
+    return Response.json({ error: "Internal server error" }, { status: 500 });
+  }
+}

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { socket } from "../socket"
 import AuthPageLayout from "@/components/AuthPageLayout";
 import Button from "@/components/atoms/Button";
 import IconField from "@/components/molecules/IconField";
@@ -16,9 +17,11 @@ export default function LoginPage() {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [message, setMessage] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [pseudo, setPseudo] = useState<string | null>(null);
   const router = useRouter();
 
-  // Vérifier si l'utilisateur est déjà connecté
+
+  //Vérifier si l'utilisateur est déjà connecté
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -32,6 +35,16 @@ export default function LoginPage() {
     };
     checkSession();
   }, [router]);
+
+  //permet d'envoyer l'utilisateur a redis dans le serveur
+  useEffect(() => {
+    if (!pseudo) return;
+    socket.connect()
+    socket.emit("login", pseudo);
+    socket.on("online_users", (users) => {
+      console.log("Users from Redis:", users);
+    });
+  });
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -63,13 +76,13 @@ export default function LoginPage() {
 
       if (error) {
         setMessage(error.message ?? "Erreur de connexion");
-      } else {
+      }
+      else {
         setMessage("Connexion réussie !");
-        const pseudo = data?.user?.name || "utilisateur";
-        setTimeout(() => router.push(`/profile/${pseudo}`), 500);
+        setPseudo(data?.user?.name || "utilisateur");
+        setTimeout(() => router.push(`/profile/${data?.user?.name}`), 500);
       }
     }
-
     setLoading(false);
   };
 
