@@ -18,6 +18,19 @@ services:
       retries: 5
       start_period: 5s
 
+  redis:
+    image: redis:7-alpine
+    container_name: aqua-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+      start_period: 3s
+
   frontend:
     build:
       context: ./frontend
@@ -62,7 +75,7 @@ services:
     command: >
       sh -c "
       bun install --ignore-scripts &&
-      bun run src/index.ts
+      bun run server.js
       "
     ports:
       - "4001:4001"
@@ -75,6 +88,8 @@ services:
       PORT: 4001
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
 volumes:

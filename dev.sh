@@ -44,7 +44,7 @@ is_frontend_online() {
 }
 
 is_websockets_online() {
-    curl -fsS --max-time 2 http://localhost:4001/health >/dev/null 2>&1
+    curl -sS --max-time 2 http://localhost:4001 >/dev/null 2>&1
 }
 
 status_label() {
@@ -76,7 +76,7 @@ render_live_status() {
     echo ""
     echo -e "${CYAN}Endpoints${NC}"
     echo -e "  http://localhost:3000         $(status_label "$frontend_online")"
-    echo -e "  http://localhost:4001/health  $(status_label "$websockets_online")"
+    echo -e "  http://localhost:4001         $(status_label "$websockets_online")"
 }
 
 collect_status_snapshot() {
@@ -206,7 +206,7 @@ update_menu_status_rows() {
     write_at_line "$FRONTEND_STATUS_LINE" "  Frontend container    $(status_label "$frontend_running")"
     write_at_line "$WEBSOCKETS_STATUS_LINE" "  Websockets container  $(status_label "$websockets_running")"
     write_at_line "$FRONTEND_URL_LINE" "  http://localhost:3000         $(status_label "$frontend_online")"
-    write_at_line "$WEBSOCKETS_URL_LINE" "  http://localhost:4001/health  $(status_label "$websockets_online")"
+    write_at_line "$WEBSOCKETS_URL_LINE" "  http://localhost:4001         $(status_label "$websockets_online")"
 }
 
 update_menu_prompt_line() {
