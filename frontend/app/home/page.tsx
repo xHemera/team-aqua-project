@@ -59,7 +59,7 @@ export default function Home() {
       {showNotification && <NotificationToast onClose={() => setShowNotification(false)} />}
 
       <div className="relative z-10 flex min-h-0 flex-1 w-full items-center justify-center">
-        <div className="grid w-full max-w-6xl grid-cols-1 items-center gap-8 px-2 lg:grid-cols-[1fr_auto_1fr]">
+        <div className="grid w-full max-w-[88rem] grid-cols-1 items-center gap-8 px-2 lg:grid-cols-[1fr_auto_1fr]">
           <div className="hidden lg:block" />
 
           <div className="relative z-20 flex flex-col items-center justify-center gap-6">

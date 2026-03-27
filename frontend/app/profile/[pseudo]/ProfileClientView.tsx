@@ -251,10 +251,13 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
   };
 
   const bannerStyle = buildBackgroundStyle(profileBanner, defaultBanner);
+  const totalMatches = matchHistory.length;
+  const totalWins = matchHistory.filter((match) => match.result.toLowerCase() === "victoire").length;
+  const totalLosses = totalMatches - totalWins;
 
   return (
     <AppPageShell showSidebar containerClassName="min-h-0 flex-1">
-      <div className="mx-auto flex h-full w-full max-w-6xl flex-col overflow-y-auto pr-1">
+      <div className="mx-auto flex h-full w-full max-w-[88rem] flex-col overflow-y-auto pr-1">
         <header className="mb-5 flex items-center justify-end gap-3">
           {isOwnProfile && (
             <Button
@@ -282,14 +285,14 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
           )}
         </header>
 
-        <section className="flex-1 overflow-hidden rounded-3xl border border-[#3c3650] bg-[#15131d]/85 shadow-2xl backdrop-blur-md">
+        <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-[#3c3650] bg-[#15131d]/85 shadow-2xl backdrop-blur-md">
           <div className="relative h-36 overflow-hidden border-b border-[#3c3650]">
             <div className="absolute inset-0" style={bannerStyle} />
             <div className="absolute inset-0 bg-gradient-to-r from-black/35 via-transparent to-black/35" />
           </div>
 
-          <div className="px-5 pb-6 pt-4 sm:px-10 sm:pb-8">
-            <div className="-mt-16 mb-6 flex flex-wrap items-end justify-between gap-5 sm:-mt-20">
+          <div className="flex min-h-0 flex-1 flex-col px-5 pb-6 pt-4 sm:px-10 sm:pb-8">
+            <div className="-mt-16 mb-6 shrink-0 flex flex-wrap items-end justify-between gap-5 sm:-mt-20">
               <div className="flex items-end gap-4">
                 <div className="relative">
                   <Image
@@ -319,68 +322,71 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
               </div>
             </div>
 
-            <div>
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-[#312b42] pb-3">
+            <div className="flex min-h-0 flex-1 flex-col">
+              <div className="mb-3 shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-[#312b42] pb-3">
                 <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-gray-300">Historique de partie</h2>
                 <div className="text-sm text-gray-400">
-                  <span>Total : 4</span>
-                  <span className="ml-4">Victoires : 3</span>
+                  <span>Total : {totalMatches}</span>
+                  <span className="ml-4">Victoires : {totalWins}</span>
+                  <span className="ml-4 hidden sm:inline">Défaites : {totalLosses}</span>
                 </div>
               </div>
 
-              <div className="space-y-3.5">
-                {matchHistory.map((match, index) => (
-                  <article
-                    key={`${match.date}-${match.opponent}-${index}`}
-                    className={`rounded-xl border-l-4 ${match.borderStyle} bg-[#211d2e] p-5 transition-colors hover:bg-[#2a253b]`}
-                  >
-                    <div className="grid gap-4 md:grid-cols-12 md:items-center">
-                      <div className="md:col-span-3">
-                        <div className="flex flex-wrap items-center gap-3">
-                          <span className={`rounded-md px-3.5 py-1.5 text-sm font-bold uppercase tracking-wide ${match.resultStyle}`}>
-                            {match.result}
-                          </span>
-                          <span className="text-base text-gray-300">{match.date}</span>
-                        </div>
-                      </div>
-
-                      <div className="grid gap-3 sm:grid-cols-2 md:col-span-6">
-                        <div className="rounded-lg bg-black/20 px-3 py-2.5">
-                          <p className="mb-1 text-xs uppercase tracking-wide text-gray-400">Deck joué</p>
-                          <div className="inline-flex items-center gap-2.5">
-                            <Image
-                              src={deckpublic[match.playedDeck] || deckpublic.Flygon}
-                              alt={match.playedDeck}
-                              width={24}
-                              height={24}
-                              className="h-6 w-6"
-                            />
-                            <span className="text-base font-semibold text-white">{match.playedDeck}</span>
+              <div className="min-h-0 flex-1 overflow-y-auto pr-1 md:max-h-[52vh]">
+                <div className="space-y-3.5 pb-1">
+                  {matchHistory.map((match, index) => (
+                    <article
+                      key={`${match.date}-${match.opponent}-${index}`}
+                      className={`rounded-xl border-l-4 ${match.borderStyle} bg-[#211d2e] p-5 transition-colors hover:bg-[#2a253b]`}
+                    >
+                      <div className="grid gap-4 md:grid-cols-12 md:items-center">
+                        <div className="md:col-span-3">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <span className={`rounded-md px-3.5 py-1.5 text-sm font-bold uppercase tracking-wide ${match.resultStyle}`}>
+                              {match.result}
+                            </span>
+                            <span className="text-base text-gray-300">{match.date}</span>
                           </div>
                         </div>
 
-                        <div className="rounded-lg bg-black/20 px-3 py-2.5">
-                          <p className="mb-1 text-xs uppercase tracking-wide text-gray-400">Deck affronté</p>
-                          <div className="inline-flex items-center gap-2.5">
-                            <Image
-                              src={deckpublic[match.opponentDeck] || deckpublic.Flygon}
-                              alt={match.opponentDeck}
-                              width={24}
-                              height={24}
-                              className="h-6 w-6"
-                            />
-                            <span className="text-base font-semibold text-white">{match.opponentDeck}</span>
+                        <div className="grid gap-3 sm:grid-cols-2 md:col-span-6">
+                          <div className="rounded-lg bg-black/20 px-3 py-2.5">
+                            <p className="mb-1 text-xs uppercase tracking-wide text-gray-400">Deck joué</p>
+                            <div className="inline-flex items-center gap-2.5">
+                              <Image
+                                src={deckpublic[match.playedDeck] || deckpublic.Flygon}
+                                alt={match.playedDeck}
+                                width={24}
+                                height={24}
+                                className="h-6 w-6"
+                              />
+                              <span className="text-base font-semibold text-white">{match.playedDeck}</span>
+                            </div>
+                          </div>
+
+                          <div className="rounded-lg bg-black/20 px-3 py-2.5">
+                            <p className="mb-1 text-xs uppercase tracking-wide text-gray-400">Deck affronté</p>
+                            <div className="inline-flex items-center gap-2.5">
+                              <Image
+                                src={deckpublic[match.opponentDeck] || deckpublic.Flygon}
+                                alt={match.opponentDeck}
+                                width={24}
+                                height={24}
+                                className="h-6 w-6"
+                              />
+                              <span className="text-base font-semibold text-white">{match.opponentDeck}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="md:col-span-3 md:text-right">
-                        <p className="text-xs uppercase tracking-wide text-gray-400">Joueur affronté</p>
-                        <p className="text-base font-medium text-gray-200">{match.opponent}</p>
+                        <div className="md:col-span-3 md:text-right">
+                          <p className="text-xs uppercase tracking-wide text-gray-400">Joueur affronté</p>
+                          <p className="text-base font-medium text-gray-200">{match.opponent}</p>
+                        </div>
                       </div>
-                    </div>
-                  </article>
-                ))}
+                    </article>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

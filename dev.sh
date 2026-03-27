@@ -393,8 +393,7 @@ show_logs() {
     echo "2. Frontend"
     echo "3. websockets"
     echo "4. Database"
-    echo "5. Game Engine"
-    read -rsn1 -p "Service (1-5): " service_choice
+    read -rsn1 -p "Service (1-4): " service_choice
     echo ""
 
     case $service_choice in
@@ -402,7 +401,6 @@ show_logs() {
         2) docker compose logs frontend -f ;;
         3) docker compose logs websockets -f ;;
         4) docker compose logs db -f ;;
-        5) docker compose logs game-engine -f ;;
         *) print_error "Choix invalide" ;;
     esac
 }
@@ -415,7 +413,7 @@ check_status() {
 
     # Tester les endpoints
     print_info "Test du websockets..."
-    if curl -s http://localhost:4001/health > /dev/null 2>&1; then
+    if curl -fsS http://localhost:4001/health > /dev/null 2>&1; then
         print_success "websockets: OK"
     else
         print_error "websockets: KO"
@@ -445,8 +443,8 @@ create_admin() {
         return
     fi
 
-    docker compose exec db psql -U postgres -d aqua_temp -c \
-        "UPDATE \"user\" SET role = 'admin' WHERE email = '$email';"
+    docker compose exec -T db psql -U postgres -d aqua_temp -v user_email="$email" -c \
+        "UPDATE \"user\" SET role = 'admin' WHERE email = :'user_email';"
 
     print_success "Utilisateur $email promu admin"
 }
@@ -456,11 +454,11 @@ test_services() {
     print_header "Test des services"
 
     echo "websockets Health:"
-    curl -s http://localhost:4001/health | jq '.' 2>/dev/null || curl -s http://localhost:4001/health
+    curl -fsS http://localhost:4001/health | jq '.' 2>/dev/null || curl -fsS http://localhost:4001/health
 
     echo ""
     echo "Utilisateurs (premiers 3):"
-    curl -s http://localhost:4001/api/users | jq '.[0:3]' 2>/dev/null || curl -s http://localhost:4001/api/users
+    curl -fsS http://localhost:4001/api/users | jq '.[0:3]' 2>/dev/null || curl -fsS http://localhost:4001/api/users
 }
 
 # Boucle principale

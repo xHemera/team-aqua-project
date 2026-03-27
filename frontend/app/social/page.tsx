@@ -484,7 +484,7 @@ export default function SocialPage() {
         </div>
       )}
 
-      <div className="mx-auto flex min-h-0 flex-1 w-full max-w-6xl">
+      <div className="mx-auto flex min-h-0 flex-1 w-full max-w-[88rem]">
         <section className="grid h-full min-h-0 w-full grid-cols-1 overflow-hidden rounded-3xl border border-[#3c3650] bg-[#15131d]/85 shadow-2xl backdrop-blur-md lg:grid-cols-[19rem_1fr]">
           <aside className="flex min-h-0 flex-col border-b border-[#3c3650] lg:border-b-0 lg:border-r">
             <div className="flex items-center justify-between border-b border-[#3c3650] px-5 py-4">
@@ -569,7 +569,6 @@ export default function SocialPage() {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold">{currentUser.name}</h2>
-                  {hasDraft && <p className="text-xs text-[var(--accent-color)]">En train d’écrire...</p>}
                 </div>
               </div>
 

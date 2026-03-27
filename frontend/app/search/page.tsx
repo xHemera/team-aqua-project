@@ -62,7 +62,7 @@ export default function SearchPage() {
   }, [query, users]);
 
   return (
-    <AppPageShell containerClassName="w-full max-w-3xl flex-col px-4 py-6 sm:px-8">
+    <AppPageShell containerClassName="w-full max-w-6xl flex-col px-4 py-6 sm:px-8">
       <div className="mb-6 flex items-center gap-4">
         <button
           onClick={() => router.push("/home")}

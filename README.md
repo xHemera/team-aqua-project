@@ -106,7 +106,7 @@ Current Compose setup defines these variables:
 
 ### Frontend
 
-- `NODE_ENV=development`
+- `NODE_ENV=production`
 - `BETTER_AUTH_URL=http://localhost:3000`
 - `BETTER_AUTH_SECRET=dev-secret-change-me-please-at-least-32-characters`
 - `BETTER_AUTH_DATABASE_URL=postgres://postgres:postgres@db:5432/aqua_temp`
@@ -114,7 +114,7 @@ Current Compose setup defines these variables:
 
 ### Websocket workspace
 
-- `NODE_ENV=development`
+- `NODE_ENV=production`
 - `DATABASE_URL=postgresql://postgres:postgres@db:5432/aqua_temp`
 - `PORT=4001`
 
@@ -154,12 +154,7 @@ bun run auth:migrate
 ```bash
 cd websockets
 bun install
-bun run dev
-bun run build
-bun run start
-bun run prisma:generate
-bun run prisma:push
-bun run prisma:studio
+bun run server.js
 ```
 
 ### Database access

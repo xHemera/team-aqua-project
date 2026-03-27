@@ -499,7 +499,7 @@ export default function DecksPage() {
 
   return (
     <AppPageShell showSidebar containerClassName="min-h-0 flex-1">
-      <div className="relative mx-auto flex h-full w-full max-w-6xl flex-col overflow-y-auto pr-1">
+      <div className="relative mx-auto flex h-full w-full max-w-[88rem] flex-col overflow-y-auto pr-1">
         <header className="mb-6 flex items-center justify-between">
         </header>
 

@@ -39,12 +39,20 @@ export default function LoginPage() {
   //permet d'envoyer l'utilisateur a redis dans le serveur
   useEffect(() => {
     if (!pseudo) return;
-    socket.connect()
+
+    socket.connect();
     socket.emit("login", pseudo);
-    socket.on("online_users", (users) => {
+
+    const onOnlineUsers = (users: unknown) => {
       console.log("Users from Redis:", users);
-    });
-  });
+    };
+
+    socket.on("online_users", onOnlineUsers);
+
+    return () => {
+      socket.off("online_users", onOnlineUsers);
+    };
+  }, [pseudo]);
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
