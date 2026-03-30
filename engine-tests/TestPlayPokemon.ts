@@ -11,7 +11,8 @@ const pikachu = new PokemonCard(
   "pikachu_001",
   "Pikachu",
   60,
-  0
+  0,
+  " "
 )
 
 const card = new CardInstance("uid1", pikachu, 0)

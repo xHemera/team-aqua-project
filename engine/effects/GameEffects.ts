@@ -5,11 +5,13 @@ export function drawCard(state: GameState, playerIndex: number): GameState {
 
 	if (player.deck.length === 0) {
 		console.log("Player", playerIndex, "loses: deck empty")
+		return state;
 	}
 
-	const card = player.deck.pop()
-	if (card)
-		player.hand.push(card)
+	const card = player.deck[player.deck.length - 1]
+	player.deck = player.deck.slice(0, -1)
+
+	player.hand = [...player.hand, card]
 	return state
 }
 
