@@ -49,8 +49,6 @@ Explorez la documentation détaillée du projet :
 
 ## 🚀 Démarrage
 
-### Option 1 : Docker Compose (Recommandé)
-
 **Prérequis** : Docker + Docker Compose
 
 ```bash
@@ -66,27 +64,6 @@ docker compose up --build -d
 ```
 
 Allez à : **http://localhost:3000**
-
-### Option 2 : Développement local (Bun)
-
-**Prérequis** : Bun 1.2.5+ et PostgreSQL en cours d'exécution
-
-#### Frontend
-
-```bash
-cd frontend
-bun install
-bunx prisma generate
-bun run dev
-```
-
-#### Websocket workspace
-
-```bash
-cd websockets
-bun install
-bun run dev
-```
 
 ## Repository Structure
 
