@@ -1,84 +1,165 @@
-# Team Aqua Project
+# Kyogre
 
-Full-stack project with a Next.js frontend, PostgreSQL, and containerized development tooling.
+A full-stack project with a Next.js frontend, PostgreSQL database, and containerized development tooling.
+
+## 📖 Sommaire
+
+- [Overview](#overview)
+- [Features](#features)
+- [Documentation](#documentation)
+- [Installation](#installation)
+- [Tech Stack](#tech-stack)
+- [Repository Structure](#repository-structure)
+- [Services and Ports](#services-and-ports)
+- [Quick Start](#quick-start-recommended)
+- [Local Development Without Docker](#local-development-without-docker-optional)
+- [Environment Variables](#environment-variables)
+- [Common Commands](#common-commands)
+- [Frontend Routes](#frontend-routes-current)
+- [Frontend UI Architecture](#frontend-ui-architecture)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
 
 ## Overview
 
-This repository contains:
-- A modern frontend application built with Next.js App Router, React 19, TypeScript, Better Auth, and Prisma.
-- A websocket service workspace (currently scaffolded and containerized for iterative development).
-- A PostgreSQL database managed through Docker Compose.
-- A shell-based developer helper (`dev.sh`) for common local operations.
+**Kyogre** est une application full-stack moderne qui fournit :
+- Une application frontend moderne construite avec Next.js App Router, React 19, TypeScript, Better Auth et Prisma
+- Un service websocket pour la communication en temps réel (Socket.IO)
+- Une base de données PostgreSQL gérée via Docker Compose
+- Un script d'aide développeur (`dev.sh`) pour faciliter les opérations locales
+
+## Features
+
+✨ **Features principales** :
+- 🔐 Authentification robuste avec Better Auth
+- 🎨 Architecture UI atomique pour une maintenabilité optimale
+- 🔄 Service websocket pour les fonctionnalités temps réel
+- 🐘 Base de données PostgreSQL avec migrations Prisma
+- 🐳 Environnement de développement containerisé
+- 📝 Documentation technique structurée
+
+## Documentation
+
+Explorez la documentation détaillée du projet :
+
+- [Frontend Atomic Design Guide](docs/frontend-atomic-guide.md) - Guide d'architecture atomique pour le frontend
 
 ## Tech Stack
 
-- Frontend: Next.js 16, React 19, TypeScript, Tailwind CSS v4
-- Auth: Better Auth
-- ORM / DB access: Prisma + PostgreSQL
-- Realtime workspace: Socket.IO service (`websockets/`)
-- Package manager: Bun (`bun@1.2.5`)
-- Local orchestration: Docker Compose
+| Catégorie | Technologies |
+|-----------|-------------|
+| **Frontend** | Next.js 16, React 19, TypeScript, Tailwind CSS v4 |
+| **Authentification** | Better Auth |
+| **Base de données** | PostgreSQL + Prisma ORM |
+| **Temps réel** | Socket.IO |
+| **Package Manager** | Bun 1.2.5+ |
+| **Orchestration** | Docker Compose |
 
-## Repository Structure
+## Installation
 
-```text
-team-aqua-project/
-├── frontend/                # Next.js app (main product surface)
-│   ├── app/                 # App Router pages and API routes
-│   ├── components/          # Atomic design components
-│   ├── hooks/               # Shared React hooks
-│   ├── lib/                 # Shared frontend utilities
-│   ├── prisma/              # Frontend Prisma schema/migrations
-│   └── docs/                # Frontend-specific documentation
-├── websockets/              # Socket service workspace (Bun + TS)
-├── game-engine/             # Reserved workspace
-├── docker-compose.yml       # Local dev services
-└── dev.sh                   # Interactive dev helper script
-```
+### Prérequis
 
-## Services and Ports
+- **Docker** et **Docker Compose** (recommandé pour un démarrage rapide)
+- Ou : **Bun 1.2.5+** et **PostgreSQL** (pour développement local)
 
-When started via Docker Compose:
-- Frontend: `http://localhost:3000`
-- Websocket workspace: `http://localhost:4001`
-- PostgreSQL: `localhost:5432`
-
-## Quick Start (Recommended)
-
-### Prerequisites
-
-- Docker + Docker Compose
-
-### Start with helper script
+### Démarrage rapide avec Docker (Recommandé)
 
 ```bash
+# Clone le projet
+git clone <repository-url>
+cd kyogre
+
+# Lance les services avec le script helper
 ./dev.sh
 ```
 
-The script provides a menu to:
-- start/restart/stop services,
-- inspect logs and service status,
-- access PostgreSQL,
-- promote an existing user to admin,
-- run basic service checks.
-
-### Start manually
+Ou manuellement :
 
 ```bash
 docker compose up --build -d
 ```
 
-Then open:
-- `http://localhost:3000`
+Ouvrez ensuite : **http://localhost:3000**
+
+### Développement local sans Docker (Optionnel)
+
+Si vous préférez exécuter les services directement :
+
+#### Frontend
+
+```bash
+cd frontend
+bun install
+bunx prisma generate
+bun run dev
+```
+
+#### Websocket workspace
+
+```bash
+cd websockets
+bun install
+bun run dev
+```
+
+**Note** : Si Bun n'est pas installé sur votre machine, utilisez plutôt les workflows Docker Compose.
+
+## Repository Structure
+
+```text
+kyogre/
+├── frontend/                # Next.js app (interface principale)
+│   ├── app/                 # App Router pages et API routes
+│   ├── components/          # Composants (architecture atomique)
+│   ├── hooks/               # React hooks partagés
+│   ├── lib/                 # Utilitaires frontend
+│   ├── prisma/              # Schéma Prisma et migrations
+│   └── public/              # Assets statiques
+├── websockets/              # Service websocket (Bun + TS)
+├── docs/                    # Documentation du projet
+├── docker-compose.yml       # Services de dev locaux
+└── dev.sh                   # Script helper interactif
+```
+
+## Services and Ports
+
+Quand les services sont démarrés via Docker Compose :
+
+| Service | URL | Port |
+|---------|-----|------|
+| Frontend | http://localhost:3000 | 3000 |
+| Websocket | http://localhost:4001 | 4001 |
+| PostgreSQL | localhost:5432 | 5432 |
+
+## Quick Start (Recommended)
+
+### Utiliser le script helper
+
+```bash
+./dev.sh
+```
+
+Le script fournit un menu pour :
+- ✅ Démarrer/redémarrer/arrêter les services
+- 📋 Inspecter les logs et le statut
+- 🐘 Accéder à PostgreSQL
+- 👤 Promouvoir un utilisateur en admin
+- ✔️ Exécuter des vérifications de services
+
+### Démarrage manuel
+
+```bash
+docker compose up --build -d
+```
+
+Puis ouvrez : **http://localhost:3000**
 
 ## Local Development Without Docker (Optional)
 
-If you prefer running services directly:
-
-### Prerequisites
+### Prérequis
 
 - Bun `1.2.5+`
-- A running PostgreSQL instance
+- Une instance PostgreSQL en cours d'exécution
 
 ### Frontend
 
@@ -97,26 +178,27 @@ bun install
 bun run dev
 ```
 
-Note:
-- If Bun is not installed on your host machine, use Docker Compose workflows instead.
+**Note** : Si Bun n'est pas installé sur votre machine hôte, utilisez les workflows Docker Compose.
 
 ## Environment Variables
 
-Current Compose setup defines these variables:
-
 ### Frontend
 
-- `NODE_ENV=production`
-- `BETTER_AUTH_URL=http://localhost:3000`
-- `BETTER_AUTH_SECRET=dev-secret-change-me-please-at-least-32-characters`
-- `BETTER_AUTH_DATABASE_URL=postgres://postgres:postgres@db:5432/aqua_temp`
-- `DATABASE_URL=postgresql://postgres:postgres@db:5432/aqua_temp`
+```env
+NODE_ENV=production
+BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_SECRET=dev-secret-change-me-please-at-least-32-characters
+BETTER_AUTH_DATABASE_URL=postgres://postgres:postgres@db:5432/aqua_temp
+DATABASE_URL=postgresql://postgres:postgres@db:5432/aqua_temp
+```
 
 ### Websocket workspace
 
-- `NODE_ENV=production`
-- `DATABASE_URL=postgresql://postgres:postgres@db:5432/aqua_temp`
-- `PORT=4001`
+```env
+NODE_ENV=production
+DATABASE_URL=postgresql://postgres:postgres@db:5432/aqua_temp
+PORT=4001
+```
 
 ## Common Commands
 
@@ -163,7 +245,7 @@ bun run server.js
 docker compose exec db psql -U postgres -d aqua_temp
 ```
 
-Promote a user to admin:
+**Promouvoir un utilisateur en admin** :
 
 ```bash
 docker compose exec db psql -U postgres -d aqua_temp -c \
@@ -172,38 +254,39 @@ docker compose exec db psql -U postgres -d aqua_temp -c \
 
 ## Frontend Routes (Current)
 
-Main app pages include:
-- `/` login/auth entry
-- `/register`
-- `/home`
-- `/decks`
-- `/social`
-- `/game`
-- `/profile/[pseudo]`
-- `/not-connected`
+### Pages principales
 
-Frontend API routes include:
-- `/api/auth/[...all]`
-- `/api/profile`
-- `/api/avatars`
-- `/api/social/invite`
+- `/` - Entrée login/auth
+- `/register` - Inscription
+- `/home` - Page d'accueil
+- `/decks` - Gestion des decks
+- `/social` - Section sociale
+- `/game` - Interface de jeu
+- `/profile/[pseudo]` - Profil utilisateur
+- `/not-connected` - Page pour utilisateurs non connectés
+
+### API Routes
+
+- `/api/auth/[...all]` - Authentification
+- `/api/profile` - Gestion du profil
+- `/api/avatars` - Avatars utilisateur
+- `/api/social/invite` - Invitations sociales
+- `/api/users` - Gestion utilisateurs
 
 ## Frontend UI Architecture
 
-The frontend follows an atomic design approach.
+Le frontend suit une approche design atomique.
 
-See:
-- [frontend/docs/frontend-atomic-guide.md](frontend/docs/frontend-atomic-guide.md)
+Consultez :
+- [Frontend Atomic Design Guide](docs/frontend-atomic-guide.md)
 
 ## Troubleshooting
 
-- Compose starts but frontend is unavailable:
-  - Check `docker compose logs frontend -f`
-  - Ensure port `3000` is free.
-- Database connection issues:
-  - Verify `db` service health with `docker compose ps`.
-- Host missing Bun:
-  - Run everything through Docker instead of local Bun commands.
+| Problème | Solution |
+|----------|----------|
+| Compose démarre mais le frontend est indisponible | Vérifiez `docker compose logs frontend -f` et assurez-vous que le port `3000` est libre |
+| Problèmes de connexion à la base de données | Vérifiez la santé du service `db` avec `docker compose ps` |
+| Bun manquant sur la machine hôte | Exécutez tout via Docker au lieu de commandes Bun locales |
 
 ## License
 

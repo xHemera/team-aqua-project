@@ -1,5 +1,23 @@
 # Frontend Atomic Guide
 
+## 📖 Sommaire
+
+- [Retour au README principal](../README.md)
+- [Pourquoi ce document existe](#why-this-document-exists)
+- [Layering du Frontend](#frontend-layering)
+- [Responsabilités Serveur vs Client](#server-vs-client-responsibilities)
+- [Composants Atomiques](#atomic-components-when-and-how-to-use)
+- [Hooks et Utilitaires Partagés](#shared-hooks-and-utilities)
+- [Règles de Rendering et Performance](#rendering-and-performance-rules)
+- [Baseline Accessibilité](#accessibility-baseline)
+- [Checklist de Refactoring](#refactor-checklist-for-future-pages)
+- [Exemples Rapides](#quick-examples)
+
+**Documentation disponible** :
+- [Frontend Atomic Guide](frontend-atomic-guide.md) - Ce document
+
+---
+
 ## Why this document exists
 This guide defines how to build UI in the frontend with an atomic approach, to:
 - avoid duplicated UI code,
