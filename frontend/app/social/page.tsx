@@ -17,7 +17,7 @@ type Messages = {
   id:         string;
   user_id:    string;
   inbox_id:   string;
-  messages:   string | null;
+  message:   string | null;
   createdAt:  Date;
 }
 
@@ -122,18 +122,11 @@ export default function SocialPage() {
   const [isInviting, setIsInviting] = useState(false);
   const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
   const [inviteUsername, setInviteUsername] = useState("");
-  const [userPseudo, setUserPseudo] = useState<string | null>(null)
-  const [messagesByUser, setMessagesByUser] = useState<Record<string, ChatMessage[]>>({
-  });
+  const [userPseudo, setUserPseudo] = useState<string | null>(null);
+  const [currentMessages, setCurrentMessages] = useState<Messages[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [inboxes, setInboxes] = useState<Inbox[]>([]);
-
-
-  const currentMessages = useMemo(
-    () => messagesByUser[selectedUser] ?? [],
-    [messagesByUser, selectedUser],
-  );
 
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
 
@@ -179,6 +172,14 @@ export default function SocialPage() {
 
 	//permet de scroll la conversation
 	useEffect(() => {
+		async function fetchmessages()
+		{
+			if (!currentUser) return;
+			const newMessages = await contact.getMsg(currentUser.name, selectedUser);
+			if (!newMessages) return;
+    	setCurrentMessages(newMessages);
+		}
+		fetchmessages();
 		messageListRef.current?.scrollTo({
 			top: messageListRef.current.scrollHeight,
 			behavior: "smooth",
@@ -270,17 +271,6 @@ export default function SocialPage() {
       }
 
       const foundName = payload.user.name;
-      setMessagesByUser((prevMessages) => {
-        if (prevMessages[foundName]) {
-          return prevMessages;
-        }
-
-        return {
-          ...prevMessages,
-          [foundName]: [],
-        };
-      });
-
       setSelectedUser(foundName);
       setInviteNotification({
         type: "success",
@@ -323,23 +313,15 @@ export default function SocialPage() {
   };
 
   //Envoyer un message
-  const sendMessage = () => {
+  const sendMessage = async () => {
     const cleanMessage = message.trim();
     if (!cleanMessage && draftAttachments.length === 0) return;
 
-    const newMessage: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      sender: "me",
-      text: cleanMessage,
-      isMine: true,
-      sentAt: formatTime(new Date()),
-      attachments: draftAttachments,
-    };
+    contact.addMsg(cleanMessage, currentUser.name, selectedUser);
 
-    setMessagesByUser((prevMessages) => ({
-      ...prevMessages,
-      [selectedUser]: [...(prevMessages[selectedUser] ?? []), newMessage],
-    }));
+		const newMessages = await contact.getMsg(currentUser.name, selectedUser);
+		if (!newMessages) return;
+    setCurrentMessages(newMessages);
 
     setMessage("");
     setDraftAttachments([]);
@@ -509,17 +491,17 @@ export default function SocialPage() {
               )}
 
               {currentMessages.map((msg) => (
-                <div key={msg.id} className={`flex ${msg.isMine ? "justify-end" : "justify-start"}`}>
+                <div key={msg.id} className={`flex ${msg.user_id === currentUser.id ? "justify-end" : "justify-start"}`}>
                   <article
                     className={`max-w-[44rem] rounded-2xl px-5 py-3 ${
-                      msg.isMine
+                      msg.user_id
                         ? "bg-[var(--accent-color)] text-white"
                         : "border border-[#3c3650] bg-[#242033] text-gray-100"
                     }`}
                   >
-                    {msg.text && <p className="leading-relaxed">{msg.text}</p>}
+                    {msg.message && <p className="leading-relaxed">{msg.message}</p>}
 
-                    {msg.attachments.length > 0 && (
+                    {/* {msg.attachments.length > 0 && (
                       <div className={`mt-2 grid gap-2 ${msg.attachments.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
                         {msg.attachments.map((attachment) => {
                           const isImage = attachment.type.startsWith("image/");
@@ -528,7 +510,7 @@ export default function SocialPage() {
                             <div
                               key={attachment.id}
                               className={`rounded-lg border p-2 ${
-                                msg.isMine
+                                msg.user_id === currentUser.id
                                   ? "border-white/30 bg-white/10"
                                   : "border-[#3c3650] bg-[#15131d]"
                               }`}
@@ -553,10 +535,10 @@ export default function SocialPage() {
                           );
                         })}
                       </div>
-                    )}
+                    )} */}
 
-                    <p className={`mt-2 text-[11px] ${msg.isMine ? "text-white/80" : "text-gray-400"}`}>
-                      {msg.sentAt}
+                    <p className={`mt-2 text-[11px] ${msg.user_id === currentUser.id ? "text-white/80" : "text-gray-400"}`}>
+                      {formatTime(msg.createdAt)}
                     </p>
                   </article>
                 </div>

@@ -6,12 +6,17 @@ export async function getUsers()
 {
     return await prisma.user.findMany({
         include: {
-            avatar: true,
-			inbox: { include: { inboxUser: true } },
-			inboxUser: true,
+            inbox: {
+            include: {
+                messages: true, // ✅ add this
+                inboxUser: true,
+            },
+            },
             messages: true,
-        }
-    })
+            inboxUser: true,
+            avatar: true,
+        },
+        });
 }
 
 export async function getInboxes()
@@ -29,12 +34,17 @@ export async function getCurrentUser(current: string)
     const user = await prisma.user.findFirst({
         where: { name: current },
         include: {
-            avatar: true,
-			inbox: { include: { inboxUser: true } },
-			inboxUser: true,
+            inbox: {
+            include: {
+                messages: true,
+                inboxUser: true,
+            },
+            },
             messages: true,
-        }
-    })
+            inboxUser: true,
+            avatar: true,
+        },
+        });
     if (!user)
         throw new Error("User not found");
     return user;
@@ -133,17 +143,69 @@ export async function addMsg(msg: string, sender: string, receiver: string)
         include: { inboxUser: true, messages:true }
     });
 
+    if (!user1 || !user2) return;
+
 	if (inboxes.length === 0) return;
 
     for (const inbox of inboxes)
     {
         const ids = inbox.inboxUser.map(inboxUser => inboxUser.user_id);
 
-		if (ids.includes(user1!.id) && ids.includes(user2!.id))
+		if (ids.includes(user1.id) && ids.includes(user2.id))
 		{
-			const messages = await prisma.messages.update({
-                
-            })
+			const messages = await prisma.messages.create({
+                data: {
+                    message: msg,
+                    user: {
+                        connect: { id: user1.id }
+                    },
+                    inbox: {
+                        connect: { id: inbox.id }
+                    }
+                }
+            });
+            const up_inbox = await prisma.inbox.update({
+                where: { id: inbox.id },
+                data: {
+                    last_message: msg,
+                    last_sent_user_id: user1.id,
+                },
+                include: {
+                    messages: true
+                }
+            });
+            up_inbox.messages.push(messages);
 		}
-    };
+    }
+}
+
+export async function getMsg(sender: string, receiver: string)
+{
+	if (!sender || !receiver) return;
+    const user1 = await prisma.user.findFirst({
+        where: { name: sender }
+    })
+    const user2 = await prisma.user.findFirst({
+        where: { name: receiver }
+    })
+    const inboxes = await prisma.inbox.findMany({
+        include: { inboxUser: true, messages:true }
+    });
+
+    if (!user1 || !user2) return;
+
+	if (inboxes.length === 0) return;
+
+    for (const inbox of inboxes)
+    {
+        const ids = inbox.inboxUser.map(inboxUser => inboxUser.user_id);
+
+		if (ids.includes(user1.id) && ids.includes(user2.id))
+		{
+			const messages = await prisma.messages.findMany({
+                where: { inbox_id: inbox.id }
+            });
+			return messages;
+		}
+    }
 }
