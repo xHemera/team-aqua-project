@@ -2,84 +2,88 @@
 
 A full-stack project with a Next.js frontend, PostgreSQL database, and containerized development tooling.
 
-## 📖 Sommaire
+## 📖 Table of Contents
 
 - [Overview](#overview)
 - [Features](#features)
 - [Documentation](#documentation)
 - [Tech Stack](#tech-stack)
-- [🚀 Démarrage](#-démarrage)
+- [🚀 Getting Started](#-getting-started)
 - [Repository Structure](#repository-structure)
 - [License](#license)
 
 ## Overview
 
-**Kyogre** est une application full-stack moderne qui fournit :
-- Une application frontend moderne construite avec Next.js App Router, React 19, TypeScript, Better Auth et Prisma
-- Un service websocket pour la communication en temps réel (Socket.IO)
-- Une base de données PostgreSQL gérée via Docker Compose
-- Un script d'aide développeur (`dev.sh`) pour faciliter les opérations locales
+**Kyogre** is a modern full-stack application that provides:
+- A modern frontend application built with Next.js App Router, React 19, TypeScript, Better Auth, and Prisma
+- A WebSocket service for real-time communication (Socket.IO)
+- A PostgreSQL database managed via Docker Compose
+- A developer helper script (`dev.sh`) for facilitating local operations
 
 ## Features
 
-✨ **Features principales** :
-- 🔐 Authentification robuste avec Better Auth
-- 🎨 Architecture UI atomique pour une maintenabilité optimale
-- 🔄 Service websocket pour les fonctionnalités temps réel
-- 🐘 Base de données PostgreSQL avec migrations Prisma
-- 🐳 Environnement de développement containerisé
-- 📝 Documentation technique structurée
+✨ **Key Features**:
+- 🔐 Robust authentication with Better Auth
+- 🎨 Atomic UI architecture for optimal maintainability
+- 🔄 WebSocket service for real-time functionality
+- 🐘 PostgreSQL database with Prisma migrations
+- 🐳 Containerized development environment
+- 📝 Structured technical documentation
 
 ## Documentation
 
-Explorez la documentation détaillée du projet :
+Explore detailed project documentation:
 
-- [Frontend Atomic Design Guide](docs/frontend-atomic-guide.md) - Guide d'architecture atomique pour le frontend
+- [Frontend Overview](docs/frontend-overview.md) - Frontend architecture and structure
+- [Components Guide](docs/components-guide.md) - Reusable components and atomic design patterns
+- [Hooks Guide](docs/hooks-guide.md) - Shared React hooks and state management
+- [Authentication Guide](docs/authentication-guide.md) - Authentication flow and Better Auth setup
+- [Styling Guide](docs/styling-guide.md) - CSS and styling approach with Tailwind CSS
 
 ## Tech Stack
 
-| Catégorie | Technologies |
-|-----------|-------------|
+| Category | Technologies |
+|----------|----------------|
 | **Frontend** | Next.js 16, React 19, TypeScript, Tailwind CSS v4 |
-| **Authentification** | Better Auth |
-| **Base de données** | PostgreSQL + Prisma ORM |
-| **Temps réel** | Socket.IO |
+| **Authentication** | Better Auth |
+| **Database** | PostgreSQL + Prisma ORM |
+| **Real-time** | Socket.IO |
 | **Package Manager** | Bun 1.2.5+ |
 | **Orchestration** | Docker Compose |
 
-## 🚀 Démarrage
+## 🚀 Getting Started
 
-**Prérequis** : Docker + Docker Compose
+**Prerequisites**: Docker + Docker Compose
 
 ```bash
-# Clone le projet
+# Clone the project
 git clone <repository-url> <name>
 cd <name>
 
-# Option A : Avec le script helper
+# Option A: Using the helper script
 ./dev.sh
 
-# Option B : Lancer directement
+# Option B: Start directly
 docker compose up --build -d
 ```
 
-Allez à : **http://localhost:3000**
+Go to: **http://localhost:3000**
 
 ## Repository Structure
 
 ```text
 kyogre/
-├── frontend/          # Next.js app (frontend principal)
+├── frontend/          # Next.js app (main frontend)
 │   ├── app/           # Routes (App Router)
-│   ├── components/    # Composants (design atomique)
-│   ├── hooks/         # React hooks partagés
-│   ├── lib/           # Utilitaires
-│   ├── prisma/        # Schéma + migrations
+│   ├── components/    # Components (atomic design)
+│   ├── hooks/         # Shared React hooks
+│   ├── lib/           # Utilities
+│   ├── prisma/        # Schema + migrations
 │   └── public/        # Assets
-├── websockets/        # Service WebSocket (Bun + TS)
+├── websockets/        # WebSocket Service (Bun + TS)
 ├── docs/              # Documentation
-├── docker-compose.yml # Services Docker
-└── dev.sh             # Script helper
+├── docker-compose.yml # Docker services
+└── dev.sh             # Helper script
 ```
 
 ## License
