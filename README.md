@@ -7,12 +7,10 @@ A full-stack project with a Next.js frontend, PostgreSQL database, and container
 - [Overview](#overview)
 - [Features](#features)
 - [Documentation](#documentation)
-- [Installation](#installation)
 - [Tech Stack](#tech-stack)
+- [🚀 Démarrage](#-démarrage)
 - [Repository Structure](#repository-structure)
 - [Services and Ports](#services-and-ports)
-- [Quick Start](#quick-start-recommended)
-- [Local Development Without Docker](#local-development-without-docker-optional)
 - [Environment Variables](#environment-variables)
 - [Common Commands](#common-commands)
 - [Frontend Routes](#frontend-routes-current)
@@ -55,35 +53,29 @@ Explorez la documentation détaillée du projet :
 | **Package Manager** | Bun 1.2.5+ |
 | **Orchestration** | Docker Compose |
 
-## Installation
+## 🚀 Démarrage
 
-### Prérequis
+### Option 1 : Docker Compose (Recommandé)
 
-- **Docker** et **Docker Compose** (recommandé pour un démarrage rapide)
-- Ou : **Bun 1.2.5+** et **PostgreSQL** (pour développement local)
-
-### Démarrage rapide avec Docker (Recommandé)
+**Prérequis** : Docker + Docker Compose
 
 ```bash
 # Clone le projet
-git clone <repository-url>
-cd kyogre
+git clone <repository-url> <name>
+cd <name>
 
-# Lance les services avec le script helper
+# Option A : Avec le script helper
 ./dev.sh
-```
 
-Ou manuellement :
-
-```bash
+# Option B : Lancer directement
 docker compose up --build -d
 ```
 
-Ouvrez ensuite : **http://localhost:3000**
+Allez à : **http://localhost:3000**
 
-### Développement local sans Docker (Optionnel)
+### Option 2 : Développement local (Bun)
 
-Si vous préférez exécuter les services directement :
+**Prérequis** : Bun 1.2.5+ et PostgreSQL en cours d'exécution
 
 #### Frontend
 
@@ -102,23 +94,21 @@ bun install
 bun run dev
 ```
 
-**Note** : Si Bun n'est pas installé sur votre machine, utilisez plutôt les workflows Docker Compose.
-
 ## Repository Structure
 
 ```text
 kyogre/
-├── frontend/                # Next.js app (interface principale)
-│   ├── app/                 # App Router pages et API routes
-│   ├── components/          # Composants (architecture atomique)
-│   ├── hooks/               # React hooks partagés
-│   ├── lib/                 # Utilitaires frontend
-│   ├── prisma/              # Schéma Prisma et migrations
-│   └── public/              # Assets statiques
-├── websockets/              # Service websocket (Bun + TS)
-├── docs/                    # Documentation du projet
-├── docker-compose.yml       # Services de dev locaux
-└── dev.sh                   # Script helper interactif
+├── frontend/          # Next.js app (frontend principal)
+│   ├── app/           # Routes (App Router)
+│   ├── components/    # Composants (design atomique)
+│   ├── hooks/         # React hooks partagés
+│   ├── lib/           # Utilitaires
+│   ├── prisma/        # Schéma + migrations
+│   └── public/        # Assets
+├── websockets/        # Service WebSocket (Bun + TS)
+├── docs/              # Documentation
+├── docker-compose.yml # Services Docker
+└── dev.sh             # Script helper
 ```
 
 ## Services and Ports
@@ -130,55 +120,6 @@ Quand les services sont démarrés via Docker Compose :
 | Frontend | http://localhost:3000 | 3000 |
 | Websocket | http://localhost:4001 | 4001 |
 | PostgreSQL | localhost:5432 | 5432 |
-
-## Quick Start (Recommended)
-
-### Utiliser le script helper
-
-```bash
-./dev.sh
-```
-
-Le script fournit un menu pour :
-- ✅ Démarrer/redémarrer/arrêter les services
-- 📋 Inspecter les logs et le statut
-- 🐘 Accéder à PostgreSQL
-- 👤 Promouvoir un utilisateur en admin
-- ✔️ Exécuter des vérifications de services
-
-### Démarrage manuel
-
-```bash
-docker compose up --build -d
-```
-
-Puis ouvrez : **http://localhost:3000**
-
-## Local Development Without Docker (Optional)
-
-### Prérequis
-
-- Bun `1.2.5+`
-- Une instance PostgreSQL en cours d'exécution
-
-### Frontend
-
-```bash
-cd frontend
-bun install
-bunx prisma generate
-bun run dev
-```
-
-### Websocket workspace
-
-```bash
-cd websockets
-bun install
-bun run dev
-```
-
-**Note** : Si Bun n'est pas installé sur votre machine hôte, utilisez les workflows Docker Compose.
 
 ## Environment Variables
 
