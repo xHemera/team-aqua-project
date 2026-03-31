@@ -11,15 +11,12 @@ redis.on('error', (err) => console.log('Redis Client Error', err));
 
 await redis.connect();
 
-
-
 //parametres de connexion + creation de serveur
 const hostname = "0.0.0.0";
-const port = 4001;
+const port = Number(process.env.PORT || 4001);
 
 const app = express();
 const httpServer = createServer(app);
-
 const io = new Server(httpServer, {
   cors: {
     origin: "*"
@@ -33,14 +30,16 @@ io.on("connect", (socket) => {
     await redis.hSet("online_users", socket.id, JSON.stringify(user));
     const users = await redis.hGetAll("online_users");
     console.log("Client connected: ", users);
-    socket.emit("online_users: ", users);
+    io.emit("online_users", users);
   });
+
   socket.on("disconnect", async () => {
-    await redis.hDel("online_users", socket.id)
+    await redis.hDel("online_users", socket.id);
     const users = await redis.hGetAll("online_users");
     console.log("Client disconnected: ", users);
-    });
-  })
+    io.emit("online_users", users);
+  });
+});
 
 //check d'erreur et ecoute du port
 httpServer
