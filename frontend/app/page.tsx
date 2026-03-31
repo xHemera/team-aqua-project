@@ -68,9 +68,9 @@ export default function LoginPage() {
       });
 
       if (error) {
-        setMessage(error.message ?? "Erreur lors de l'inscription");
+        setMessage(error.message ?? "Registration error");
       } else {
-        setMessage("Compte créé avec succès ! Vous pouvez maintenant vous connecter.");
+        setMessage("Account created successfully! You can now sign in.");
         setIsRegisterMode(false);
         setPassword("");
         setName("");
@@ -83,11 +83,11 @@ export default function LoginPage() {
       });
 
       if (error) {
-        setMessage(error.message ?? "Erreur de connexion");
+        setMessage(error.message ?? "Sign-in error");
       }
       else {
-        setMessage("Connexion réussie !");
-        setPseudo(data?.user?.name || "utilisateur");
+        setMessage("Signed in successfully!");
+        setPseudo(data?.user?.name || "user");
         setTimeout(() => router.push(`/profile/${data?.user?.name}`), 500);
       }
     }
@@ -106,7 +106,7 @@ export default function LoginPage() {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Nom"
+                placeholder="Name"
                 required
               />
             </>
@@ -126,7 +126,7 @@ export default function LoginPage() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Mot de passe"
+            placeholder="Password"
             required
             minLength={8}
           />
@@ -141,20 +141,20 @@ export default function LoginPage() {
               }}
               variant="secondary"
             >
-              {isRegisterMode ? "Se connecter" : "S'inscrire"}
+              {isRegisterMode ? "Sign in" : "Sign up"}
             </Button>
 
             <Button
               type="submit"
               disabled={loading}
             >
-              {loading ? "..." : isRegisterMode ? "Créer un compte" : "Connexion"}
+              {loading ? "..." : isRegisterMode ? "Create account" : "Sign in"}
             </Button>
           </div>
           {message && (
             <p
               className={`text-center text-sm ${
-                message.includes("succès") || message.includes("réussie") ? "text-green-400" : "text-red-400"
+                message.includes("success") ? "text-green-400" : "text-red-400"
               }`}
             >
               {message}

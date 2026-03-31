@@ -89,7 +89,7 @@ export default function Home() {
               onClick={handleProfileClick}
               className="h-auto rounded-lg border-2 px-8 py-3 text-lg font-bold shadow-lg transition-transform hover:scale-105"
             >
-              {userPseudo || "Pseudo"}
+              {userPseudo || "Username"}
             </Button>
           </div>
         </div>

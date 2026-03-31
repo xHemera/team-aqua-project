@@ -277,7 +277,7 @@ export default function DecksPage() {
     if (!name) return;
 
     if (!isValidCardName(name)) {
-      setCardError("Cette carte n'existe pas");
+      setCardError("This card does not exist");
       return;
     }
 
@@ -298,7 +298,7 @@ export default function DecksPage() {
 
     if (existingCard) {
       if (!isEnergyCardName(name) && existingCard.count >= MAX_NON_ENERGY_COPIES) {
-        setCardError(`Maximum ${MAX_NON_ENERGY_COPIES} exemplaires pour cette carte (hors énergies).`);
+        setCardError(`Maximum ${MAX_NON_ENERGY_COPIES} copies for this card (excluding energies).`);
         return;
       }
 
@@ -350,7 +350,7 @@ export default function DecksPage() {
     if (!card) return;
 
     if (!isEnergyCardName(card.name) && card.count >= MAX_NON_ENERGY_COPIES) {
-      setCardError(`Maximum ${MAX_NON_ENERGY_COPIES} exemplaires pour cette carte (hors énergies).`);
+      setCardError(`Maximum ${MAX_NON_ENERGY_COPIES} copies for this card (excluding energies).`);
       return;
     }
 
@@ -413,7 +413,7 @@ export default function DecksPage() {
 
     const nextName = deckNameDraft.trim();
     if (!nextName) {
-      setDeckNameError("Le nom du deck ne peut pas être vide");
+      setDeckNameError("Deck name cannot be empty");
       return;
     }
 
@@ -424,7 +424,7 @@ export default function DecksPage() {
     }
 
     if (decks[nextName]) {
-      setDeckNameError("Un deck avec ce nom existe déjà");
+      setDeckNameError("A deck with this name already exists");
       return;
     }
 
@@ -460,7 +460,7 @@ export default function DecksPage() {
   const deleteSelectedDeck = () => {
     if (!selectedDeck) return;
 
-    const shouldDelete = window.confirm(`Supprimer le deck \"${selectedDeck}\" ?`);
+    const shouldDelete = window.confirm(`Delete deck \"${selectedDeck}\"?`);
     if (!shouldDelete) return;
 
     const updatedDecks = { ...decks };
@@ -563,7 +563,7 @@ export default function DecksPage() {
         </div>
       </div>
 
-      {/* Popup du deck */}
+      {/* Deck popup */}
       {selectedDeck && (
         <div
           className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
@@ -592,7 +592,7 @@ export default function DecksPage() {
                           setDeckNameError("");
                         }
                       }}
-                      placeholder="Nom du deck"
+                      placeholder="Deck name"
                       className="rounded-lg py-2"
                     />
                     <Button
@@ -626,7 +626,7 @@ export default function DecksPage() {
                       }}
                       variant="ghost"
                       className="h-9 w-9 rounded-lg bg-[#242033] p-0"
-                      aria-label="Renommer le deck"
+                      aria-label="Rename deck"
                     >
                       <i className="fa-solid fa-pen"></i>
                     </Button>
@@ -635,7 +635,7 @@ export default function DecksPage() {
                       onClick={deleteSelectedDeck}
                       variant="ghost"
                       className="h-9 w-9 rounded-lg border-red-400/70 bg-red-500/20 p-0 text-red-300 hover:bg-red-500/35"
-                      aria-label="Supprimer le deck"
+                      aria-label="Delete deck"
                     >
                       <i className="fa-solid fa-trash"></i>
                     </Button>
@@ -665,7 +665,7 @@ export default function DecksPage() {
                       onClick={() => setIsIconPickerOpen((prev) => !prev)}
                       variant="ghost"
                       className="relative h-14 w-14 overflow-hidden rounded-xl border-[#4a4363] bg-[#242033] p-0 hover:bg-[#302a45]"
-                      aria-label="Choisir l'icône du deck"
+                      aria-label="Choose deck icon"
                       aria-expanded={isIconPickerOpen}
                     >
                       {selectedDeckIcon === BLANK_DECK_ICON ? (
@@ -688,7 +688,7 @@ export default function DecksPage() {
                         </span>
                       )}
                     </Button>
-                    <span className="text-xs text-gray-400">Choisis une icone pour identifier rapidement ton deck.</span>
+                    <span className="text-xs text-gray-400">Choose an icon to quickly identify your deck.</span>
 
                     {isIconPickerOpen && (
                       <div className="w-full rounded-xl border border-[#3c3650] bg-[#1f1a2d] p-3">
@@ -708,7 +708,7 @@ export default function DecksPage() {
                                 ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)] ring-1 ring-[var(--accent-border)]"
                                 : "border-[#3c3650] bg-[#242033] hover:bg-[#302a45]"
                             }`}
-                            title={iconPath === BLANK_DECK_ICON ? "Sans icone" : "Selectionner cette icone"}
+                            title={iconPath === BLANK_DECK_ICON ? "No icon" : "Select this icon"}
                           >
                             {iconPath === BLANK_DECK_ICON ? (
                               <span className="text-gray-300">
@@ -771,7 +771,7 @@ export default function DecksPage() {
                                 className="relative flex h-full w-full items-center justify-center overflow-hidden bg-gradient-to-br from-[var(--accent-soft)] to-[#3c3650]"
                               >
                                 {hasError ? (
-                                  <p className="p-2 text-center text-xs text-red-500">Cette carte n&apos;existe pas</p>
+                                  <p className="p-2 text-center text-xs text-red-500">This card does not exist</p>
                                 ) : (
                                   <Image
                                     src={`/cards/${encodeURIComponent(normalized)}.png`}
@@ -797,7 +797,7 @@ export default function DecksPage() {
                                   type="button"
                                   onClick={() => removeCard(selectedDeck!, card.id)}
                                   className="h-8 w-8 rounded-md border-red-400/70 bg-red-500/90 p-0 text-xl font-black leading-none hover:bg-red-600"
-                                  aria-label={`Retirer une copie de ${card.name}`}
+                                  aria-label={`Remove one copy of ${card.name}`}
                                 >
                                   −
                                 </Button>
@@ -806,7 +806,7 @@ export default function DecksPage() {
                                   onClick={() => incrementCard(selectedDeck!, card.id)}
                                   disabled={getTotalCards(selectedDeck!) >= 60 || isAtCopyLimit}
                                   className="h-8 w-8 rounded-md border-emerald-400/70 bg-emerald-500/90 p-0 text-xl font-black leading-none hover:bg-emerald-600"
-                                  aria-label={`Ajouter une copie de ${card.name}`}
+                                  aria-label={`Add one copy of ${card.name}`}
                                 >
                                   +
                                 </Button>
@@ -818,7 +818,7 @@ export default function DecksPage() {
                     </div>
                   ) : (
                     <div className="py-8 text-center">
-                      <p className="text-gray-400">Aucune carte dans ce deck</p>
+                      <p className="text-gray-400">No cards in this deck</p>
                     </div>
                   )}
                 </div>
@@ -826,7 +826,7 @@ export default function DecksPage() {
 
               <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#3c3650] bg-[#181524]">
                 <div className="border-b border-[#3c3650] px-4 py-3">
-                  <h4 className="text-lg font-semibold text-white">Cartes disponibles</h4>
+                  <h4 className="text-lg font-semibold text-white">Available cards</h4>
                   <div className="mt-3 flex gap-2">
                     <Input
                       type="text"
@@ -835,7 +835,7 @@ export default function DecksPage() {
                         setAvailableCardQuery(e.target.value);
                         if (cardError) setCardError("");
                       }}
-                      placeholder="Rechercher une carte..."
+                      placeholder="Search a card..."
                       className="flex-1 rounded-lg py-2"
                     />
                   </div>
@@ -843,7 +843,7 @@ export default function DecksPage() {
                 </div>
 
                 <div className="min-h-0 flex-1 overflow-y-scroll p-4 overscroll-contain">
-                  <div className="mb-3 text-sm text-gray-400">{filteredAvailableCards.length} cartes trouvées</div>
+                  <div className="mb-3 text-sm text-gray-400">{filteredAvailableCards.length} cards found</div>
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
                     {filteredAvailableCards.map((cardBase) => {
                       const displayName = formatCardDisplayName(cardBase);

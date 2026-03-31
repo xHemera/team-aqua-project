@@ -25,7 +25,7 @@ export default function RegisterPage() {
     setMessage("");
 
     if (password !== confirmPassword) {
-      setMessage("Les mots de passe ne correspondent pas");
+      setMessage("Passwords do not match");
       setLoading(false);
       return;
     }
@@ -37,9 +37,9 @@ export default function RegisterPage() {
     });
 
     if (error) {
-      setMessage(error.message ?? "Erreur d'inscription");
+      setMessage(error.message ?? "Registration error");
     } else {
-      setMessage("Inscription réussie");
+      setMessage("Registration successful");
       setTimeout(() => {
         router.push(`/profile/${pseudo}`);
       }, 700);
@@ -57,7 +57,7 @@ export default function RegisterPage() {
           type="text"
           value={pseudo}
           onChange={(e) => setPseudo(e.target.value)}
-          placeholder="Pseudo"
+          placeholder="Username"
           required
         />
 
@@ -75,7 +75,7 @@ export default function RegisterPage() {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Mot de passe"
+          placeholder="Password"
           required
         />
 
@@ -84,7 +84,7 @@ export default function RegisterPage() {
           type="password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
-          placeholder="Confirmer le mot de passe"
+          placeholder="Confirm password"
           required
         />
 
@@ -95,18 +95,18 @@ export default function RegisterPage() {
             onClick={() => router.push("/")}
             variant="ghost"
           >
-            Retour
+            Back
           </Button>
           <Button
             type="submit"
             disabled={loading}
           >
-            {loading ? "Chargement..." : "S'inscrire"}
+            {loading ? "Loading..." : "Sign up"}
           </Button>
         </div>
 
         {message && (
-          <p className={`text-center text-sm ${message.includes("réussie") ? "text-green-400" : "text-red-400"}`}>
+          <p className={`text-center text-sm ${message.includes("successful") ? "text-green-400" : "text-red-400"}`}>
             {message}
           </p>
         )}

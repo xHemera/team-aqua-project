@@ -169,9 +169,9 @@ export default function DeckSelector({
           />
         </div>
         <div className="flex min-w-0 flex-1 flex-col items-start leading-tight">
-          <span className="text-xs uppercase tracking-[0.14em] text-gray-400">Deck selectionne</span>
+          <span className="text-xs uppercase tracking-[0.14em] text-gray-400">Selected deck</span>
           <span className="w-full truncate text-lg font-bold text-white">
-            {safeSelectedDeck || "Aucun deck"}
+            {safeSelectedDeck || "No deck"}
           </span>
         </div>
         <span className="hidden text-xs text-gray-400 sm:inline">{normalizedAvailableDecks.length} decks</span>
@@ -191,7 +191,7 @@ export default function DeckSelector({
           id="home-deck-selector-listbox"
           className="absolute top-[calc(100%+0.55rem)] z-30 max-h-[min(55vh,22rem)] w-full overflow-y-auto rounded-2xl border border-[#3c3650] bg-[#15131d] p-2 shadow-2xl"
           role="listbox"
-          aria-label="Selection du deck"
+          aria-label="Deck selection"
           tabIndex={-1}
           onKeyDown={handleListboxKeyDown}
         >
@@ -211,7 +211,7 @@ export default function DeckSelector({
           ))}
 
           {!hasDecks && (
-            <div className="px-3 py-2 text-sm text-gray-400">Aucun deck disponible</div>
+            <div className="px-3 py-2 text-sm text-gray-400">No deck available</div>
           )}
         </div>
       )}

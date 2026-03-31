@@ -20,7 +20,7 @@ export default function NotificationToast({ onClose }: NotificationToastProps) {
             variant="ghost"
             size="sm"
             className="h-auto border-0 bg-transparent p-0 text-2xl font-bold leading-none text-white hover:bg-transparent hover:text-gray-200"
-            aria-label="Fermer la notification"
+            aria-label="Close notification"
           >
             ×
           </Button>
@@ -28,7 +28,7 @@ export default function NotificationToast({ onClose }: NotificationToastProps) {
         <div className="h-[2px] w-full bg-black"></div>
         <div className="bg-black px-4 py-4">
           <div className="text-sm leading-tight text-white">
-            Viens sur mon ile, j&apos;ai plein de cartes a te donner
+            Come to my island, I have plenty of cards to give you
           </div>
         </div>
       </div>

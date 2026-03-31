@@ -55,7 +55,7 @@ const defaultMessagesByUser: Record<string, ChatMessage[]> = {
     {
       id: "msg-1",
       sender: "SunMiaou",
-      text: "Salut ! Tu lances une partie ce soir ?",
+      text: "Hey! Are you starting a match tonight?",
       isMine: false,
       sentAt: "20:41",
       attachments: [],
@@ -63,7 +63,7 @@ const defaultMessagesByUser: Record<string, ChatMessage[]> = {
     {
       id: "msg-2",
       sender: "me",
-      text: "Oui, je finis mon deck et je t’écris.",
+      text: "Yes, I am finishing my deck and I will message you.",
       isMine: true,
       sentAt: "20:43",
       attachments: [],
@@ -73,7 +73,7 @@ const defaultMessagesByUser: Record<string, ChatMessage[]> = {
     {
       id: "msg-3",
       sender: "Xoco",
-      text: "Tu peux me renvoyer la liste du deck ?",
+      text: "Can you send me the deck list again?",
       isMine: false,
       sentAt: "18:12",
       attachments: [],
@@ -127,7 +127,7 @@ const getSocialStateFromStorage = () => {
 };
 
 const formatTime = (date: Date) =>
-  date.toLocaleTimeString("fr-FR", {
+  date.toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -308,7 +308,7 @@ export default function SocialPage() {
       if (!response.ok || !payload.user) {
         setInviteNotification({
           type: "error",
-          message: payload.error ?? "ce joueur n'existe pas",
+          message: payload.error ?? "this player does not exist",
         });
         return;
       }
@@ -345,14 +345,14 @@ export default function SocialPage() {
       setSelectedUser(foundName);
       setInviteNotification({
         type: "success",
-        message: "votre invitation a bien ete envoyer",
+        message: "your invitation has been sent",
       });
       setIsAddFriendModalOpen(false);
       setInviteUsername("");
     } catch {
       setInviteNotification({
         type: "error",
-        message: "ce joueur n'existe pas",
+        message: "this player does not exist",
       });
     } finally {
       setIsInviting(false);
@@ -445,8 +445,8 @@ export default function SocialPage() {
             className="w-full max-w-md bg-[#1b1826] p-5"
             onClick={(event) => event.stopPropagation()}
           >
-            <h3 className="text-lg font-bold text-white">entrez le nom d&apos;utilisateur</h3>
-            <p className="mt-1 text-sm text-gray-300">Saisis le pseudo du joueur pour envoyer une invitation.</p>
+            <h3 className="text-lg font-bold text-white">Enter a username</h3>
+            <p className="mt-1 text-sm text-gray-300">Enter the player username to send an invitation.</p>
 
             <Input
               type="text"
@@ -458,7 +458,7 @@ export default function SocialPage() {
                   submitFriendInvite();
                 }
               }}
-              placeholder="Pseudo du joueur"
+              placeholder="Player username"
               className="mt-4 py-2 text-sm"
               autoFocus
             />
@@ -470,14 +470,14 @@ export default function SocialPage() {
                 variant="ghost"
                 className="h-10 px-4 py-2 text-sm"
               >
-                Annuler
+                Cancel
               </Button>
               <Button
                 onClick={submitFriendInvite}
                 disabled={isInviting || inviteUsername.trim().length === 0}
                 className="h-10 px-4 py-2 text-sm font-bold"
               >
-                {isInviting ? "Recherche..." : "Envoyer"}
+                {isInviting ? "Searching..." : "Send"}
               </Button>
             </div>
           </Card>
@@ -496,7 +496,7 @@ export default function SocialPage() {
                 type="text"
                 value={contactSearch}
                 onChange={(event) => setContactSearch(event.target.value)}
-                placeholder="Rechercher un contact..."
+                placeholder="Search contacts..."
                 className="py-2 text-sm"
               />
             </div>
@@ -538,7 +538,7 @@ export default function SocialPage() {
 
               {filteredUsers.length === 0 && (
                 <div className="rounded-xl border border-[#3c3650] bg-[#242033]/70 p-3 text-sm text-gray-300">
-                  Aucun contact trouvé.
+                  No contact found.
                 </div>
               )}
             </div>
@@ -549,7 +549,7 @@ export default function SocialPage() {
                 disabled={isInviting}
                 className="h-10 w-full py-2 font-bold"
               >
-                {isInviting ? "Recherche..." : "+ Nouveau contact"}
+                {isInviting ? "Searching..." : "+ New contact"}
               </Button>
             </div>
           </aside>
@@ -580,7 +580,7 @@ export default function SocialPage() {
             <div ref={messageListRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
               {currentMessages.length === 0 && (
                 <div className="rounded-xl border border-[#3c3650] bg-[#242033]/70 p-4 text-sm text-gray-300">
-                  Aucune conversation pour le moment. Envoie le premier message à @{selectedUser}.
+                  No conversation yet. Send the first message to @{selectedUser}.
                 </div>
               )}
 
@@ -654,7 +654,7 @@ export default function SocialPage() {
                         variant="ghost"
                         size="sm"
                         className="h-auto border-0 bg-transparent p-0 text-gray-300 hover:bg-transparent hover:text-white"
-                        aria-label={`Supprimer ${attachment.name}`}
+                        aria-label={`Remove ${attachment.name}`}
                       >
                         <i className="fa-solid fa-xmark" />
                       </Button>
@@ -677,14 +677,14 @@ export default function SocialPage() {
                   onClick={handlePickAttachments}
                   variant="secondary"
                   className="h-9 w-9 rounded-full border-0 bg-[#302a45] p-0 hover:bg-[#3b3457]"
-                  aria-label="Ajouter des pièces jointes"
+                  aria-label="Add attachments"
                 >
                   <i className="fa-solid fa-paperclip" />
                 </Button>
 
                 <Input
                   type="text"
-                  placeholder={`Envoyez un message à @${selectedUser}`}
+                  placeholder={`Send a message to @${selectedUser}`}
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
                   onKeyDown={handleInputKeyDown}
@@ -695,7 +695,7 @@ export default function SocialPage() {
                   onClick={sendMessage}
                   disabled={!hasDraft}
                   className="h-9 w-9 rounded-full p-0"
-                  aria-label="Envoyer"
+                  aria-label="Send"
                 >
                   <i className="fa-solid fa-paper-plane" />
                 </Button>

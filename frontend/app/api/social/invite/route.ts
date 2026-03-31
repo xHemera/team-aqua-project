@@ -14,7 +14,7 @@ export async function POST(request: Request) {
 
     if (!username) {
       return Response.json(
-        { error: "entrez le nom d'utilisateur" },
+        { error: "enter a username" },
         { status: 400 },
       );
     }
@@ -39,19 +39,19 @@ export async function POST(request: Request) {
     });
 
     if (!targetUser) {
-      return Response.json({ error: "ce joueur n'existe pas" }, { status: 404 });
+      return Response.json({ error: "this player does not exist" }, { status: 404 });
     }
 
     if (targetUser.id === session.user.id) {
       return Response.json(
-        { error: "vous ne pouvez pas vous inviter" },
+        { error: "you cannot invite yourself" },
         { status: 400 },
       );
     }
 
     return Response.json({
       success: true,
-      message: "votre invitation a bien ete envoyer",
+      message: "your invitation has been sent",
       user: {
         name: targetUser.name,
         avatarUrl: targetUser.image ?? targetUser.avatar?.url,

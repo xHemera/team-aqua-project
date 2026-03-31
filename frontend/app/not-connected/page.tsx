@@ -18,11 +18,11 @@ export default function NotConnectedPage() {
         </div>
         
         <h1 className="text-3xl font-bold text-white mb-4">
-          Non Connecté
+          Not Connected
         </h1>
         
         <p className="text-gray-300 mb-8">
-          Vous n&apos;êtes pas connecté à un compte. Veuillez vous connecter ou créer un compte pour accéder à votre profil.
+          You are not signed in. Please sign in or create an account to access your profile.
         </p>
         
         <div className="flex flex-col gap-3">
@@ -32,7 +32,7 @@ export default function NotConnectedPage() {
             className="h-auto w-full py-3 font-semibold text-white"
           >
             <i className="fa-solid fa-right-to-bracket mr-2"></i>
-            Se connecter
+            Sign in
           </Button>
           
           <Button
@@ -42,7 +42,7 @@ export default function NotConnectedPage() {
             className="h-auto w-full py-3 font-semibold text-gray-100"
           >
             <i className="fa-solid fa-user-plus mr-2"></i>
-            Créer un compte
+            Create account
           </Button>
           
           <Button
@@ -52,7 +52,7 @@ export default function NotConnectedPage() {
             className="h-auto w-full py-3 font-semibold text-gray-100"
           >
             <i className="fa-solid fa-arrow-left mr-2"></i>
-            Retour à l&apos;accueil
+            Back to home
           </Button>
         </div>
       </Card>

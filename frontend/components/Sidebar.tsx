@@ -10,7 +10,7 @@ import Button from "@/components/atoms/Button";
 import { useAvatarPreference } from "@/hooks/useAvatarPreference";
 
 const NAV_ITEMS = [
-  { href: "/home", icon: "fa-solid fa-house", label: "Accueil" },
+  { href: "/home", icon: "fa-solid fa-house", label: "Home" },
   { href: "/decks", icon: "fa-regular fa-clone", label: "Decks" },
   { href: "/social", icon: "fa-regular fa-comment-dots", label: "Social" },
 ] as const;
@@ -66,7 +66,7 @@ export default function Sidebar() {
       <Button
         type="button"
         onClick={handleProfileClick}
-        title={pseudo ?? "Profil"}
+        title={pseudo ?? "Profile"}
         variant="ghost"
         className={`!h-14 !w-14 !p-0 !px-0 !py-0 overflow-hidden rounded-xl border shadow-lg ${
           isProfileActive

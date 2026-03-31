@@ -25,7 +25,7 @@ export default function MatchmakingModal({ open, onClose }: MatchmakingModalProp
       >
         <div className="flex flex-col gap-4">
           <h2 id="matchmaking-title" className="mb-4 text-xl font-black uppercase tracking-wide text-gray-800">
-            En recherche de joueur
+            Searching for a player
             <span className={styles.dot1}>.</span>
             <span className={styles.dot2}>.</span>
             <span className={styles.dot3}>.</span>
@@ -36,7 +36,7 @@ export default function MatchmakingModal({ open, onClose }: MatchmakingModalProp
             variant="secondary"
             className="rounded-lg border-0 bg-gray-500 px-4 py-3 text-lg font-bold uppercase text-gray-800 transition-transform hover:scale-105 hover:bg-gray-600"
           >
-            Annuler
+            Cancel
           </Button>
         </div>
       </Card>

@@ -26,7 +26,7 @@ export default function SearchPage() {
         const response = await fetch("/api/users", { cache: "no-store" });
 
         if (!response.ok) {
-          throw new Error(`Erreur HTTP: ${response.status}`);
+          throw new Error(`HTTP error: ${response.status}`);
         }
 
         const data = await response.json();
@@ -41,9 +41,9 @@ export default function SearchPage() {
         setUsers(usersList);
         setError(null);
       } catch (err) {
-        console.error("Erreur lors du chargement des joueurs:", err);
+        console.error("Error while loading players:", err);
         setUsers([]);
-        setError(err instanceof Error ? err.message : "Erreur inconnue");
+        setError(err instanceof Error ? err.message : "Unknown error");
       } finally {
         setIsLoading(false);
       }
@@ -67,13 +67,13 @@ export default function SearchPage() {
         <button
           onClick={() => router.push("/home")}
           className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#3c3650] bg-[#242033] text-white transition-colors hover:bg-[#302a45]"
-          title="Retour à l'accueil"
+          title="Back to home"
         >
           <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h1 className="text-2xl font-bold text-white sm:text-3xl">Chercher un joueur</h1>
+        <h1 className="text-2xl font-bold text-white sm:text-3xl">Search for a player</h1>
       </div>
 
       <div className="mb-6 rounded-2xl border border-[#3c3650] bg-[#15131d]/90 p-3 shadow-xl">
@@ -81,7 +81,7 @@ export default function SearchPage() {
           type="text"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Tape un pseudo..."
+          placeholder="Type a username..."
           className="h-12 w-full rounded-xl border border-[#3c3650] bg-[#0f0d16] px-4 text-white outline-none transition-colors placeholder:text-gray-400 focus:border-[var(--accent-border)]"
         />
       </div>
@@ -89,7 +89,7 @@ export default function SearchPage() {
       <div className="space-y-3">
         {isLoading && (
           <div className="rounded-2xl border border-[#3c3650] bg-[#15131d]/90 p-4 text-white">
-            Chargement des joueurs...
+            Loading players...
           </div>
         )}
 
@@ -101,7 +101,7 @@ export default function SearchPage() {
 
         {!isLoading && !error && filteredUsers.length === 0 && (
           <div className="rounded-2xl border border-[#3c3650] bg-[#15131d]/90 p-4 text-gray-300">
-            Aucun joueur trouvé.
+            No players found.
           </div>
         )}
 
