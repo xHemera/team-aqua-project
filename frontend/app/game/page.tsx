@@ -1,42 +1,46 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import AppPageShell from "@/components/AppPageShell";
+import Button from "@/components/atoms/Button";
+import Card from "@/components/atoms/Card";
 
 // Plateau de jeu (maquette statique) + menu pause
 export default function GamePage() {
-	const router = useRouter();
 	const [showMenu, setShowMenu] = useState(false);
+
+	useEffect(() => {
+		const handleEscapeModal = (event: KeyboardEvent) => {
+			if (event.key !== "Escape") return;
+			setShowMenu(false);
+		};
+
+		document.addEventListener("keydown", handleEscapeModal);
+		return () => {
+			document.removeEventListener("keydown", handleEscapeModal);
+		};
+	}, []);
+
 	// Collections de slots pour afficher les zones du plateau
 	const Bench = Array.from({ length: 1 }, (_, i) => i);
 	const Prize = Array.from({ length: 6 }, (_, i) => i);
 	const Hand = Array.from({ length: 1 }, (_, i) => i);
 
 	return (
-		<div className="relative isolate min-h-screen flex flex-col overflow-hidden text-white">
-			{/* Fond global */}
-			<div
-				className="absolute inset-0 z-0"
-				style={{
-					backgroundImage: "var(--site-bg-image)",
-					backgroundSize: "cover",
-					backgroundPosition: "center",
-					filter: "blur(10px)",
-					transform: "scale(1.08)",
-				}}
-			/>
-			<div className="absolute inset-0 z-[1] bg-black/25" />
+		<AppPageShell mainClassName="min-h-screen" containerClassName="max-w-none min-h-screen px-0 py-0">
             
 			{/* Plateau principal */}
-			<main className="flex-1 relative z-10">
+			<main className="relative z-10 flex-1">
 				<div className="absolute inset-0 overflow-hidden rounded-3xl border border-[#3c3650] bg-[#15131d]/85 shadow-2xl backdrop-blur-md">
 					{/* Menu Button */}
-					<button
+					<Button
+						type="button"
 						onClick={() => setShowMenu(true)}
+						variant="ghost"
 						className="absolute top-1/2 right-4 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg border border-[#3c3650] bg-[#242033] text-xl font-bold text-white transition-colors hover:bg-[#302a45]"
 					>
 						<i className="fa-solid fa-gear"></i>
-					</button>
+					</Button>
 
 					{/* Opponent Header */}
 					<div className="absolute top-4 right-16 flex items-center gap-3 rounded-full border border-[#3c3650] bg-[#242033] px-4 py-2">
@@ -198,24 +202,29 @@ export default function GamePage() {
 			{/* Popup pause / abandon */}
 			{showMenu && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
-					<div className="rounded-2xl border border-[#3c3650] bg-[#15131d] p-8 shadow-2xl">
+					<Card className="rounded-2xl bg-[#15131d] p-8">
 						<div className="flex flex-col gap-4 min-w-[200px]">
-							<button
+							<Button
+								type="button"
 								onClick={() => setShowMenu(false)}
-								className="rounded-lg border border-[#3c3650] bg-[#242033] px-6 py-3 text-lg font-bold uppercase text-white transition-colors hover:bg-[#302a45]"
+								variant="secondary"
+								className="h-auto rounded-lg px-6 py-3 text-lg font-bold uppercase text-white"
 							>
 								Resume
-							</button>
-							<button
-								onClick={() => router.push('/home')}
-								className="rounded-lg border border-red-400/80 bg-red-500/90 px-6 py-3 text-lg font-bold uppercase text-white transition-colors hover:bg-red-500"
+							</Button>
+							<Button
+								type="button"
+								onClick={() => {
+									window.location.href = "/home";
+								}}
+								className="h-auto rounded-lg border-red-400/80 bg-red-500/90 px-6 py-3 text-lg font-bold uppercase text-white hover:bg-red-500"
 							>
 								Forfait
-							</button>
+							</Button>
 						</div>
-					</div>
+					</Card>
 				</div>
 			)}
-		</div>
+		</AppPageShell>
 	);
 }

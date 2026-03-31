@@ -5,49 +5,15 @@ import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { socket } from "../../socket"
-const alder = "https://archives.bulbagarden.net/media/upload/e/e8/Spr_B2W2_Alder.png";
 import AppPageShell from "@/components/AppPageShell";
+import DeckSelector from "@/components/organisms/home/DeckSelector";
+import MatchmakingModal from "@/components/organisms/home/MatchmakingModal";
+import NotificationToast from "@/components/organisms/home/NotificationToast";
+import PlayCta from "@/components/organisms/home/PlayCta";
 import { DEFAULT_PROFILE_ICON } from "@/lib/profile-icons";
-
-
-const deckpublic: Record<string, string> = {
-  "Flygon": "/decks/flygon-icon.png",
-  "Ceruledge": "/decks/ceruledge-icon.png",
-  "Toxtricity": "/decks/toxtricity-icon.png",
-  "Zacian": "/decks/zacian-icon.png",
-};
-
-const defaultDecks = ["Flygon", "Ceruledge", "Toxtricity", "Zacian"];
-
-const getInitialDeckState = () => {
-  if (typeof window === "undefined") {
-    return { availableDecks: defaultDecks, selectedDeck: "Flygon" };
-  }
-
-  const savedDecksRaw = localStorage.getItem("decks");
-  const savedSelectedDeck = localStorage.getItem("selectedDeck");
-
-  if (!savedDecksRaw) {
-    return {
-      availableDecks: defaultDecks,
-      selectedDeck: savedSelectedDeck && defaultDecks.includes(savedSelectedDeck) ? savedSelectedDeck : "Flygon",
-    };
-  }
-
-  const parsedDecks = JSON.parse(savedDecksRaw) as Record<string, { cards: Array<unknown> }>;
-  const deckNames = Object.keys(parsedDecks);
-
-  if (deckNames.length === 0) {
-    return { availableDecks: [], selectedDeck: "" };
-  }
-
-  if (savedSelectedDeck && deckNames.includes(savedSelectedDeck)) {
-    return { availableDecks: deckNames, selectedDeck: savedSelectedDeck };
-  }
-
-  return { availableDecks: deckNames, selectedDeck: deckNames[0] };
-};
+import { DEFAULT_DECKS, DECK_ICONS, useDeckPreferences } from "@/hooks/useDeckPreferences";
+import Button from "@/components/atoms/Button";
+import { useAvatarPreference } from "@/hooks/useAvatarPreference";
 
 // Page principale: navigation rapide, lancement de partie et sélection de deck
 export default function Home() {
@@ -55,59 +21,19 @@ export default function Home() {
   const router = useRouter();
   // États UI de la page
   const [showPopup, setShowPopup] = useState(false);
-  const [selectedDeck, setSelectedDeck] = useState("Flygon");
-  const [availableDecks, setAvailableDecks] = useState<string[]>(defaultDecks);
-  const [showDeckDropdown, setShowDeckDropdown] = useState(false);
   const [showNotification, setShowNotification] = useState(true);
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
-  const [avatar, setAvatar] = useState(DEFAULT_PROFILE_ICON.url);
-  const deckMenuRef = useRef<HTMLDivElement | null>(null);
+  const avatar = useAvatarPreference(DEFAULT_PROFILE_ICON.url);
+  const { selectedDeck, setSelectedDeck, availableDecks } = useDeckPreferences(DEFAULT_DECKS);
 
-  //reconnection en cas de chargement de la page
-    useEffect(() => {
-      if (socket.connected || !userPseudo) return;
-      socket.connect()
-      socket.emit("login", userPseudo);
-      socket.on("online_users", (users) => {
-        console.log("Users from Redis:", users);
-      });
-    });
-
-  // Récupère le pseudo de la session pour l'afficher sur la home
   useEffect(() => {
-    // Sync avatar and deck state from localStorage after hydration
-    const savedAvatar = localStorage.getItem("avatar");
-    if (savedAvatar) setAvatar(savedAvatar);
-
-    const nextState = getInitialDeckState();
-    setAvailableDecks(nextState.availableDecks);
-    setSelectedDeck(nextState.selectedDeck);
-
     const getUserData = async () => {
       const { data } = await authClient.getSession();
       if (data?.user?.name) {
         setUserPseudo(data.user.name);
       }
     };
-    getUserData();
-
-    // Écoute les changements de localStorage (entre onglets ou après modification)
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === "avatar" && event.newValue) {
-        setAvatar(event.newValue);
-      }
-
-      if (event.key === "decks" || event.key === "selectedDeck") {
-        const nextState = getInitialDeckState();
-        setAvailableDecks(nextState.availableDecks);
-        setSelectedDeck(nextState.selectedDeck);
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-    };
+    void getUserData();
   }, []);
 
   useEffect(() => {
@@ -130,12 +56,9 @@ export default function Home() {
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleEscape);
-
+    document.addEventListener("keydown", handleEscapeModal);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleEscape);
+      document.removeEventListener("keydown", handleEscapeModal);
     };
   }, []);
   
@@ -188,38 +111,14 @@ export default function Home() {
         }
       `}</style>
 
-      {/* Notification Bar - Top Left */}
-      {showNotification && (
-        <div className="fixed top-4 left-4 z-50 animate-slide-in">
-          <div className="rounded-2xl shadow-2xl border-2 border-[color:var(--accent-border)] overflow-hidden w-[380px] max-w-[90vw]">
-            {/* Top part - Violet */}
-            <div className="bg-[var(--accent-color)] px-3  flex items-center justify-between">
-              <div className="text-white font-bold text-base">@sunmiaou</div>
-              <button
-                onClick={() => setShowNotification(false)}
-                className="text-white hover:text-gray-200 transition-colors text-2xl font-bold leading-none"
-              >
-                ×
-              </button>
-            </div>
-            {/* Separator line */}
-            <div className="w-full h-[2px] bg-black"></div>
-            {/* Bottom part - Black */}
-            <div className="bg-black px-4 py-4">
-
-              <div className="text-white text-sm leading-tight">35h par semaine crois moi</div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Header */}
-      <header className="relative z-10 flex w-full items-center justify-end px-4 py-4 sm:px-8 sm:py-6">
-        <div className="flex gap-4 rounded-2xl border border-[#3c3650] bg-[#15131d]/85 px-4 py-3 shadow-2xl backdrop-blur-md">
-          {/* Search Icon */}
-          <Link href="/search" className="w-16 h-16 bg-[#242033] rounded-xl flex items-center justify-center border border-[#3c3650] hover:bg-[#302a45] transition-colors shadow-lg">
-            <i className="fa-solid fa-magnifying-glass text-white text-2xl"></i>
-          </Link>
+  const handleProfileClick = async () => {
+    const { data } = await authClient.getSession();
+    if (data?.user?.name) {
+      router.push(`/profile/${data.user.name}`);
+    } else {
+      router.push("/not-connected");
+    }
+  };
 
           {/* Decks Icon */}
           <Link href="/decks" className="w-16 h-16 bg-[#242033] rounded-xl flex items-center justify-center border border-[#3c3650] hover:bg-[#302a45] transition-colors shadow-lg">
@@ -241,14 +140,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Zone centrale (CTA Play + sélecteur deck) */}
-      <div className="relative z-10 flex min-h-[calc(100vh-116px)] w-full flex-1 items-center justify-center px-4 pb-4 sm:px-8 sm:pb-6">
-        
-        <div className="absolute inset-0 flex pointer-events-none">
-          {/* Left Side - Illustration */}
-          <div className="flex-1 min-h-full flex items-center justify-center p-8 relative">
           </div>
-
           {/* Right Side */}
           <div className="flex-1 min-h-full flex items-center left-30 justify-end relative pointer-events-auto">
             <div className="relative z-10 flex flex-col items-center gap-4 mr-8">
@@ -300,95 +192,13 @@ export default function Home() {
               aria-haspopup="listbox"
               aria-expanded={showDeckDropdown}
             >
-              <div className="flex h-12 w-12 items-center justify-center">
-                <Image
-                  src={deckpublic[selectedDeck] || deckpublic.Flygon}
-                  alt={selectedDeck}
-                  width={52}
-                  height={52}
-                  className="h-12 w-12 object-contain transition-all"
-                  style={{
-                    imageRendering: 'pixelated',
-                    filter: 'brightness(1) contrast(1.5) saturate(1)'
-                  }}
-                  priority
-                />
-              </div>
-              <div className="flex flex-1 flex-col items-start leading-tight">
-                <span className="text-xs uppercase tracking-[0.14em] text-gray-400">Deck sélectionné</span>
-                <span className="text-lg font-bold text-white">{selectedDeck || "Aucun deck"}</span>
-              </div>
-              <svg
-                className={`h-5 w-5 text-gray-300 transition-transform ${showDeckDropdown ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            
-            {showDeckDropdown && (
-              <div className="absolute bottom-[calc(100%+0.55rem)] z-30 w-full rounded-2xl border border-[#3c3650] bg-[#15131d] p-2 shadow-2xl">
-                {availableDecks.map((deck) => (
-                  <button
-                    key={deck}
-                    onClick={() => {
-                      setSelectedDeck(deck);
-                      setShowDeckDropdown(false);
-                    }}
-                    role="option"
-                    aria-selected={selectedDeck === deck}
-                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
-                      selectedDeck === deck
-                        ? "bg-[var(--accent-soft)] text-white"
-                        : "text-gray-200 hover:bg-[#242033]"
-                    }`}
-                  >
-                    <div className="flex h-10 w-10 items-center justify-center">
-                      <Image
-                        src={deckpublic[deck] || deckpublic.Flygon}
-                        alt={deck}
-                        width={40}
-                        height={40}
-                        className="h-10 w-10 object-contain"
-                        style={{ imageRendering: 'pixelated' }}
-                      />
-                    </div>
-                    <span className="flex-1 font-semibold text-base">{deck}</span>
-                    {selectedDeck === deck && <i className="fa-solid fa-check text-[var(--accent-color)]"></i>}
-                  </button>
-                ))}
-                {availableDecks.length === 0 && (
-                  <div className="px-3 py-2 text-sm text-gray-400">Aucun deck disponible</div>
-                )}
-              </div>
-            )}
+              {userPseudo || "Username"}
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Popup Modal */}
-      {showPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gradient-to-br from-gray-300 to-gray-200 p-8 rounded-lg shadow-2xl max-w-sm w-full mx-4">
-            <div className="flex flex-col gap-4">
-              <h2 className="text-xl font-black text-gray-800 mb-4 uppercase tracking-wide">
-                En recherche de joueur
-                <span className="dot-1">.</span>
-                <span className="dot-2">.</span>
-                <span className="dot-3">.</span>
-              </h2>
-              <button
-                onClick={() => setShowPopup(false)}
-                className="bg-gray-500 text-gray-800 font-bold text-lg py-3 px-4 rounded-lg hover:scale-105 transition-transform uppercase"
-              >
-                Annuler
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <MatchmakingModal open={showPopup} onClose={() => setShowPopup(false)} />
     </AppPageShell>
   );
 }

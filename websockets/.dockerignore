@@ -1,5 +1,5 @@
 node_modules
 .git
-.pnpm-store
+.bun
 dist
 *.log

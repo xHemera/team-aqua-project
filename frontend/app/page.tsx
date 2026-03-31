@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { socket } from "../socket"
 import AuthPageLayout from "@/components/AuthPageLayout";
+import Button from "@/components/atoms/Button";
+import IconField from "@/components/molecules/IconField";
 
 // Page d'entrée: connexion + création de compte (mode toggle)
 export default function LoginPage() {
@@ -37,12 +39,20 @@ export default function LoginPage() {
   //permet d'envoyer l'utilisateur a redis dans le serveur
   useEffect(() => {
     if (!pseudo) return;
-    socket.connect()
+
+    socket.connect();
     socket.emit("login", pseudo);
-    socket.on("online_users", (users) => {
+
+    const onOnlineUsers = (users: unknown) => {
       console.log("Users from Redis:", users);
-    });
-  });
+    };
+
+    socket.on("online_users", onOnlineUsers);
+
+    return () => {
+      socket.off("online_users", onOnlineUsers);
+    };
+  }, [pseudo]);
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -58,9 +68,9 @@ export default function LoginPage() {
       });
 
       if (error) {
-        setMessage(error.message ?? "Erreur lors de l'inscription");
+        setMessage(error.message ?? "Registration error");
       } else {
-        setMessage("Compte créé avec succès ! Vous pouvez maintenant vous connecter.");
+        setMessage("Account created successfully! You can now sign in.");
         setIsRegisterMode(false);
         setPassword("");
         setName("");
@@ -73,11 +83,11 @@ export default function LoginPage() {
       });
 
       if (error) {
-        setMessage(error.message ?? "Erreur de connexion");
+        setMessage(error.message ?? "Sign-in error");
       }
       else {
-        setMessage("Connexion réussie !");
-        setPseudo(data?.user?.name || "utilisateur");
+        setMessage("Signed in successfully!");
+        setPseudo(data?.user?.name || "user");
         setTimeout(() => router.push(`/profile/${data?.user?.name}`), 500);
       }
     }
@@ -89,74 +99,62 @@ export default function LoginPage() {
       <div className="w-full">
         <form onSubmit={onSubmit} className="space-y-4">
           {isRegisterMode && (
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
-                <i className="fa-regular fa-id-card"></i>
-              </div>
-              <input
+            <>
+              {/* Usage molecule/atom: IconField reutilise Input pour garder un style homogene. */}
+              <IconField
+                iconClassName="fa-regular fa-id-card"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Nom"
-                className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[var(--accent-color)] focus:outline-none"
+                placeholder="Name"
                 required
               />
-            </div>
+            </>
           )}
 
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
-              <i className="fa-regular fa-user"></i>
-            </div>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
-              className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[var(--accent-color)] focus:outline-none"
-              required
-            />
-          </div>
+          <IconField
+            iconClassName="fa-regular fa-user"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+            required
+          />
 
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
-              <i className="fa-solid fa-lock"></i>
-            </div>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mot de passe"
-              className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[var(--accent-color)] focus:outline-none"
-              required
-              minLength={8}
-            />
-          </div>
+          <IconField
+            iconClassName="fa-solid fa-lock"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            required
+            minLength={8}
+          />
 
           <div className="grid grid-cols-2 gap-4">
-            <button
+            {/* Usage atomique: Button remplace les boutons inline pour reutilisation maximale. */}
+            <Button
               type="button"
               onClick={() => {
                 setIsRegisterMode(!isRegisterMode);
                 setMessage("");
               }}
-              className="rounded-xl border border-[#3c3650] bg-[#302a45] py-3 font-semibold text-gray-100 transition-colors hover:bg-[#3a3355]"
+              variant="secondary"
             >
-              {isRegisterMode ? "Se connecter" : "S'inscrire"}
-            </button>
+              {isRegisterMode ? "Sign in" : "Sign up"}
+            </Button>
 
-            <button
+            <Button
               type="submit"
               disabled={loading}
-              className="rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] py-3 font-semibold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {loading ? "..." : isRegisterMode ? "Créer un compte" : "Connexion"}
-            </button>
+              {loading ? "..." : isRegisterMode ? "Create account" : "Sign in"}
+            </Button>
           </div>
           {message && (
             <p
               className={`text-center text-sm ${
-                message.includes("succès") || message.includes("réussie") ? "text-green-400" : "text-red-400"
+                message.includes("success") ? "text-green-400" : "text-red-400"
               }`}
             >
               {message}

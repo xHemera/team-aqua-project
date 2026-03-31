@@ -2,12 +2,11 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { socket } from "../../socket"
-import { authClient } from "@/lib/auth-client";
 import AppPageShell from "@/components/AppPageShell";
 import { DEFAULT_PROFILE_ICON, PROFILE_ICONS } from "@/lib/profile-icons";
-import { addContact}  from "./contact"
+import Button from "@/components/atoms/Button";
+import Input from "@/components/atoms/Input";
+import Card from "@/components/atoms/Card";
 
 const esper = PROFILE_ICONS.find((icon) => icon.type === "esper")?.url ?? DEFAULT_PROFILE_ICON.url;
 const dragon = PROFILE_ICONS.find((icon) => icon.type === "dragon")?.url ?? DEFAULT_PROFILE_ICON.url;
@@ -41,8 +40,94 @@ type InviteNotification = {
   message: string;
 };
 
+const SOCIAL_STORAGE_KEY = "social-chat-state";
+
+// HARDCODE: seeded contacts used as temporary mock social graph.
+const defaultUsers = [
+  { name: "Sauralt", avatar: esper, unreadCount: 0 },
+  { name: "Xoco", avatar: dragon, unreadCount: 1 },
+  { name: "SunMiaou", avatar: mizu, unreadCount: 0 },
+] as ChatUser[];
+
+// HARDCODE: seeded chat history used until message persistence is DB-backed.
+const defaultMessagesByUser: Record<string, ChatMessage[]> = {
+  SunMiaou: [
+    {
+      id: "msg-1",
+      sender: "SunMiaou",
+      text: "Hey! Are you starting a match tonight?",
+      isMine: false,
+      sentAt: "20:41",
+      attachments: [],
+    },
+    {
+      id: "msg-2",
+      sender: "me",
+      text: "Yes, I am finishing my deck and I will message you.",
+      isMine: true,
+      sentAt: "20:43",
+      attachments: [],
+    },
+  ],
+  Xoco: [
+    {
+      id: "msg-3",
+      sender: "Xoco",
+      text: "Can you send me the deck list again?",
+      isMine: false,
+      sentAt: "18:12",
+      attachments: [],
+    },
+  ],
+  Sauralt: [],
+};
+
+// HARDCODE: fallback social state when no local persisted data exists.
+const fallbackSocialState = {
+  users: defaultUsers,
+  messagesByUser: defaultMessagesByUser,
+  selectedUser: "SunMiaou",
+};
+
+/**
+ * Objective: hydrate social screen state from localStorage.
+ * Usage: called once on mount to restore local conversation state.
+ * Input: none.
+ * Output: social state object with users/messages/selected user.
+ * Special cases: invalid JSON falls back to hardcoded seed state.
+ */
+const getSocialStateFromStorage = () => {
+  const savedState = localStorage.getItem(SOCIAL_STORAGE_KEY);
+  if (!savedState) {
+    return fallbackSocialState;
+  }
+
+  try {
+    const parsed = JSON.parse(savedState) as {
+      users?: ChatUser[];
+      messagesByUser?: Record<string, ChatMessage[]>;
+      selectedUser?: string;
+    };
+
+    const users = parsed.users && parsed.users.length > 0 ? parsed.users : defaultUsers;
+    const messagesByUser = parsed.messagesByUser ?? defaultMessagesByUser;
+    const selectedUser =
+      parsed.selectedUser && users.some((user) => user.name === parsed.selectedUser)
+        ? parsed.selectedUser
+        : users[0]?.name ?? "SunMiaou";
+
+    return {
+      users,
+      messagesByUser,
+      selectedUser,
+    };
+  } catch {
+    return fallbackSocialState;
+  }
+};
+
 const formatTime = (date: Date) =>
-  date.toLocaleTimeString("fr-FR", {
+  date.toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -53,6 +138,13 @@ const toSizeLabel = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
 };
 
+/**
+ * Objective: convert a browser file into app attachment payload.
+ * Usage: used by attachment picker before drafting a message.
+ * Input: browser `File` object.
+ * Output: attachment metadata + temporary object URL.
+ * Special cases: generated ID is client-side and not globally unique.
+ */
 const buildAttachmentFromFile = (file: File): Attachment => ({
   id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
   name: file.name,
@@ -62,26 +154,35 @@ const buildAttachmentFromFile = (file: File): Attachment => ({
 });
 
 export default function SocialPage() {
-
-  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
 
-  const [users, setUsers] = useState<ChatUser[]>([
-  ]);
-
-  const [selectedUser, setSelectedUser] = useState("");
+  const [users, setUsers] = useState<ChatUser[]>(fallbackSocialState.users);
+  const [selectedUser, setSelectedUser] = useState(fallbackSocialState.selectedUser);
   const [message, setMessage] = useState("");
   const [draftAttachments, setDraftAttachments] = useState<Attachment[]>([]);
   const [inviteNotification, setInviteNotification] = useState<InviteNotification | null>(null);
   const [isInviting, setIsInviting] = useState(false);
-  const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
+  const [isAddFriendModalOpen, setIsAddFriendModalOpen] = useState(false);
   const [inviteUsername, setInviteUsername] = useState("");
-  const [userPseudo, setUserPseudo] = useState<string | null>(null)
-  const [messagesByUser, setMessagesByUser] = useState<Record<string, ChatMessage[]>>({
-  });
+  const [contactSearch, setContactSearch] = useState("");
 
-  //a modifier ou supprimer
+  const [messagesByUser, setMessagesByUser] = useState<Record<string, ChatMessage[]>>(
+    fallbackSocialState.messagesByUser,
+  );
+
+  useEffect(() => {
+    const syncSocialStateFromStorage = async () => {
+      await Promise.resolve();
+      const hydratedSocialState = getSocialStateFromStorage();
+      setUsers(hydratedSocialState.users);
+      setMessagesByUser(hydratedSocialState.messagesByUser);
+      setSelectedUser(hydratedSocialState.selectedUser);
+    };
+
+    void syncSocialStateFromStorage();
+  }, []);
+
   const currentUser = useMemo(
     () => users.find((user) => user.name === selectedUser) ?? users[0],
     [selectedUser, users],
@@ -92,33 +193,14 @@ export default function SocialPage() {
     [messagesByUser, selectedUser],
   );
 
+  const filteredUsers = useMemo(() => {
+    const query = contactSearch.trim().toLowerCase();
+    if (!query) return users;
+
+    return users.filter((user) => user.name.toLowerCase().includes(query));
+  }, [contactSearch, users]);
+
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
-
-
-  useEffect(() => {
-    const getUserData = async () => {
-      const { data } = await authClient.getSession();
-      if (data?.user?.name)
-        setUserPseudo(data.user.name);
-    };
-    getUserData();
-  }, []);
-
-  useEffect(() => {
-    if (socket.connected || !userPseudo) return;
-    socket.connect();
-    socket.emit("login", userPseudo);
-
-    const handleOnlineUsers = (users: string[]) => {
-      console.log("Users from Redis:", users);
-    };
-
-    socket.on("online_users", handleOnlineUsers);
-
-    return () => {
-      socket.off("online_users", handleOnlineUsers);
-    };
-  }, [userPseudo]);
 
   useEffect(() => {
     messageListRef.current?.scrollTo({
@@ -143,6 +225,40 @@ export default function SocialPage() {
     return () => clearTimeout(timeoutId);
   }, [inviteNotification]);
 
+  useEffect(() => {
+    localStorage.setItem(
+      SOCIAL_STORAGE_KEY,
+      JSON.stringify({
+        users,
+        messagesByUser,
+        selectedUser,
+      }),
+    );
+  }, [messagesByUser, selectedUser, users]);
+
+  useEffect(() => {
+    if (users.length === 0) return;
+    if (!users.some((user) => user.name === selectedUser)) {
+      setSelectedUser(users[0].name);
+    }
+  }, [selectedUser, users]);
+
+  useEffect(() => {
+    const handleEscapeModal = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (isAddFriendModalOpen) {
+        if (isInviting) return;
+        setIsAddFriendModalOpen(false);
+        setInviteUsername("");
+      }
+    };
+
+    document.addEventListener("keydown", handleEscapeModal);
+    return () => {
+      document.removeEventListener("keydown", handleEscapeModal);
+    };
+  }, [isAddFriendModalOpen, isInviting]);
+
   const selectUser = (userName: string) => {
     setSelectedUser(userName);
     setUsers((prevUsers) =>
@@ -152,22 +268,29 @@ export default function SocialPage() {
     );
   };
 
-  const openAddContactModal = () => {
+  const openAddFriendModal = () => {
     if (isInviting) return;
     setInviteUsername("");
-    setIsAddContactModalOpen(true);
+    setIsAddFriendModalOpen(true);
   };
 
-  const closeAddContactModal = () => {
+  const closeAddFriendModal = () => {
     if (isInviting) return;
-    setIsAddContactModalOpen(false);
+    setIsAddFriendModalOpen(false);
     setInviteUsername("");
   };
 
-  //cree une nouvelle discussion
-  const submitContactInvite = async () => {
+  /**
+   * Objective: invite a user by pseudo and initialize local chat context.
+   * Usage: called from add-friend modal submit actions.
+   * Input: none (uses `inviteUsername` state).
+   * Output: none (mutates state and notification banner).
+   * Special cases: ignores empty input and prevents concurrent submissions.
+   */
+  const submitFriendInvite = async () => {
     const username = inviteUsername.trim();
     if (isInviting || !username) return;
+
     try {
       setIsInviting(true);
 
@@ -176,7 +299,7 @@ export default function SocialPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username }),
       });
-      addContact(userPseudo!, inviteUsername);
+
       const payload = (await response.json()) as {
         error?: string;
         user?: { name: string; avatarUrl?: string | null };
@@ -185,7 +308,7 @@ export default function SocialPage() {
       if (!response.ok || !payload.user) {
         setInviteNotification({
           type: "error",
-          message: payload.error ?? "ce joueur n'existe pas",
+          message: payload.error ?? "this player does not exist",
         });
         return;
       }
@@ -222,20 +345,19 @@ export default function SocialPage() {
       setSelectedUser(foundName);
       setInviteNotification({
         type: "success",
-        message: "votre invitation a bien ete envoyer",
+        message: "your invitation has been sent",
       });
-      setIsAddContactModalOpen(false);
+      setIsAddFriendModalOpen(false);
       setInviteUsername("");
     } catch {
       setInviteNotification({
         type: "error",
-        message: "ce joueur n'existe pas",
+        message: "this player does not exist",
       });
     } finally {
       setIsInviting(false);
     }
   };
-  //fin de la fonction a modifier
 
   const handlePickAttachments = () => {
     fileInputRef.current?.click();
@@ -261,9 +383,13 @@ export default function SocialPage() {
     });
   };
 
-
-
-  //Ecrire et envoyer un message
+  /**
+   * Objective: append a new message to current conversation.
+   * Usage: called on send button and Enter key shortcut.
+   * Input: none (uses message and attachment draft states).
+   * Output: none (updates message list and resets draft state).
+   * Special cases: blocks sending when text and attachment draft are both empty.
+   */
   const sendMessage = () => {
     const cleanMessage = message.trim();
     if (!cleanMessage && draftAttachments.length === 0) return;
@@ -285,6 +411,7 @@ export default function SocialPage() {
     setMessage("");
     setDraftAttachments([]);
   };
+
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -292,11 +419,8 @@ export default function SocialPage() {
     }
   };
 
-
-
-
   return (
-    <AppPageShell>
+    <AppPageShell showSidebar containerClassName="min-h-0 flex-1">
       {inviteNotification && (
         <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
           <div
@@ -311,76 +435,94 @@ export default function SocialPage() {
         </div>
       )}
 
-      {isAddContactModalOpen && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 px-4">
-          <div className="w-full max-w-md rounded-2xl border border-[#3c3650] bg-[#1b1826] p-5 shadow-2xl">
-            <h3 className="text-lg font-bold text-white">entrez le nom d&apos;utilisateur</h3>
-            <p className="mt-1 text-sm text-gray-300">Saisis le pseudo du joueur pour envoyer une invitation.</p>
+      {isAddFriendModalOpen && (
+        <div
+          className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 px-4"
+          onClick={closeAddFriendModal}
+        >
+          {/* Usage atomique: Card standardise le conteneur modal pour les interactions sociales. */}
+          <Card
+            className="w-full max-w-md bg-[#1b1826] p-5"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold text-white">Enter a username</h3>
+            <p className="mt-1 text-sm text-gray-300">Enter the player username to send an invitation.</p>
 
-            <input
+            <Input
               type="text"
               value={inviteUsername}
               onChange={(event) => setInviteUsername(event.target.value)}
-              placeholder="Pseudo du joueur"
-              className="mt-4 w-full rounded-xl border border-[#3c3650] bg-[#242033] px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-[var(--accent-color)]"
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  submitFriendInvite();
+                }
+              }}
+              placeholder="Player username"
+              className="mt-4 py-2 text-sm"
               autoFocus
             />
 
             <div className="mt-4 flex items-center justify-end gap-2">
-              <button
-                onClick={closeAddContactModal}
+              <Button
+                onClick={closeAddFriendModal}
                 disabled={isInviting}
-                className="rounded-xl border border-[#3c3650] bg-[#242033] px-4 py-2 text-sm font-semibold text-gray-200 transition-colors hover:bg-[#302a45] disabled:cursor-not-allowed disabled:opacity-50"
+                variant="ghost"
+                className="h-10 px-4 py-2 text-sm"
               >
-                Annuler
-              </button>
-              <button
-                onClick={submitContactInvite}
+                Cancel
+              </Button>
+              <Button
+                onClick={submitFriendInvite}
                 disabled={isInviting || inviteUsername.trim().length === 0}
-                className="rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-10 px-4 py-2 text-sm font-bold"
               >
-                {isInviting ? "Recherche..." : "Envoyer"}
-              </button>
+                {isInviting ? "Searching..." : "Send"}
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
-      <div className="w-full">
-        <section className="grid h-[calc(100vh-2rem)] w-full grid-cols-1 overflow-hidden rounded-3xl border border-[#3c3650] bg-[#15131d]/85 shadow-2xl backdrop-blur-md lg:grid-cols-[19rem_1fr]">
+      <div className="mx-auto flex min-h-0 flex-1 w-full max-w-[88rem]">
+        <section className="grid h-full min-h-0 w-full grid-cols-1 overflow-hidden rounded-3xl border border-[#3c3650] bg-[#15131d]/85 shadow-2xl backdrop-blur-md lg:grid-cols-[19rem_1fr]">
           <aside className="flex min-h-0 flex-col border-b border-[#3c3650] lg:border-b-0 lg:border-r">
             <div className="flex items-center justify-between border-b border-[#3c3650] px-5 py-4">
               <h1 className="text-2xl font-bold tracking-tight">Social</h1>
-              <button
-                onClick={() => router.push("/home")}
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#3c3650] bg-[#242033] text-white transition-colors hover:bg-[#302a45]"
-                aria-label="Retour à l'accueil"
-              >
-                <i className="fa-solid fa-house" />
-              </button>
+            </div>
+
+            <div className="border-b border-[#3c3650] p-3">
+              <Input
+                type="text"
+                value={contactSearch}
+                onChange={(event) => setContactSearch(event.target.value)}
+                placeholder="Search contacts..."
+                className="py-2 text-sm"
+              />
             </div>
 
             <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
-              {users.map((user) => {
+              {filteredUsers.map((user) => {
                 const isActive = selectedUser === user.name;
 
                 return (
-                  <button
+                  <Button
                     key={user.name}
                     onClick={() => selectUser(user.name)}
-                    className={`relative flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors ${
+                    variant={isActive ? "primary" : "ghost"}
+                    className={`relative flex w-full justify-start items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors ${
                       isActive
                         ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)] text-white"
                         : "border-[#3c3650] bg-[#242033] text-gray-200 hover:bg-[#302a45]"
                     }`}
                   >
-                    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-visible">
+                    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md">
                       <Image
                         src={user.avatar}
                         alt={user.name}
                         width={64}
                         height={64}
-                        className="h-12 w-12 rounded-lg border border-[#3c3650] object-cover"
+                        className="h-10 w-10 rounded-md border border-[#3c3650] object-cover"
                         unoptimized
                       />
                     </div>
@@ -390,53 +532,55 @@ export default function SocialPage() {
                         {user.unreadCount}
                       </span>
                     )}
-                  </button>
+                  </Button>
                 );
               })}
+
+              {filteredUsers.length === 0 && (
+                <div className="rounded-xl border border-[#3c3650] bg-[#242033]/70 p-3 text-sm text-gray-300">
+                  No contact found.
+                </div>
+              )}
             </div>
 
             <div className="border-t border-[#3c3650] p-3">
-              <button
-                onClick={openAddContactModal}
+              <Button
+                onClick={openAddFriendModal}
                 disabled={isInviting}
-                className="w-full rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] py-2 font-bold text-white transition-colors hover:bg-[var(--accent-hover)]"
+                className="h-10 w-full py-2 font-bold"
               >
-                {isInviting ? "Recherche..." : "+ Nouveau contact"}
-              </button>
+                {isInviting ? "Searching..." : "+ New contact"}
+              </Button>
             </div>
           </aside>
+
           <section className="flex min-h-0 flex-col">
             <header className="flex items-center justify-between border-b border-[#3c3650] bg-[#242033] px-5 py-4">
               <div className="flex items-center gap-3">
-                <div className="relative flex h-10 w-10 items-center justify-center overflow-visible">
-                  {/* <Image
+                <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-md">
+                  <Image
                     src={currentUser.avatar}
                     alt={currentUser.name}
                     width={64}
                     height={64}
-                    className="h-12 w-12 rounded-lg border border-[#3c3650] object-cover"
+                    className="h-10 w-10 rounded-md border border-[#3c3650] object-cover"
                     unoptimized
-                  /> */}
+                  />
                 </div>
-                {/* <div>
+                <div>
                   <h2 className="text-xl font-bold">{currentUser.name}</h2>
-                  {hasDraft && <p className="text-xs text-[#b4a8ff]">En train d’écrire...</p>}
-                </div> */}
+                </div>
               </div>
 
-              <button
-                onClick={() => router.push("/home")}
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#3c3650] bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
-                aria-label="Fermer"
-              >
-                ✕
-              </button>
+              <div className="rounded-xl border border-[#3c3650] bg-[#302a45] px-3 py-1 text-xs text-gray-200">
+                Conversation
+              </div>
             </header>
 
             <div ref={messageListRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
               {currentMessages.length === 0 && (
                 <div className="rounded-xl border border-[#3c3650] bg-[#242033]/70 p-4 text-sm text-gray-300">
-                  Aucune conversation pour le moment. Envoie le premier message à @{selectedUser}.
+                  No conversation yet. Send the first message to @{selectedUser}.
                 </div>
               )}
 
@@ -505,13 +649,15 @@ export default function SocialPage() {
                     >
                       <i className="fa-regular fa-paperclip" />
                       <span className="max-w-[14rem] truncate">{attachment.name}</span>
-                      <button
+                      <Button
                         onClick={() => removeDraftAttachment(attachment.id)}
-                        className="text-gray-300 transition-colors hover:text-white"
-                        aria-label={`Supprimer ${attachment.name}`}
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto border-0 bg-transparent p-0 text-gray-300 hover:bg-transparent hover:text-white"
+                        aria-label={`Remove ${attachment.name}`}
                       >
                         <i className="fa-solid fa-xmark" />
-                      </button>
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -527,31 +673,32 @@ export default function SocialPage() {
                   accept="image/*,.pdf,.txt,.doc,.docx"
                 />
 
-                <button
+                <Button
                   onClick={handlePickAttachments}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
-                  aria-label="Ajouter des pièces jointes"
+                  variant="secondary"
+                  className="h-9 w-9 rounded-full border-0 bg-[#302a45] p-0 hover:bg-[#3b3457]"
+                  aria-label="Add attachments"
                 >
                   <i className="fa-solid fa-paperclip" />
-                </button>
+                </Button>
 
-                <input
+                <Input
                   type="text"
-                  placeholder={`Envoyez un message à @${selectedUser}`}
+                  placeholder={`Send a message to @${selectedUser}`}
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
                   onKeyDown={handleInputKeyDown}
-                  className="flex-1 bg-transparent px-1 text-sm text-gray-200 outline-none placeholder:text-gray-500"
+                  className="h-auto flex-1 border-0 bg-transparent px-1 py-0 text-sm focus:border-transparent"
                 />
 
-                <button
+                <Button
                   onClick={sendMessage}
                   disabled={!hasDraft}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label="Envoyer"
+                  className="h-9 w-9 rounded-full p-0"
+                  aria-label="Send"
                 >
                   <i className="fa-solid fa-paper-plane" />
-                </button>
+                </Button>
               </div>
             </footer>
           </section>
