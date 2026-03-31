@@ -8,7 +8,7 @@ export async function getUsers()
         include: {
             inbox: {
             include: {
-                messages: true, // ✅ add this
+                messages: true,
                 inboxUser: true,
             },
             },
@@ -44,7 +44,7 @@ export async function getCurrentUser(current: string)
             inboxUser: true,
             avatar: true,
         },
-        });
+    });
     if (!user)
         throw new Error("User not found");
     return user;
@@ -171,10 +171,20 @@ export async function addMsg(msg: string, sender: string, receiver: string)
                     last_sent_user_id: user1.id,
                 },
                 include: {
-                    messages: true
+                    messages: true,
+					inboxUser: true
                 }
             });
             up_inbox.messages.push(messages);
+			up_inbox.inboxUser.map(async (iU) => {
+				if (iU.user_id == user2.id)
+				{
+					const new_iU = await prisma.inbox_users.update({
+						where: { id: iU.id },
+						data: { unread_messages: { increment: 1} }
+					})
+				}
+			})
 		}
     }
 }
@@ -208,4 +218,22 @@ export async function getMsg(sender: string, receiver: string)
 			return messages;
 		}
     }
+}
+
+export async function getUnread(currentUser: string)
+{
+	if (!currentUser) return;
+
+	const cUser = await prisma.user.findFirst({
+		where: { name: currentUser },
+        include: {
+            inbox: {
+				include: { inboxUser: true }
+			},
+        },
+    });
+
+	if (!cUser) return;
+	
+	return cUser.inbox;
 }

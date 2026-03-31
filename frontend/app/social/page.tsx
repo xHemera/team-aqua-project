@@ -127,6 +127,7 @@ export default function SocialPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [inboxes, setInboxes] = useState<Inbox[]>([]);
+	const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
 
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
 
@@ -140,7 +141,7 @@ export default function SocialPage() {
     getUserData();
   });
 
-  //recupere les utilisateurs de la db
+  //recupere les utilisateurs et les inboxes de la db
   useEffect(() => {
     async function fetchUsers() {
     if (!userPseudo) return;
@@ -153,6 +154,37 @@ export default function SocialPage() {
     }
     fetchUsers();
   }, [userPseudo]);
+
+	useEffect(() => {
+		async function fetchUnread()
+		{
+			if (!currentUser) return;
+			const inbox = await contact.getUnread(currentUser.name);
+			const results: Record<string, number> = {};
+			let userId = null;
+			let unread = 0;
+			if (!inbox) return;
+			for (const iU of inbox)
+			{
+				iU.inboxUser.map((user) => {
+					if (user.user_id != currentUser.id)
+					{
+						userId = user.user_id;
+					}
+					else
+					{
+						unread = user.unread_messages ?? 0;
+					}
+				})
+			}
+			if (userId)
+			{
+				results[userId] = unread ?? 0;
+				setUnreadMap(results);
+			}
+		}
+		fetchUnread();
+	}, [currentUser]);
 
   //reconnecte les sockets si refresh
   useEffect(() => {
@@ -408,7 +440,6 @@ export default function SocialPage() {
 									const ids = inbox.inboxUser.map(iu => iu.user_id);
 									return ids.includes(user.id) && ids.includes(currentUser.id);
 								});
-                console.log(currentUser.inbox);
 								if (!hasConversation) return null;
                 return (
                   <button
@@ -435,11 +466,12 @@ export default function SocialPage() {
                       />
                     </div>
                     <span className="truncate font-semibold">{user.name}</span>
-                    {/* {user.unreadCount > 0 && (
+                    {
+											unreadMap[user.id] > 0 && (
                       <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
-                        {user.unreadCount}
+                        {unreadMap[user.id]}
                       </span>
-                    )} */}
+                    )}
                   </button>
                 );
               })}

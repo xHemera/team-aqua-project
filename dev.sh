@@ -312,7 +312,7 @@ run_prisma_migrations() {
     local attempts=0
     local max_attempts=12
 
-    until docker compose exec -T frontend bunx prisma migrate deploy --config prisma/prisma.config.ts; do
+    until docker compose -f docker-compose.yml exec frontend bunx prisma migrate dev --name init --url "postgresql://postgres:postgres@db:5432/aqua_temp"; do
         attempts=$((attempts + 1))
         if [ "$attempts" -ge "$max_attempts" ]; then
             print_info "Impossible d'appliquer les migrations Prisma via dev.sh (frontend en restart)."
@@ -353,11 +353,6 @@ start_services() {
     print_success "Services démarrés et site accessible"
     print_info "Frontend: http://localhost:3000"
     print_info "websockets: http://localhost:4001/health"
-
-        print_info "Application des migrations Prisma..."
-        docker compose -f docker-compose.yml exec frontend \
-            pnpm prisma migrate deploy --config prisma/prisma.config.ts
-        print_success "Migrations Prisma appliquées"
 }
 
 # Redémarrer les services
@@ -365,10 +360,9 @@ restart_services() {
     print_header "Redémarrage des services"
     docker compose restart
 
-        print_info "Application des migrations Prisma..."
-        docker compose -f docker-compose.yml exec frontend \
-            pnpm prisma migrate deploy --config prisma/prisma.config.ts
-        print_success "Migrations Prisma appliquées"
+    run_prisma_migrations
+
+    wait_for_url "http://localhost:3000" "Frontend" 180
 
     print_success "Services redémarrés et site accessible"
 }
@@ -492,5 +486,4 @@ main() {
         wait_any_key
     done
 }
-
 main
