@@ -117,17 +117,17 @@ export function useMyHook() {
 
 ## Best Practices
 
-✅ Use Server Components by default  
-✅ Keep components small and focused  
-✅ Extract logic into custom hooks  
-✅ Follow atomic design principles  
-✅ Use TypeScript everywhere  
+✅ Use Server Components by default
+✅ Keep components small and focused
+✅ Extract logic into custom hooks
+✅ Follow atomic design principles
+✅ Use TypeScript everywhere
 
-❌ Fetch data in Client Components directly  
-❌ Create large monolithic components  
-❌ Use `any` types  
-❌ Duplicate code between components  
-❌ Put all state at the app level  
+❌ Fetch data in Client Components directly
+❌ Create large monolithic components
+❌ Use `any` types
+❌ Duplicate code between components
+❌ Put all state at the app level
 
 ---
 

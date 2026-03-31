@@ -14,7 +14,7 @@ A full-stack project with a Next.js frontend, PostgreSQL database, and container
 
 ## Overview
 
-**Kyogre** is a modern full-stack application that provides:
+**Kyogre** is a modern full-stack web-app game that provides:
 - A modern frontend application built with Next.js App Router, React 19, TypeScript, Better Auth, and Prisma
 - A WebSocket service for real-time communication (Socket.IO)
 - A PostgreSQL database managed via Docker Compose
@@ -29,6 +29,7 @@ A full-stack project with a Next.js frontend, PostgreSQL database, and container
 - 🐘 PostgreSQL database with Prisma migrations
 - 🐳 Containerized development environment
 - 📝 Structured technical documentation
+- A fully automatic PTCG Simulator with more than 30 cards fully implemented
 
 ## Documentation
 

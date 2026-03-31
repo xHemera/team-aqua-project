@@ -172,8 +172,8 @@ import { useDeckPreferences } from '@/hooks/useDeckPreferences';
 export function DeckSelect() {
   const { selectedDeck, availableDecks, setSelectedDeck } = useDeckPreferences();
   return (
-    <select 
-      value={selectedDeck?.id || ''} 
+    <select
+      value={selectedDeck?.id || ''}
       onChange={(e) => setSelectedDeck(e.target.value)}
     >
       {availableDecks.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -341,16 +341,16 @@ export function Preferences() {
 
 ## Best Practices
 
-✅ Name hooks starting with `use`  
-✅ Put hooks at the top level of components  
-✅ Extract logic into custom hooks  
-✅ Use TypeScript for parameters and return types  
-✅ Test hooks with React Testing Library  
+✅ Name hooks starting with `use`
+✅ Put hooks at the top level of components
+✅ Extract logic into custom hooks
+✅ Use TypeScript for parameters and return types
+✅ Test hooks with React Testing Library
 
-❌ Call hooks conditionally  
-❌ Call hooks from non-React functions  
-❌ Mix async logic with hooks (use useEffect)  
-❌ Create overly complex hooks  
+❌ Call hooks conditionally
+❌ Call hooks from non-React functions
+❌ Mix async logic with hooks (use useEffect)
+❌ Create overly complex hooks
 
 ---
 

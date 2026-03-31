@@ -222,17 +222,17 @@ export function MyMolecule({ onSubmit }: MyMoleculeProps) {
 
 ## Best Practices
 
-✅ Keep atoms simple and reusable  
-✅ Use TypeScript for prop types  
-✅ Include `aria-label` on icon buttons  
-✅ Use `React.forwardRef` for DOM elements  
-✅ Focus on single responsibility  
+✅ Keep atoms simple and reusable
+✅ Use TypeScript for prop types
+✅ Include `aria-label` on icon buttons
+✅ Use `React.forwardRef` for DOM elements
+✅ Focus on single responsibility
 
-❌ Mix business logic with UI  
-❌ Create overly generic components  
-❌ Skip accessibility attributes  
-❌ Duplicate component code  
-❌ Make atoms too complex  
+❌ Mix business logic with UI
+❌ Create overly generic components
+❌ Skip accessibility attributes
+❌ Duplicate component code
+❌ Make atoms too complex
 
 ---
 

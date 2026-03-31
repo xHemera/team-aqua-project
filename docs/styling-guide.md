@@ -106,17 +106,17 @@ Use responsive prefixes (`sm:`, `md:`, `lg:`, `xl:`):
 
 ## Best Practices
 
-✅ Use utility classes for simple styling  
-✅ Combine classes: `className="flex items-center justify-between p-4"`  
-✅ Use responsive prefixes: `className="w-full md:w-1/2"`  
-✅ Leverage dark mode: `className="bg-white dark:bg-slate-900"`  
-✅ Use space scale: `p-4`, `m-2`, `gap-6` (use base units)  
-✅ Extract complex styles to CSS modules or components  
+✅ Use utility classes for simple styling
+✅ Combine classes: `className="flex items-center justify-between p-4"`
+✅ Use responsive prefixes: `className="w-full md:w-1/2"`
+✅ Leverage dark mode: `className="bg-white dark:bg-slate-900"`
+✅ Use space scale: `p-4`, `m-2`, `gap-6` (use base units)
+✅ Extract complex styles to CSS modules or components
 
-❌ Mix inline styles with Tailwind  
-❌ Create custom CSS for utility-like styles  
-❌ Use too many arbitrary values: `px-[42px]` (use base units)  
-❌ Skip responsive design  
+❌ Mix inline styles with Tailwind
+❌ Create custom CSS for utility-like styles
+❌ Use too many arbitrary values: `px-[42px]` (use base units)
+❌ Skip responsive design
 
 ### Component Styling Example
 

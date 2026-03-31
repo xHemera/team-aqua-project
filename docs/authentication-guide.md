@@ -197,18 +197,18 @@ export async function GET() {
 
 ## Best Practices
 
-✅ Always check `useSession()` before accessing user data  
-✅ Use server-side auth checks for sensitive routes  
-✅ Store tokens securely (cookies by default)  
-✅ Redirect to login on 401 errors  
-✅ Use environment variables for auth URLs  
-✅ Validate all auth input on server  
+✅ Always check `useSession()` before accessing user data
+✅ Use server-side auth checks for sensitive routes
+✅ Store tokens securely (cookies by default)
+✅ Redirect to login on 401 errors
+✅ Use environment variables for auth URLs
+✅ Validate all auth input on server
 
-❌ Store tokens in localStorage  
-❌ Expose sensitive auth logic on client  
-❌ Skip session validation  
-❌ Commit .env.local with real secrets  
-❌ Trust only client-side security checks  
+❌ Store tokens in localStorage
+❌ Expose sensitive auth logic on client
+❌ Skip session validation
+❌ Commit .env.local with real secrets
+❌ Trust only client-side security checks
 
 ---
 
