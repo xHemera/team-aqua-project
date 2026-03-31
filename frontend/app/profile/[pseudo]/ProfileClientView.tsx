@@ -17,6 +17,7 @@ type AvatarEntry = { id: string; name: string; type: string; url: string; accent
 
 type ProfileClientViewProps = {
   profileName: string;
+  profileBadges: string[];
   initialAvatar: string;
   isOwnProfile: boolean;
 };
@@ -92,7 +93,7 @@ const deckpublic: Record<string, string> = {
 const normalizeBackgroundValue = (value: string) => normalizeImageValue(value, defaultBackground);
 const normalizeBannerValue = (value: string) => normalizeImageValue(value, defaultBanner);
 
-export default function ProfileClientView({ profileName, initialAvatar, isOwnProfile }: ProfileClientViewProps) {
+export default function ProfileClientView({ profileName, profileBadges, initialAvatar, isOwnProfile }: ProfileClientViewProps) {
   const router = useRouter();
   const [avatars, setAvatars] = useState<AvatarEntry[]>([]);
   const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
@@ -316,10 +317,18 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 pb-3">
-                <span className="rounded-md border border-yellow-500/50 bg-yellow-600/90 px-3 py-1 text-xs font-bold">OWNER</span>
-                <span className="rounded-md border border-[color:var(--accent-border)] bg-[var(--accent-color)] px-3 py-1 text-xs font-bold">GIGACHAD</span>
-              </div>
+              {profileBadges.length > 0 && (
+                <div className="flex items-center gap-2 pb-3">
+                  {profileBadges.map((badge) => (
+                    <span
+                      key={badge}
+                      className="rounded-md border border-[color:var(--accent-border)] bg-[var(--accent-color)] px-3 py-1 text-xs font-bold uppercase"
+                    >
+                      {badge}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col">

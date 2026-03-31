@@ -30,6 +30,7 @@ export async function POST(request: Request) {
         id: true,
         name: true,
         image: true,
+        badges: true,
         avatar: {
           select: {
             url: true,
@@ -55,6 +56,7 @@ export async function POST(request: Request) {
       user: {
         name: targetUser.name,
         avatarUrl: targetUser.image ?? targetUser.avatar?.url,
+        badges: targetUser.badges ?? [],
       },
     });
   } catch (error) {

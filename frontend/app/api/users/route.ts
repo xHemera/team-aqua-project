@@ -7,6 +7,7 @@ export async function GET() {
         id: true,
         name: true,
         image: true,
+        badges: true,
         avatar: {
           select: {
             url: true,
@@ -22,6 +23,7 @@ export async function GET() {
       id: user.id,
       pseudo: user.name,
       avatar: user.avatar?.url ?? user.image ?? null,
+      badges: user.badges ?? [],
     }));
 
     return Response.json(result);

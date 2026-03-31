@@ -32,6 +32,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     select: {
       id: true,
       name: true,
+      badges: true,
       avatarId: true,
       image: true,
     },
@@ -49,6 +50,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   return (
     <ProfileClientView
       profileName={profileUser.name}
+      profileBadges={profileUser.badges ?? []}
       initialAvatar={avatar}
       isOwnProfile={profileUser.id === session.user.id}
     />
