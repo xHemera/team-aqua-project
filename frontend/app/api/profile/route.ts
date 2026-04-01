@@ -17,6 +17,7 @@ export async function GET() {
         id: true,
         name: true,
         email: true,
+        badges: true,
         avatarId: true,
         image: true,
         profileBackground: true,
@@ -45,6 +46,7 @@ export async function GET() {
 
     return Response.json({
       ...user,
+      badges: user.badges ?? [],
       profileBackground: user.profileBackground ?? undefined,
       profileBanner: user.profileBanner ?? undefined,
       avatar: {

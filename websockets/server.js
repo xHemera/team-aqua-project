@@ -4,7 +4,11 @@ import express from "express";
 import { createClient } from 'redis';
 
 const redis = createClient({
-    url: 'redis://redis:6379',
+    socket: {
+      host: 'redis',
+      port: 6379,
+      reconnectStrategy: retries => Math.min(retries * 50, 500)
+    }
 });
 
 redis.on('error', (err) => console.log('Redis Client Error', err));
@@ -16,6 +20,11 @@ const hostname = "0.0.0.0";
 const port = Number(process.env.PORT || 4001);
 
 const app = express();
+
+app.get("/health", (_req, res) => {
+  res.status(200).json({ ok: true });
+});
+
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
@@ -27,14 +36,47 @@ const io = new Server(httpServer, {
 //fonctions sockets (comme gerer les connexions ou l'envoi de msgs)
 io.on("connect", (socket) => {
   socket.on("login", async (user) => {
-    await redis.hSet("online_users", socket.id, JSON.stringify(user));
+    await redis.hSet("online_users", user, socket.id);
     const users = await redis.hGetAll("online_users");
     console.log("Client connected: ", users);
     io.emit("online_users", users);
   });
 
+  socket.on("msg_sent", async ({sender, receiver}) => {
+    const receiverSock = await redis.hGet("online_users", receiver);
+    if (receiverSock)
+    {
+      console.log(receiverSock, sender, receiver);
+      io.to(receiverSock).emit("received", {
+        sender,
+        receiver
+      });
+    }
+  })
+
+  socket.on("like_sent", async ({ sender, senderAvatar, receiver, messageId, liked }) => {
+    const receiverSock = await redis.hGet("online_users", receiver);
+    if (receiverSock) {
+      io.to(receiverSock).emit("like_received", {
+        sender,
+        senderAvatar,
+        receiver,
+        messageId,
+        liked,
+      });
+    }
+  });
+
+  socket.on("profile_updated", ({ user }) => {
+    io.emit("profile_updated", { user });
+  });
+
   socket.on("disconnect", async () => {
-    await redis.hDel("online_users", socket.id);
+    const onlineUsers = await redis.hGetAll("online_users");
+    const disconnectedUser = Object.keys(onlineUsers).find((name) => onlineUsers[name] === socket.id);
+    if (disconnectedUser) {
+      await redis.hDel("online_users", disconnectedUser);
+    }
     const users = await redis.hGetAll("online_users");
     console.log("Client disconnected: ", users);
     io.emit("online_users", users);
