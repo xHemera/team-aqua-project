@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AppPageShell from "@/components/AppPageShell";
 import Button from "@/components/atoms/Button";
 import Card from "@/components/atoms/Card";
@@ -165,7 +165,7 @@ export default function SocialPage() {
     return results;
   };
 
-  const fetchMessages = async (currentName: string, partnerName: string) => {
+  const fetchMessages = useCallback(async (currentName: string, partnerName: string) => {
     if (!currentName || !partnerName) return;
     const nextMessages = await contact.getMsg(currentName, partnerName);
     if (nextMessages) {
@@ -173,9 +173,9 @@ export default function SocialPage() {
     } else {
       setCurrentMessages([]);
     }
-  };
+  }, []);
 
-  const refreshSocialData = async (currentName: string) => {
+  const refreshSocialData = useCallback(async (currentName: string) => {
     const [allUsers, currentUser, inboxes] = await Promise.all([
       contact.getUsers(),
       contact.getCurrentUser(currentName),
@@ -227,7 +227,7 @@ export default function SocialPage() {
     } else {
       setCurrentMessages([]);
     }
-  };
+  }, [fetchMessages, selectedUser]);
 
   useEffect(() => {
     const hydrateIdentity = async () => {
@@ -252,7 +252,7 @@ export default function SocialPage() {
     };
 
     void hydrateIdentity();
-  }, []);
+  }, [refreshSocialData]);
 
   useEffect(() => {
     if (!inviteNotification) return;
@@ -285,7 +285,7 @@ export default function SocialPage() {
     return () => {
       socket.off("received", onReceived);
     };
-  }, [myName, selectedUser]);
+  }, [fetchMessages, myName, refreshSocialData, selectedUser]);
 
   useEffect(() => {
     const list = messageListRef.current;
@@ -296,7 +296,7 @@ export default function SocialPage() {
       behavior: "auto",
     });
 
-    previousMessageCountRef.current = currentMessages.length;
+    previousMessageCountRef.current = 0;
     setShowScrollToLatest(false);
   }, [selectedUser]);
 
