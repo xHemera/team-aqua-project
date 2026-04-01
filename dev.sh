@@ -312,6 +312,7 @@ run_prisma_migrations() {
     local attempts=0
     local max_attempts=12
 
+    #DANGER
     until docker compose -f docker-compose.yml exec frontend bunx prisma migrate dev --name init --url "postgresql://postgres:postgres@db:5432/aqua_temp"; do
         attempts=$((attempts + 1))
         if [ "$attempts" -ge "$max_attempts" ]; then

@@ -4,7 +4,11 @@ import express from "express";
 import { createClient } from 'redis';
 
 const redis = createClient({
-    url: 'redis://redis:6379',
+    socket: {
+      host: 'redis',
+      port: 6379,
+      reconnectStrategy: retries => Math.min(retries * 50, 500)
+    }
 });
 
 redis.on('error', (err) => console.log('Redis Client Error', err));
@@ -27,11 +31,23 @@ const io = new Server(httpServer, {
 //fonctions sockets (comme gerer les connexions ou l'envoi de msgs)
 io.on("connect", (socket) => {
   socket.on("login", async (user) => {
-    await redis.hSet("online_users", socket.id, JSON.stringify(user));
+    await redis.hSet("online_users", user, socket.id);
     const users = await redis.hGetAll("online_users");
     console.log("Client connected: ", users);
     io.emit("online_users", users);
   });
+
+  socket.on("msg_sent", async ({sender, receiver}) => {
+    const receiverSock = await redis.hGet("online_users", receiver);
+    if (receiverSock)
+    {
+      console.log(receiverSock, sender, receiver);
+      io.to(receiverSock).emit("received", {
+        sender,
+        receiver
+      });
+    }
+  })
 
   socket.on("disconnect", async () => {
     await redis.hDel("online_users", socket.id);

@@ -202,7 +202,20 @@ export default function SocialPage() {
 		};
 	}, [userPseudo]);
 
-	//permet de scroll la conversation
+  useEffect(() => {
+    if (!userPseudo) return;
+    socket.on("received", async ({sender, receiver}) => {
+      if (selectedUser === sender)
+      {
+        const newMessages = await contact.getMsg(userPseudo, sender);
+        console.log(userPseudo, sender);
+        if (!newMessages) return;
+        setCurrentMessages(newMessages);
+      }
+    })
+  })
+
+	//permet de scroll et afficher la conversation
 	useEffect(() => {
 		async function fetchmessages()
 		{
@@ -354,10 +367,15 @@ export default function SocialPage() {
 		const newMessages = await contact.getMsg(currentUser.name, selectedUser);
 		if (!newMessages) return;
     setCurrentMessages(newMessages);
+    socket.emit("msg_sent", {
+      sender: currentUser.name,
+      receiver: selectedUser
+    });
 
     setMessage("");
     setDraftAttachments([]);
   };
+
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
       event.preventDefault();
