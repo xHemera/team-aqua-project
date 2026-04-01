@@ -3,11 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { DEFAULT_PROFILE_ICON } from "@/lib/profile-icons";
 import Button from "@/components/atoms/Button";
 import { useAvatarPreference } from "@/hooks/useAvatarPreference";
+import { socket } from "../socket";
 
 const NAV_ITEMS = [
   { href: "/home", icon: "fa-solid fa-house", label: "Home" },
@@ -20,11 +21,85 @@ export default function Sidebar() {
   const router = useRouter();
   const avatar = useAvatarPreference(DEFAULT_PROFILE_ICON.url);
   const [pseudo, setPseudo] = useState<string | null>(null);
+  const [socialUnread, setSocialUnread] = useState<number>(0);
+  const unreadRequestSeqRef = useRef(0);
+
+  const refreshSocialUnread = async () => {
+    const requestSeq = ++unreadRequestSeqRef.current;
+
+    try {
+      const response = await fetch("/api/social/unread", { cache: "no-store" });
+      if (!response.ok) return;
+      const payload = (await response.json()) as { totalUnread?: number };
+      if (requestSeq !== unreadRequestSeqRef.current) return;
+      setSocialUnread(Math.max(0, payload.totalUnread ?? 0));
+    } catch {
+      // Keep the current value if fetch fails.
+    }
+  };
 
   useEffect(() => {
-    authClient.getSession().then(({ data }) => {
-      if (data?.user?.name) setPseudo(data.user.name);
-    });
+    let isCancelled = false;
+
+    const hydrateIdentity = async () => {
+      const [session, profileResponse] = await Promise.all([authClient.getSession(), fetch("/api/profile/")]);
+      const profile = (await profileResponse.json()) as { pseudo?: string; name?: string };
+      const identity = profile.pseudo || profile.name || session.data?.user?.name || null;
+
+      if (!isCancelled) {
+        setPseudo(identity);
+      }
+    };
+
+    void hydrateIdentity();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const loadUnread = async () => {
+      await refreshSocialUnread();
+    };
+
+    void loadUnread();
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!pseudo) return;
+
+    if (!socket.connected) {
+      socket.connect();
+    }
+    const login = () => {
+      socket.emit("login", pseudo);
+    };
+
+    login();
+
+    const onReceived = () => {
+      void refreshSocialUnread();
+    };
+
+    socket.on("connect", login);
+    socket.on("received", onReceived);
+
+    return () => {
+      socket.off("connect", login);
+      socket.off("received", onReceived);
+    };
+  }, [pseudo]);
+
+  useEffect(() => {
+    const onUnreadUpdated = () => {
+      void refreshSocialUnread();
+    };
+
+    window.addEventListener("social-unread-updated", onUnreadUpdated);
+    return () => {
+      window.removeEventListener("social-unread-updated", onUnreadUpdated);
+    };
   }, []);
 
   const handleProfileClick = async (e: React.MouseEvent) => {
@@ -43,18 +118,24 @@ export default function Sidebar() {
     <aside className="flex h-full w-20 shrink-0 flex-col items-center gap-3 rounded-2xl border border-[#3c3650] bg-[#15131d]/85 px-3 py-4 shadow-2xl backdrop-blur-md">
       {NAV_ITEMS.map(({ href, icon, label }) => {
         const isActive = pathname === href;
+        const isSocial = href === "/social";
         return (
           <Link
             key={href}
             href={href}
             title={label}
-            className={`flex h-14 w-14 items-center justify-center rounded-xl border shadow-lg transition-colors ${
+            className={`relative flex h-14 w-14 items-center justify-center rounded-xl border shadow-lg transition-colors ${
               isActive
                 ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)] text-white"
                 : "border-[#3c3650] bg-[#242033] text-white hover:bg-[#302a45]"
             }`}
           >
             <i className={`${icon} text-2xl`} />
+            {isSocial && socialUnread > 0 && (
+              <span className="absolute -right-1 -top-1 flex min-w-5 h-5 items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
+                {socialUnread > 99 ? "99+" : socialUnread}
+              </span>
+            )}
           </Link>
         );
       })}

@@ -61,34 +61,39 @@ export async function addContact(currentUser: string, addUser: string)
         where: { name: addUser }
     })
 
+    if (!user1 || !user2) return;
+
     const inbox = await prisma.inbox.create({
-        data: {user: { connect: { id: user1!.id } }}
+        data: {user: { connect: { id: user1.id } }}
     })
-    const inboxUser1 = await prisma.inbox_users.create({
+    await prisma.inbox_users.create({
         data: {
-            user_id: user1!.id,
+            user_id: user1.id,
             inbox_id: inbox.id,
             unread_messages: 0
         }
     })
-    const inboxUser2 = await prisma.inbox_users.create({
+    await prisma.inbox_users.create({
         data: {
-            user_id: user2!.id,
+            user_id: user2.id,
             inbox_id: inbox.id,
             unread_messages: 0
         }
     })
 }
 
-export async function alreadyAdded(currentUser: string, addUser: string)
+export async function alreadyAdded(currentUser: string, addUser: string): Promise<boolean>
 {
-	if (!currentUser || !addUser) return;
+    if (!currentUser || !addUser) return false;
     const user1 = await prisma.user.findFirst({
         where: { name: currentUser }
     })
     const user2 = await prisma.user.findFirst({
         where: { name: addUser }
     })
+
+    if (!user1 || !user2) return false;
+
     const inboxes = await prisma.inbox.findMany({
         select: { inboxUser: { select: { user_id: true } } }
     });
@@ -99,7 +104,7 @@ export async function alreadyAdded(currentUser: string, addUser: string)
     {
         const ids = inbox.inboxUser.map(inboxUser => inboxUser.user_id);
 
-		if (ids.includes(user1!.id) && ids.includes(user2!.id))
+        if (ids.includes(user1.id) && ids.includes(user2.id))
 		{
 			return false;
 		}
@@ -107,15 +112,40 @@ export async function alreadyAdded(currentUser: string, addUser: string)
 	return true;
 }
 
-export async function selectUser(userName: string)
+export async function selectUser(currentUser: string, userName: string)
 {
-	const user = await prisma.user.findFirst({
+	if (!currentUser || !userName) return userName;
+
+	const current = await prisma.user.findFirst({
+        where: { name: currentUser }
+    });
+    const selected = await prisma.user.findFirst({
         where: { name: userName }
     });
-    const inbox = await prisma.inbox_users.updateMany({
-        where: { user_id: user!.id },
-        data: { unread_messages: 0}
+
+    if (!current || !selected) return userName;
+
+    const inboxes = await prisma.inbox.findMany({
+        include: { inboxUser: true }
     });
+
+	for (const inbox of inboxes)
+	{
+        const ids = inbox.inboxUser.map(inboxUser => inboxUser.user_id);
+
+		if (ids.includes(current.id) && ids.includes(selected.id))
+		{
+            await prisma.inbox_users.updateMany({
+                where: {
+                    inbox_id: inbox.id,
+                    user_id: current.id,
+                },
+                data: { unread_messages: 0 }
+            });
+            break;
+		}
+	}
+
 	return userName;
 };
 
@@ -176,15 +206,15 @@ export async function addMsg(msg: string, sender: string, receiver: string)
                 }
             });
             up_inbox.messages.push(messages);
-			up_inbox.inboxUser.map(async (iU) => {
+            for (const iU of up_inbox.inboxUser) {
 				if (iU.user_id == user2.id)
 				{
-					const new_iU = await prisma.inbox_users.update({
+                    await prisma.inbox_users.update({
 						where: { id: iU.id },
 						data: { unread_messages: { increment: 1} }
 					})
 				}
-			})
+            }
 		}
     }
 }
@@ -234,6 +264,6 @@ export async function getUnread(currentUser: string)
     });
 
 	if (!cUser) return;
-	
+
 	return cUser.inbox;
 }

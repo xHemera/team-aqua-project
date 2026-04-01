@@ -12,6 +12,7 @@ import { authClient } from "@/lib/auth-client";
 import { applyBackgroundPreferenceToDocument, buildBackgroundStyle, DEFAULT_SITE_BACKGROUND, normalizeImageValue } from "@/lib/background-utils";
 import { persistAvatarPreference } from "@/lib/avatar-preference";
 import { applyAccentPalette, resolveProfileIcon } from "@/lib/profile-icons";
+import { socket } from "../../../socket";
 
 type AvatarEntry = { id: string; name: string; type: string; url: string; accent: string; accentHover: string };
 
@@ -242,6 +243,13 @@ export default function ProfileClientView({ profileName, profileBadges, initialA
         const normalized = normalizeBannerValue(updated.profileBanner);
         setProfileBanner(normalized);
       }
+
+      if (!socket.connected) {
+        socket.connect();
+      }
+      socket.emit("profile_updated", {
+        user: profileName,
+      });
     }
     setShowCustomizationPanel(false);
   };

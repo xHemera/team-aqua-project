@@ -1,10 +1,29 @@
 import prisma from "@/lib/prisma";
+import { PROFILE_ICONS } from "@/lib/profile-icons";
 
 export async function GET() {
   try {
-    const avatars = await prisma.avatar.findMany({
+    let avatars = await prisma.avatar.findMany({
       orderBy: [{ name: "asc" }, { id: "asc" }],
     });
+
+    if (avatars.length === 0) {
+      await prisma.avatar.createMany({
+        data: PROFILE_ICONS.map((icon) => ({
+          id: icon.id,
+          name: icon.name,
+          type: icon.type,
+          url: icon.url,
+          accent: icon.accent,
+          accentHover: icon.accentHover,
+        })),
+        skipDuplicates: true,
+      });
+
+      avatars = await prisma.avatar.findMany({
+        orderBy: [{ name: "asc" }, { id: "asc" }],
+      });
+    }
 
     return Response.json(avatars);
   } catch (error) {

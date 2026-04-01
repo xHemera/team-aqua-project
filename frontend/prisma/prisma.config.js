@@ -1,6 +1,6 @@
-require('dotenv').config();
+import "dotenv/config";
 
-module.exports = {
+const config = {
   schema: "schema.prisma",
   migrations: {
     path: "migrations",
@@ -10,3 +10,5 @@ module.exports = {
     url: process.env.DATABASE_URL || "postgresql://postgres:postgres@db:5432/aqua_temp",
   },
 };
+
+export default config;

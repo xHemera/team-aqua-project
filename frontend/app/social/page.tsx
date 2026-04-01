@@ -34,6 +34,8 @@ type DbInbox = {
 
 type DbAvatar = {
   url: string;
+  accent?: string;
+  accentHover?: string;
 };
 
 type DbUser = {
@@ -69,10 +71,10 @@ type ChatMessage = {
   isMine: boolean;
   sentAt: number;
   liked?: boolean;
-  likedBy?: {
+  likedBy?: Array<{
     name: string;
     avatar: string;
-  };
+  }>;
   attachments: Attachment[];
 };
 
@@ -117,11 +119,13 @@ export default function SocialPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const previousMessageCountRef = useRef(0);
+  const selectedUserRef = useRef("");
   const myAvatar = useAvatarPreference(DEFAULT_PROFILE_ICON.url);
 
   const [myName, setMyName] = useState<string>("You");
   const [myBadges, setMyBadges] = useState<string[]>([]);
   const [myId, setMyId] = useState<string | null>(null);
+  const [myAccentColor, setMyAccentColor] = useState<string | null>(null);
 
   const [users, setUsers] = useState<ChatUser[]>([]);
   const [selectedUser, setSelectedUser] = useState<string>("");
@@ -129,7 +133,15 @@ export default function SocialPage() {
 
   const [message, setMessage] = useState("");
   const [draftAttachments, setDraftAttachments] = useState<Attachment[]>([]);
-  const [likedMessageIds, setLikedMessageIds] = useState<Record<string, boolean>>({});
+  const [likedByMessage, setLikedByMessage] = useState<
+    Record<
+      string,
+      Array<{
+        name: string;
+        avatar: string;
+      }>
+    >
+  >({});
   const [inviteNotification, setInviteNotification] = useState<InviteNotification | null>(null);
   const [showScrollToLatest, setShowScrollToLatest] = useState(false);
 
@@ -137,7 +149,15 @@ export default function SocialPage() {
   const [isSearchingUser, setIsSearchingUser] = useState(false);
   const [newUsername, setNewUsername] = useState("");
 
+  const notifyUnreadChanged = () => {
+    window.dispatchEvent(new Event("social-unread-updated"));
+  };
+
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
+
+  useEffect(() => {
+    selectedUserRef.current = selectedUser;
+  }, [selectedUser]);
 
   const fetchUnreadCounts = async (currentName: string, currentId: string) => {
     const inboxes = await contact.getUnread(currentName);
@@ -189,6 +209,7 @@ export default function SocialPage() {
 
     const current = currentUser as DbUser;
     setMyId(current.id);
+    setMyAccentColor(current.avatar?.accent ?? stableAccentColor(current.name));
 
     const unreadMap = await fetchUnreadCounts(current.name, current.id);
 
@@ -210,15 +231,16 @@ export default function SocialPage() {
         avatar: user.avatar?.url ?? user.image ?? DEFAULT_PROFILE_ICON.url,
         isFriend: true,
         unreadCount: unreadMap[user.id] ?? 0,
-        accentColor: stableAccentColor(user.name),
+        accentColor: user.avatar?.accent ?? stableAccentColor(user.name),
         badges: user.badges ?? [],
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
     setUsers(mappedUsers);
 
-    const nextSelected = mappedUsers.some((user) => user.name === selectedUser)
-      ? selectedUser
+    const previousSelection = selectedUserRef.current;
+    const nextSelected = mappedUsers.some((user) => user.name === previousSelection)
+      ? previousSelection
       : mappedUsers[0]?.name ?? "";
     setSelectedUser(nextSelected);
 
@@ -227,7 +249,7 @@ export default function SocialPage() {
     } else {
       setCurrentMessages([]);
     }
-  }, [fetchMessages, selectedUser]);
+  }, [fetchMessages]);
 
   useEffect(() => {
     const hydrateIdentity = async () => {
@@ -265,27 +287,85 @@ export default function SocialPage() {
   }, [inviteNotification]);
 
   useEffect(() => {
-    if (!myName || socket.connected) return;
+    if (!myName || myName === "You") return;
 
-    socket.connect();
+    if (!socket.connected) {
+      socket.connect();
+    }
     socket.emit("login", myName);
 
     const onReceived = async ({ sender, receiver }: { sender: string; receiver: string }) => {
       if (receiver !== myName) return;
 
       if (selectedUser === sender) {
+        await contact.selectUser(myName, sender);
+        notifyUnreadChanged();
         await fetchMessages(myName, sender);
       }
 
       await refreshSocialData(myName);
     };
 
+    const onLikeReceived = ({
+      sender,
+      senderAvatar,
+      receiver,
+      messageId,
+      liked,
+    }: {
+      sender: string;
+      senderAvatar?: string;
+      receiver: string;
+      messageId: string;
+      liked: boolean;
+    }) => {
+      if (receiver !== myName) return;
+
+      setLikedByMessage((prev) => {
+        const next = { ...prev };
+        const currentLikers = next[messageId] ?? [];
+        const senderIndex = currentLikers.findIndex((liker) => liker.name === sender);
+
+        if (liked) {
+          const liker = {
+            name: sender,
+            avatar: senderAvatar || users.find((user) => user.name === sender)?.avatar || DEFAULT_PROFILE_ICON.url,
+          };
+
+          if (senderIndex >= 0) {
+            const updated = [...currentLikers];
+            updated[senderIndex] = liker;
+            next[messageId] = updated;
+          } else {
+            next[messageId] = [...currentLikers, liker];
+          }
+        } else if (senderIndex >= 0) {
+          const updated = currentLikers.filter((liker) => liker.name !== sender);
+          if (updated.length > 0) {
+            next[messageId] = updated;
+          } else {
+            delete next[messageId];
+          }
+        }
+
+        return next;
+      });
+    };
+
+    const onProfileUpdated = async () => {
+      await refreshSocialData(myName);
+    };
+
     socket.on("received", onReceived);
+    socket.on("like_received", onLikeReceived);
+    socket.on("profile_updated", onProfileUpdated);
 
     return () => {
       socket.off("received", onReceived);
+      socket.off("like_received", onLikeReceived);
+      socket.off("profile_updated", onProfileUpdated);
     };
-  }, [fetchMessages, myName, refreshSocialData, selectedUser]);
+  }, [fetchMessages, myName, refreshSocialData, selectedUser, users]);
 
   useEffect(() => {
     const list = messageListRef.current;
@@ -351,16 +431,11 @@ export default function SocialPage() {
         text: msg.message ?? "",
         isMine: myId ? msg.user_id === myId : false,
         sentAt: new Date(msg.createdAt).getTime(),
-        liked: likedMessageIds[msg.id] ?? false,
-        likedBy: likedMessageIds[msg.id]
-          ? {
-              name: myName,
-              avatar: myAvatar,
-            }
-          : undefined,
+        liked: (likedByMessage[msg.id]?.length ?? 0) > 0,
+        likedBy: likedByMessage[msg.id] ?? [],
         attachments: [],
       })),
-    [currentMessages, idToName, likedMessageIds, myAvatar, myId, myName],
+    [currentMessages, idToName, likedByMessage, myId],
   );
 
   const handleMessageListScroll = () => {
@@ -414,7 +489,8 @@ export default function SocialPage() {
       ),
     );
 
-    await contact.selectUser(userName);
+    await contact.selectUser(myName, userName);
+    notifyUnreadChanged();
     await fetchMessages(myName, userName);
   };
 
@@ -467,10 +543,42 @@ export default function SocialPage() {
   };
 
   const toggleMessageLike = (messageId: string) => {
-    setLikedMessageIds((prev) => ({
-      ...prev,
-      [messageId]: !prev[messageId],
-    }));
+    if (!currentUser) return;
+
+    const existing = likedByMessage[messageId] ?? [];
+    const isMineLike = existing.some((liker) => liker.name === myName);
+    const nextLiked = !isMineLike;
+
+    setLikedByMessage((prev) => {
+      const next = { ...prev };
+      const currentLikers = next[messageId] ?? [];
+
+      if (nextLiked) {
+        const mine = currentLikers.find((liker) => liker.name === myName);
+        if (mine) {
+          next[messageId] = currentLikers.map((liker) => (liker.name === myName ? { ...liker, avatar: myAvatar } : liker));
+        } else {
+          next[messageId] = [...currentLikers, { name: myName, avatar: myAvatar }];
+        }
+      } else {
+        const updated = currentLikers.filter((liker) => liker.name !== myName);
+        if (updated.length > 0) {
+          next[messageId] = updated;
+        } else {
+          delete next[messageId];
+        }
+      }
+
+      return next;
+    });
+
+    socket.emit("like_sent", {
+      sender: myName,
+      senderAvatar: myAvatar,
+      receiver: currentUser.name,
+      messageId,
+      liked: nextLiked,
+    });
   };
 
   const sendMessage = async () => {
@@ -500,6 +608,14 @@ export default function SocialPage() {
     const username = newUsername.trim();
     if (!username || isSearchingUser) return;
 
+    if (!myName || myName === "You") {
+      setInviteNotification({
+        type: "error",
+        message: "Session not ready, please retry in a second",
+      });
+      return;
+    }
+
     try {
       setIsSearchingUser(true);
 
@@ -522,7 +638,8 @@ export default function SocialPage() {
         return;
       }
 
-      if (!(await contact.alreadyAdded(myName, payload.user.name))) {
+      const canCreateConversation = await contact.alreadyAdded(myName, payload.user.name);
+      if (canCreateConversation === false) {
         setSelectedUser(payload.user.name);
         await fetchMessages(myName, payload.user.name);
         setIsAddModalOpen(false);
@@ -663,6 +780,15 @@ export default function SocialPage() {
             </Button>
           </div>
 
+          {!currentUser && (
+            <div className="flex min-h-0 flex-1 items-center justify-center px-6 py-10 text-center">
+              <div className="max-w-xl rounded-xl border border-[#3c3650] bg-[#242033]/60 p-6 text-sm text-gray-200">
+                <p className="text-base font-semibold text-white">No conversation yet</p>
+                <p className="mt-2 text-gray-300">Click the + button to search a user and start a private conversation.</p>
+              </div>
+            </div>
+          )}
+
           {currentUser && (
             <>
               <div className="relative min-h-0 flex-1">
@@ -744,13 +870,19 @@ export default function SocialPage() {
 
                               <article
                                 style={
-                                  !first.isMine && currentUser.accentColor
+                                  first.isMine
+                                    ? myAccentColor
+                                      ? { backgroundColor: myAccentColor, color: "white" }
+                                      : undefined
+                                    : currentUser.accentColor
                                     ? { backgroundColor: currentUser.accentColor, color: "white" }
                                     : undefined
                                 }
                                 className={`w-fit max-w-[44rem] rounded-2xl px-5 py-3 ${
                                   first.isMine
-                                    ? "bg-[var(--accent-color)] text-white"
+                                    ? myAccentColor
+                                      ? "text-white"
+                                      : "bg-[var(--accent-color)] text-white"
                                     : currentUser.accentColor
                                     ? ""
                                     : "border border-[#3c3650] bg-[#242033] text-gray-100"
@@ -777,17 +909,19 @@ export default function SocialPage() {
                                           }`}
                                         >
                                           <i className="fa-solid fa-heart text-pink-300" aria-label="Liked message" />
-                                          {msg.likedBy?.avatar && (
+                                          <span className="font-semibold text-pink-200">{msg.likedBy?.length ?? 0}</span>
+                                          {(msg.likedBy ?? []).slice(0, 3).map((liker) => (
                                             <Image
-                                              src={msg.likedBy.avatar}
-                                              alt={msg.likedBy.name}
+                                              key={`${msg.id}-like-${liker.name}`}
+                                              src={liker.avatar}
+                                              alt={liker.name}
                                               width={14}
                                               height={14}
                                               className="h-3.5 w-3.5 rounded-full border border-white/30 object-cover"
-                                              title={`Liked by ${msg.likedBy.name}`}
+                                              title={`Liked by ${liker.name}`}
                                               unoptimized
                                             />
-                                          )}
+                                          ))}
                                         </div>
                                       )}
                                     </div>

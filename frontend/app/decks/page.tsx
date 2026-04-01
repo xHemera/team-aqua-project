@@ -169,6 +169,15 @@ export default function DecksPage() {
     void loadDecks();
   }, []);
 
+  function closeDeckPopup() {
+    setSelectedDeckId(null);
+    setIsRenamingDeck(false);
+    setDeckNameDraft("");
+    setDeckNameError("");
+    setAvailableCardQuery("");
+    setCardError("");
+  }
+
   useEffect(() => {
     const handleEscapeModal = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
@@ -348,15 +357,6 @@ export default function DecksPage() {
     setSelectedDeckId(deck.id);
     setIsRenamingDeck(false);
     setDeckNameDraft(deck.title);
-    setDeckNameError("");
-    setAvailableCardQuery("");
-    setCardError("");
-  };
-
-  const closeDeckPopup = () => {
-    setSelectedDeckId(null);
-    setIsRenamingDeck(false);
-    setDeckNameDraft("");
     setDeckNameError("");
     setAvailableCardQuery("");
     setCardError("");
