@@ -75,15 +75,6 @@ type Attachment = {
   previewUrl: string;
 };
 
-type ChatMessage = {
-  id: 					string;
-  sender: 			string;
-  text: 				string;
-  isMine: 			boolean;
-  sentAt: 			string;
-  attachments:	Attachment[];
-};
-
 type InviteNotification = {
   type: "success" | "error";
   message: string;
