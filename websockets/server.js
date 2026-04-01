@@ -3,11 +3,11 @@ import { Server } from "socket.io";
 import express from "express";
 import { createClient } from 'redis';
 
+//redis settings
 const redis = createClient({
     socket: {
       host: 'redis',
       port: 6379,
-      reconnectStrategy: retries => Math.min(retries * 50, 500)
     }
 });
 
@@ -15,7 +15,7 @@ redis.on('error', (err) => console.log('Redis Client Error', err));
 
 await redis.connect();
 
-//parametres de connexion + creation de serveur
+//connection parameters and server creation
 const hostname = "0.0.0.0";
 const port = Number(process.env.PORT || 4001);
 
@@ -28,7 +28,8 @@ const io = new Server(httpServer, {
   transports: ["websocket", "polling"],
 });
 
-//fonctions sockets (comme gerer les connexions ou l'envoi de msgs)
+//sockets functions
+//On connect, logs and maps the user to a socket
 io.on("connect", (socket) => {
   socket.on("login", async (user) => {
     await redis.hSet("online_users", user, socket.id);
@@ -37,6 +38,7 @@ io.on("connect", (socket) => {
     io.emit("online_users", users);
   });
 
+  //checks if a message is sent to someone else
   socket.on("msg_sent", async ({sender, receiver}) => {
     const receiverSock = await redis.hGet("online_users", receiver);
     if (receiverSock)
@@ -49,6 +51,7 @@ io.on("connect", (socket) => {
     }
   })
 
+  //delete the user's socket if he's disconnected
   socket.on("disconnect", async () => {
     await redis.hDel("online_users", socket.id);
     const users = await redis.hGetAll("online_users");
@@ -57,7 +60,7 @@ io.on("connect", (socket) => {
   });
 });
 
-//check d'erreur et ecoute du port
+//errors check and set the listening port
 httpServer
   .once("error", (err) => {
     console.error(err);

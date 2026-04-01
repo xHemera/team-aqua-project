@@ -122,7 +122,7 @@ export default function SocialPage() {
 
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
 
-  //recupere le nom d'utilisateur actuel
+  //fetch the current user pseudo
   useEffect(() => {
     const getUserData = async () => {
       const { data } = await authClient.getSession();
@@ -132,7 +132,7 @@ export default function SocialPage() {
     getUserData();
   });
 
-  //recupere les utilisateurs et les inboxes de la db
+  //fetch users and their inboxes
   useEffect(() => {
     async function fetchUsers() {
     if (!userPseudo) return;
@@ -146,6 +146,7 @@ export default function SocialPage() {
     fetchUsers();
   }, [userPseudo]);
 
+  //fetch the number of unreaded messages (BROKEN)
 	useEffect(() => {
 		async function fetchUnread()
 		{
@@ -159,13 +160,9 @@ export default function SocialPage() {
 			{
 				iU.inboxUser.map((user) => {
 					if (user.user_id != currentUser.id)
-					{
 						userId = user.user_id;
-					}
 					else
-					{
 						unread = user.unread_messages ?? 0;
-					}
 				})
 			}
 			if (userId)
@@ -177,7 +174,7 @@ export default function SocialPage() {
 		fetchUnread();
 	}, [currentUser]);
 
-  //reconnecte les sockets si refresh
+  //reconnect socket in case of a page refresh
   useEffect(() => {
 		if (!userPseudo || socket.connected) return;
 
@@ -193,6 +190,7 @@ export default function SocialPage() {
 		};
 	}, [userPseudo]);
 
+  //render messages sent by other users
   useEffect(() => {
     if (!userPseudo) return;
     socket.on("received", async ({sender, receiver}) => {
@@ -206,7 +204,8 @@ export default function SocialPage() {
     })
   })
 
-	//permet de scroll et afficher la conversation
+	//make the conversation scroll to last message and render them
+  //when selecting a user
 	useEffect(() => {
 		async function fetchmessages()
 		{
@@ -228,7 +227,7 @@ export default function SocialPage() {
 		};
 	}, [draftAttachments]);
 
-	//timer pour les notifications
+	//notifications timer
 	useEffect(() => {
 		if (!inviteNotification) return;
 
@@ -239,34 +238,34 @@ export default function SocialPage() {
 		return () => clearTimeout(timeoutId);
 	}, [inviteNotification]);
 
-	//Loading screen pour que currentUser soit cree
+	//Loading screen while currentUser is not set
 	if (!currentUser)
 	{
 		return <div>Loading...</div>;
 	}
 
-  //ouvre une demande de conversation
+  //open a add contact modal
   const openAddContactModal = () => {
     if (isInviting) return;
     setInviteUsername("");
     setIsAddContactModalOpen(true);
   };
 
-  //ferme la demande de conversation
+  //close the add contact modal
   const closeAddContactModal = () => {
     if (isInviting) return;
     setIsAddContactModalOpen(false);
     setInviteUsername("");
   };
 
-  //cree une nouvelle conversation
+  //create a new contact
   const submitContactInvite = async () => {
     const username = inviteUsername.trim();
     if (isInviting || !username) return;
     try {
       setIsInviting(true);
 
-      //cree une reponse appropriee et configure des variables
+      //makes an appropriate response and configure variables
       const response = await fetch("/api/social/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -276,7 +275,7 @@ export default function SocialPage() {
         error?: string;
         user?: { name: string; avatarUrl?: string | null };
       };
-      //return si on s'invite
+      //return if we invite ourselves
       if (payload.error === "vous ne pouvez pas vous inviter")
       {
         setInviteNotification({
@@ -285,7 +284,7 @@ export default function SocialPage() {
         });
         return ;
       }
-      //check si l'inbox existe deja
+      //check if the inbox already exist
       if (await contact.alreadyAdded(userPseudo!, inviteUsername) === false)
       {
         setInviteNotification({
@@ -294,10 +293,10 @@ export default function SocialPage() {
         });
         return;
       }
-      //cree une nouvelle inbox pour les utilisateurs
+      //makes a new inbox for both users
       contact.addContact(userPseudo!, inviteUsername);
 
-      //renvoit si le joueur n'existe pas
+      //return if user does not exist
       if (!response.ok || !payload.user) {
         setInviteNotification({
           type: "error",
@@ -348,16 +347,18 @@ export default function SocialPage() {
     });
   };
 
-  //Envoyer un message
+  //sends a message to selected user
   const sendMessage = async () => {
     const cleanMessage = message.trim();
     if (!cleanMessage && draftAttachments.length === 0) return;
 
     contact.addMsg(cleanMessage, currentUser.name, selectedUser);
 
+    //fetch messages between users
 		const newMessages = await contact.getMsg(currentUser.name, selectedUser);
 		if (!newMessages) return;
     setCurrentMessages(newMessages);
+    //sends a signal to the other user's socket
     socket.emit("msg_sent", {
       sender: currentUser.name,
       receiver: selectedUser

@@ -2,7 +2,7 @@
 
 import { io } from "socket.io-client";
 
-//connexion avec le serveur de websockets
+//connects the socket to the server and sets some options
 export const socket = io("http://localhost:4001", {
   transports: ["websocket", "polling"],
   autoConnect: false,
