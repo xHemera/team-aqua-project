@@ -620,6 +620,8 @@ export default function DecksPage() {
                                     alt={card.name}
                                     fill
                                     className="object-cover"
+                                    quality={75}
+                                    loading="lazy"
                                   />
                                 )}
                               </button>
@@ -733,6 +735,9 @@ export default function DecksPage() {
                               alt={displayName}
                               fill
                               className="object-cover"
+                              quality={55}
+                              sizes="(max-width: 640px) 80px, (max-width: 1024px) 100px, 120px"
+                              loading="lazy"
                             />
                           </div>
                           <div className="p-1.5">

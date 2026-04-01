@@ -24,12 +24,12 @@ export default function DeckOptionItem({
       role="option"
       aria-selected={selected}
       variant={selected ? "primary" : "ghost"}
-      className={`h-auto w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-left ${
+      className={`h-auto w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
         selected
-          ? "bg-[var(--accent-soft)]"
+          ? "bg-[var(--accent-soft)] hover:bg-[var(--accent-color)]"
           : highlighted
-            ? "bg-[#2f2a43] text-white"
-            : "text-gray-200 hover:bg-[#242033]"
+            ? "bg-[var(--accent-soft)] hover:bg-[var(--accent-color)]"
+            : "text-gray-200 hover:bg-[#555]"
       }`}
     >
       <div className="flex h-10 w-10 items-center justify-center">
