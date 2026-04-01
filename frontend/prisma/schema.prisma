@@ -82,12 +82,12 @@ model Avatar {
 }
 
 model User {
-  id            String    @id
-  name          String
-  email         String
-  emailVerified Boolean   @default(false)
-  image         String?
-  badges        String[]  @default([])
+  id                String    @id
+  name              String
+  email             String
+  emailVerified     Boolean   @default(false)
+  image             String?
+  badges            String[]  @default([])
   profileBackground String?
   profileBanner     String?
   createdAt         DateTime  @default(now())
