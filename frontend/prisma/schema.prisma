@@ -63,11 +63,12 @@ model Inbox {
 }
 
 model Inbox_users {
-  id		    String    @id @default(cuid())
-  inbox_id	String
-  user_id   String
-  user		  User?			@relation(fields: [user_id], references: [id])
-  inbox		  Inbox?		@relation(fields: [inbox_id], references: [id])
+  id		          String    @id @default(cuid())
+  inbox_id	      String
+  user_id         String
+  unread_messages Int?
+  user		        User?			@relation(fields: [user_id], references: [id])
+  inbox		        Inbox?		@relation(fields: [inbox_id], references: [id])
 }
 
 model Avatar {
@@ -81,24 +82,24 @@ model Avatar {
 }
 
 model User {
-  id            String    @id
-  name          String
-  email         String
-  emailVerified Boolean   @default(false)
-  image         String?
+  id								String    @id
+  name              String
+  email             String
+  emailVerified     Boolean   @default(false)
+  image             String?
   profileBackground String?
-  profileBanner String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  avatarId      String?
-  avatar        Avatar?   @relation(fields: [avatarId], references: [id])
-  sessions      Session[]
-  accounts      Account[]
-  decks         Decks[]
-  friends       Friends[]
-  inboxUser     Inbox_users[]
-  messages      Messages[]
-  inbox         Inbox[]
+  profileBanner     String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  avatarId          String?
+  avatar            Avatar?   @relation(fields: [avatarId], references: [id])
+  sessions          Session[]
+  accounts          Account[]
+  decks             Decks[]
+  friends           Friends[]
+  inboxUser         Inbox_users[]
+  messages          Messages[]
+  inbox             Inbox[]
 
   @@unique([email])
   @@map("user")

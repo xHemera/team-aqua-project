@@ -2,37 +2,86 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { socket } from "../../socket"
+import { authClient } from "@/lib/auth-client";
 import AppPageShell from "@/components/AppPageShell";
 import { DEFAULT_PROFILE_ICON, PROFILE_ICONS } from "@/lib/profile-icons";
-import Button from "@/components/atoms/Button";
-import Input from "@/components/atoms/Input";
-import Card from "@/components/atoms/Card";
+import { contact }  from "./index"
 
 const esper = PROFILE_ICONS.find((icon) => icon.type === "esper")?.url ?? DEFAULT_PROFILE_ICON.url;
 const dragon = PROFILE_ICONS.find((icon) => icon.type === "dragon")?.url ?? DEFAULT_PROFILE_ICON.url;
 const mizu = PROFILE_ICONS.find((icon) => icon.type === "mizu")?.url ?? DEFAULT_PROFILE_ICON.url;
 
+type Messages = {
+  id:         string;
+  user_id:    string;
+  inbox_id:   string;
+  message:   string | null;
+  createdAt:  Date;
+}
+
+type Inbox_users = {
+	id:								string;
+	inbox_id:					string;
+	user_id:					string;
+	unread_messages:	number | null;
+};
+
+type Inbox = {
+  id: 								string;
+  last_message: 			string | null;
+  last_sent_user_id:  string | null;
+  createdAt:  				Date;
+  inboxUser:  				Inbox_users[];
+	messages:					  Messages[];
+};
+
+type Avatar = {
+  url:					string;
+  id:						string;
+  name:					string;
+  type:					string;
+  accent: 			string;
+  accentHover:	string;
+	users?:				any;
+};
+
+type User = {
+  id:            			string;
+  name:          			string;
+  email:         			string;
+  emailVerified:			Boolean;
+  image:        			string | null;
+  profileBackground:	string | null;
+  profileBanner: 			string | null;
+  createdAt:    			Date;
+  updatedAt:    			Date;
+  avatarId:      			string | null;
+  avatar:        			Avatar | null;
+  // accounts:      	Account[];
+  // decks:        		Decks[];
+  // friends:       	Friends[];
+  inboxUser:     			Inbox_users[];
+  messages:      	    Messages[];
+  inbox:         			Inbox[];
+};
+
 type Attachment = {
-  id: string;
-  name: string;
-  sizeLabel: string;
-  type: string;
+  id: 				string;
+  name: 			string;
+  sizeLabel:	string;
+  type: 			string;
   previewUrl: string;
 };
 
-type ChatUser = {
-  name: string;
-  avatar: string;
-  unreadCount: number;
-};
-
 type ChatMessage = {
-  id: string;
-  sender: string;
-  text: string;
-  isMine: boolean;
-  sentAt: string;
-  attachments: Attachment[];
+  id: 					string;
+  sender: 			string;
+  text: 				string;
+  isMine: 			boolean;
+  sentAt: 			string;
+  attachments:	Attachment[];
 };
 
 type InviteNotification = {
@@ -40,94 +89,8 @@ type InviteNotification = {
   message: string;
 };
 
-const SOCIAL_STORAGE_KEY = "social-chat-state";
-
-// HARDCODE: seeded contacts used as temporary mock social graph.
-const defaultUsers = [
-  { name: "Sauralt", avatar: esper, unreadCount: 0 },
-  { name: "Xoco", avatar: dragon, unreadCount: 1 },
-  { name: "SunMiaou", avatar: mizu, unreadCount: 0 },
-] as ChatUser[];
-
-// HARDCODE: seeded chat history used until message persistence is DB-backed.
-const defaultMessagesByUser: Record<string, ChatMessage[]> = {
-  SunMiaou: [
-    {
-      id: "msg-1",
-      sender: "SunMiaou",
-      text: "Hey! Are you starting a match tonight?",
-      isMine: false,
-      sentAt: "20:41",
-      attachments: [],
-    },
-    {
-      id: "msg-2",
-      sender: "me",
-      text: "Yes, I am finishing my deck and I will message you.",
-      isMine: true,
-      sentAt: "20:43",
-      attachments: [],
-    },
-  ],
-  Xoco: [
-    {
-      id: "msg-3",
-      sender: "Xoco",
-      text: "Can you send me the deck list again?",
-      isMine: false,
-      sentAt: "18:12",
-      attachments: [],
-    },
-  ],
-  Sauralt: [],
-};
-
-// HARDCODE: fallback social state when no local persisted data exists.
-const fallbackSocialState = {
-  users: defaultUsers,
-  messagesByUser: defaultMessagesByUser,
-  selectedUser: "SunMiaou",
-};
-
-/**
- * Objective: hydrate social screen state from localStorage.
- * Usage: called once on mount to restore local conversation state.
- * Input: none.
- * Output: social state object with users/messages/selected user.
- * Special cases: invalid JSON falls back to hardcoded seed state.
- */
-const getSocialStateFromStorage = () => {
-  const savedState = localStorage.getItem(SOCIAL_STORAGE_KEY);
-  if (!savedState) {
-    return fallbackSocialState;
-  }
-
-  try {
-    const parsed = JSON.parse(savedState) as {
-      users?: ChatUser[];
-      messagesByUser?: Record<string, ChatMessage[]>;
-      selectedUser?: string;
-    };
-
-    const users = parsed.users && parsed.users.length > 0 ? parsed.users : defaultUsers;
-    const messagesByUser = parsed.messagesByUser ?? defaultMessagesByUser;
-    const selectedUser =
-      parsed.selectedUser && users.some((user) => user.name === parsed.selectedUser)
-        ? parsed.selectedUser
-        : users[0]?.name ?? "SunMiaou";
-
-    return {
-      users,
-      messagesByUser,
-      selectedUser,
-    };
-  } catch {
-    return fallbackSocialState;
-  }
-};
-
 const formatTime = (date: Date) =>
-  date.toLocaleTimeString("en-US", {
+  date.toLocaleTimeString("fr-FR", {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -138,13 +101,7 @@ const toSizeLabel = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
 };
 
-/**
- * Objective: convert a browser file into app attachment payload.
- * Usage: used by attachment picker before drafting a message.
- * Input: browser `File` object.
- * Output: attachment metadata + temporary object URL.
- * Special cases: generated ID is client-side and not globally unique.
- */
+//creation d'un fichier a partager
 const buildAttachmentFromFile = (file: File): Attachment => ({
   id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
   name: file.name,
@@ -154,205 +111,222 @@ const buildAttachmentFromFile = (file: File): Attachment => ({
 });
 
 export default function SocialPage() {
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
 
-  const [users, setUsers] = useState<ChatUser[]>(fallbackSocialState.users);
-  const [selectedUser, setSelectedUser] = useState(fallbackSocialState.selectedUser);
+  const [selectedUser, setSelectedUser] = useState("");
   const [message, setMessage] = useState("");
   const [draftAttachments, setDraftAttachments] = useState<Attachment[]>([]);
   const [inviteNotification, setInviteNotification] = useState<InviteNotification | null>(null);
   const [isInviting, setIsInviting] = useState(false);
-  const [isAddFriendModalOpen, setIsAddFriendModalOpen] = useState(false);
+  const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
   const [inviteUsername, setInviteUsername] = useState("");
-  const [contactSearch, setContactSearch] = useState("");
-
-  const [messagesByUser, setMessagesByUser] = useState<Record<string, ChatMessage[]>>(
-    fallbackSocialState.messagesByUser,
-  );
-
-  useEffect(() => {
-    const syncSocialStateFromStorage = async () => {
-      await Promise.resolve();
-      const hydratedSocialState = getSocialStateFromStorage();
-      setUsers(hydratedSocialState.users);
-      setMessagesByUser(hydratedSocialState.messagesByUser);
-      setSelectedUser(hydratedSocialState.selectedUser);
-    };
-
-    void syncSocialStateFromStorage();
-  }, []);
-
-  const currentUser = useMemo(
-    () => users.find((user) => user.name === selectedUser) ?? users[0],
-    [selectedUser, users],
-  );
-
-  const currentMessages = useMemo(
-    () => messagesByUser[selectedUser] ?? [],
-    [messagesByUser, selectedUser],
-  );
-
-  const filteredUsers = useMemo(() => {
-    const query = contactSearch.trim().toLowerCase();
-    if (!query) return users;
-
-    return users.filter((user) => user.name.toLowerCase().includes(query));
-  }, [contactSearch, users]);
+  const [userPseudo, setUserPseudo] = useState<string | null>(null);
+  const [currentMessages, setCurrentMessages] = useState<Messages[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [inboxes, setInboxes] = useState<Inbox[]>([]);
+	const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
 
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
 
+  //recupere le nom d'utilisateur actuel
   useEffect(() => {
-    messageListRef.current?.scrollTo({
-      top: messageListRef.current.scrollHeight,
-      behavior: "smooth",
-    });
-  }, [selectedUser, currentMessages.length]);
-
-  useEffect(() => {
-    return () => {
-      draftAttachments.forEach((attachment) => URL.revokeObjectURL(attachment.previewUrl));
+    const getUserData = async () => {
+      const { data } = await authClient.getSession();
+      if (data?.user?.name)
+        setUserPseudo(data.user.name);
     };
-  }, [draftAttachments]);
+    getUserData();
+  });
 
+  //recupere les utilisateurs et les inboxes de la db
   useEffect(() => {
-    if (!inviteNotification) return;
-
-    const timeoutId = setTimeout(() => {
-      setInviteNotification(null);
-    }, 3000);
-
-    return () => clearTimeout(timeoutId);
-  }, [inviteNotification]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      SOCIAL_STORAGE_KEY,
-      JSON.stringify({
-        users,
-        messagesByUser,
-        selectedUser,
-      }),
-    );
-  }, [messagesByUser, selectedUser, users]);
-
-  useEffect(() => {
-    if (users.length === 0) return;
-    if (!users.some((user) => user.name === selectedUser)) {
-      setSelectedUser(users[0].name);
+    async function fetchUsers() {
+    if (!userPseudo) return;
+      const u = await contact.getUsers();
+      const cU = await contact.getCurrentUser(userPseudo);
+      const i = await contact.getInboxes();
+      setUsers(u);
+      setCurrentUser(cU);
+      setInboxes(i);
     }
-  }, [selectedUser, users]);
+    fetchUsers();
+  }, [userPseudo]);
+
+	useEffect(() => {
+		async function fetchUnread()
+		{
+			if (!currentUser) return;
+			const inbox = await contact.getUnread(currentUser.name);
+			const results: Record<string, number> = {};
+			let userId = null;
+			let unread = 0;
+			if (!inbox) return;
+			for (const iU of inbox)
+			{
+				iU.inboxUser.map((user) => {
+					if (user.user_id != currentUser.id)
+					{
+						userId = user.user_id;
+					}
+					else
+					{
+						unread = user.unread_messages ?? 0;
+					}
+				})
+			}
+			if (userId)
+			{
+				results[userId] = unread ?? 0;
+				setUnreadMap(results);
+			}
+		}
+		fetchUnread();
+	}, [currentUser]);
+
+  //reconnecte les sockets si refresh
+  useEffect(() => {
+		if (!userPseudo || socket.connected) return;
+
+		socket.connect();
+		socket.emit("login", userPseudo);
+
+		socket.on("online_users", (users) => {
+			console.log("Users from Redis:", users);
+		});
+
+		return () => {
+			socket.off("online_users");
+		};
+	}, [userPseudo]);
 
   useEffect(() => {
-    const handleEscapeModal = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      if (isAddFriendModalOpen) {
-        if (isInviting) return;
-        setIsAddFriendModalOpen(false);
-        setInviteUsername("");
+    if (!userPseudo) return;
+    socket.on("received", async ({sender, receiver}) => {
+      if (selectedUser === sender)
+      {
+        const newMessages = await contact.getMsg(userPseudo, sender);
+        console.log(userPseudo, sender);
+        if (!newMessages) return;
+        setCurrentMessages(newMessages);
       }
-    };
+    })
+  })
 
-    document.addEventListener("keydown", handleEscapeModal);
-    return () => {
-      document.removeEventListener("keydown", handleEscapeModal);
-    };
-  }, [isAddFriendModalOpen, isInviting]);
+	//permet de scroll et afficher la conversation
+	useEffect(() => {
+		async function fetchmessages()
+		{
+			if (!currentUser) return;
+			const newMessages = await contact.getMsg(currentUser.name, selectedUser);
+			if (!newMessages) return;
+    	setCurrentMessages(newMessages);
+		}
+		fetchmessages();
+		messageListRef.current?.scrollTo({
+			top: messageListRef.current.scrollHeight,
+			behavior: "smooth",
+		});
+	}, [selectedUser, currentMessages.length]);
 
-  const selectUser = (userName: string) => {
-    setSelectedUser(userName);
-    setUsers((prevUsers) =>
-      prevUsers.map((user) =>
-        user.name === userName ? { ...user, unreadCount: 0 } : user,
-      ),
-    );
-  };
+	useEffect(() => {
+		return () => {
+			draftAttachments.forEach((attachment) => URL.revokeObjectURL(attachment.previewUrl));
+		};
+	}, [draftAttachments]);
 
-  const openAddFriendModal = () => {
+	//timer pour les notifications
+	useEffect(() => {
+		if (!inviteNotification) return;
+
+		const timeoutId = setTimeout(() => {
+			setInviteNotification(null);
+		}, 3000);
+
+		return () => clearTimeout(timeoutId);
+	}, [inviteNotification]);
+
+	//Loading screen pour que currentUser soit cree
+	if (!currentUser)
+	{
+		return <div>Loading...</div>;
+	}
+
+  //ouvre une demande de conversation
+  const openAddContactModal = () => {
     if (isInviting) return;
     setInviteUsername("");
-    setIsAddFriendModalOpen(true);
+    setIsAddContactModalOpen(true);
   };
 
-  const closeAddFriendModal = () => {
+  //ferme la demande de conversation
+  const closeAddContactModal = () => {
     if (isInviting) return;
-    setIsAddFriendModalOpen(false);
+    setIsAddContactModalOpen(false);
     setInviteUsername("");
   };
 
-  /**
-   * Objective: invite a user by pseudo and initialize local chat context.
-   * Usage: called from add-friend modal submit actions.
-   * Input: none (uses `inviteUsername` state).
-   * Output: none (mutates state and notification banner).
-   * Special cases: ignores empty input and prevents concurrent submissions.
-   */
-  const submitFriendInvite = async () => {
+  //cree une nouvelle conversation
+  const submitContactInvite = async () => {
     const username = inviteUsername.trim();
     if (isInviting || !username) return;
-
     try {
       setIsInviting(true);
 
+      //cree une reponse appropriee et configure des variables
       const response = await fetch("/api/social/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username }),
       });
-
       const payload = (await response.json()) as {
         error?: string;
         user?: { name: string; avatarUrl?: string | null };
       };
+      //return si on s'invite
+      if (payload.error === "vous ne pouvez pas vous inviter")
+      {
+        setInviteNotification({
+          type: "error",
+          message: payload.error,
+        });
+        return ;
+      }
+      //check si l'inbox existe deja
+      if (await contact.alreadyAdded(userPseudo!, inviteUsername) === false)
+      {
+        setInviteNotification({
+          type: "error",
+          message: payload.error ?? "une discussion a deja ete cree.",
+        });
+        return;
+      }
+      //cree une nouvelle inbox pour les utilisateurs
+      contact.addContact(userPseudo!, inviteUsername);
 
+      //renvoit si le joueur n'existe pas
       if (!response.ok || !payload.user) {
         setInviteNotification({
           type: "error",
-          message: payload.error ?? "this player does not exist",
+          message: payload.error ?? "ce joueur n'existe pas.",
         });
         return;
       }
 
       const foundName = payload.user.name;
-      const foundAvatar = payload.user.avatarUrl || DEFAULT_PROFILE_ICON.url;
-
-      setUsers((prevUsers) => {
-        if (prevUsers.some((user) => user.name === foundName)) {
-          return prevUsers;
-        }
-
-        return [
-          ...prevUsers,
-          {
-            name: foundName,
-            avatar: foundAvatar,
-            unreadCount: 0,
-          },
-        ];
-      });
-
-      setMessagesByUser((prevMessages) => {
-        if (prevMessages[foundName]) {
-          return prevMessages;
-        }
-
-        return {
-          ...prevMessages,
-          [foundName]: [],
-        };
-      });
-
       setSelectedUser(foundName);
       setInviteNotification({
         type: "success",
-        message: "your invitation has been sent",
+        message: "votre invitation a bien ete envoyer",
       });
-      setIsAddFriendModalOpen(false);
+      setIsAddContactModalOpen(false);
       setInviteUsername("");
     } catch {
       setInviteNotification({
         type: "error",
-        message: "this player does not exist",
+        message: "ce joueur n'existe pas",
       });
     } finally {
       setIsInviting(false);
@@ -383,30 +357,20 @@ export default function SocialPage() {
     });
   };
 
-  /**
-   * Objective: append a new message to current conversation.
-   * Usage: called on send button and Enter key shortcut.
-   * Input: none (uses message and attachment draft states).
-   * Output: none (updates message list and resets draft state).
-   * Special cases: blocks sending when text and attachment draft are both empty.
-   */
-  const sendMessage = () => {
+  //Envoyer un message
+  const sendMessage = async () => {
     const cleanMessage = message.trim();
     if (!cleanMessage && draftAttachments.length === 0) return;
 
-    const newMessage: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      sender: "me",
-      text: cleanMessage,
-      isMine: true,
-      sentAt: formatTime(new Date()),
-      attachments: draftAttachments,
-    };
+    contact.addMsg(cleanMessage, currentUser.name, selectedUser);
 
-    setMessagesByUser((prevMessages) => ({
-      ...prevMessages,
-      [selectedUser]: [...(prevMessages[selectedUser] ?? []), newMessage],
-    }));
+		const newMessages = await contact.getMsg(currentUser.name, selectedUser);
+		if (!newMessages) return;
+    setCurrentMessages(newMessages);
+    socket.emit("msg_sent", {
+      sender: currentUser.name,
+      receiver: selectedUser
+    });
 
     setMessage("");
     setDraftAttachments([]);
@@ -420,7 +384,7 @@ export default function SocialPage() {
   };
 
   return (
-    <AppPageShell showSidebar containerClassName="min-h-0 flex-1">
+    <AppPageShell>
       {inviteNotification && (
         <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
           <div
@@ -435,167 +399,159 @@ export default function SocialPage() {
         </div>
       )}
 
-      {isAddFriendModalOpen && (
-        <div
-          className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 px-4"
-          onClick={closeAddFriendModal}
-        >
-          {/* Usage atomique: Card standardise le conteneur modal pour les interactions sociales. */}
-          <Card
-            className="w-full max-w-md bg-[#1b1826] p-5"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h3 className="text-lg font-bold text-white">Enter a username</h3>
-            <p className="mt-1 text-sm text-gray-300">Enter the player username to send an invitation.</p>
+      {isAddContactModalOpen && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-[#3c3650] bg-[#1b1826] p-5 shadow-2xl">
+            <h3 className="text-lg font-bold text-white">entrez le nom d&apos;utilisateur</h3>
+            <p className="mt-1 text-sm text-gray-300">Saisis le pseudo du joueur pour envoyer une invitation.</p>
 
-            <Input
+            <input
               type="text"
               value={inviteUsername}
               onChange={(event) => setInviteUsername(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  submitFriendInvite();
-                }
-              }}
-              placeholder="Player username"
-              className="mt-4 py-2 text-sm"
+              placeholder="Pseudo du joueur"
+              className="mt-4 w-full rounded-xl border border-[#3c3650] bg-[#242033] px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-[var(--accent-color)]"
               autoFocus
             />
 
             <div className="mt-4 flex items-center justify-end gap-2">
-              <Button
-                onClick={closeAddFriendModal}
+              <button
+                onClick={closeAddContactModal}
                 disabled={isInviting}
-                variant="ghost"
-                className="h-10 px-4 py-2 text-sm"
+                className="rounded-xl border border-[#3c3650] bg-[#242033] px-4 py-2 text-sm font-semibold text-gray-200 transition-colors hover:bg-[#302a45] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Cancel
-              </Button>
-              <Button
-                onClick={submitFriendInvite}
+                Annuler
+              </button>
+              <button
+                onClick={submitContactInvite}
                 disabled={isInviting || inviteUsername.trim().length === 0}
-                className="h-10 px-4 py-2 text-sm font-bold"
+                className="rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {isInviting ? "Searching..." : "Send"}
-              </Button>
+                {isInviting ? "Recherche..." : "Envoyer"}
+              </button>
             </div>
-          </Card>
+          </div>
         </div>
       )}
 
-      <div className="mx-auto flex min-h-0 flex-1 w-full max-w-[88rem]">
-        <section className="grid h-full min-h-0 w-full grid-cols-1 overflow-hidden rounded-3xl border border-[#3c3650] bg-[#15131d]/85 shadow-2xl backdrop-blur-md lg:grid-cols-[19rem_1fr]">
+      <div className="w-full">
+        <section className="grid h-[calc(100vh-2rem)] w-full grid-cols-1 overflow-hidden rounded-3xl border border-[#3c3650] bg-[#15131d]/85 shadow-2xl backdrop-blur-md lg:grid-cols-[19rem_1fr]">
           <aside className="flex min-h-0 flex-col border-b border-[#3c3650] lg:border-b-0 lg:border-r">
             <div className="flex items-center justify-between border-b border-[#3c3650] px-5 py-4">
               <h1 className="text-2xl font-bold tracking-tight">Social</h1>
-            </div>
-
-            <div className="border-b border-[#3c3650] p-3">
-              <Input
-                type="text"
-                value={contactSearch}
-                onChange={(event) => setContactSearch(event.target.value)}
-                placeholder="Search contacts..."
-                className="py-2 text-sm"
-              />
+              <button
+                onClick={() => router.push("/home")}
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#3c3650] bg-[#242033] text-white transition-colors hover:bg-[#302a45]"
+                aria-label="Retour à l'accueil"
+              >
+                <i className="fa-solid fa-house" />
+              </button>
             </div>
 
             <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
-              {filteredUsers.map((user) => {
+              {
+                users.map((user) => {
                 const isActive = selectedUser === user.name;
-
+                if (user.name === userPseudo)
+                  return null;
+								const hasConversation = inboxes.some(inbox => {
+									const ids = inbox.inboxUser.map(iu => iu.user_id);
+									return ids.includes(user.id) && ids.includes(currentUser.id);
+								});
+								if (!hasConversation) return null;
                 return (
-                  <Button
+                  <button
                     key={user.name}
-                    onClick={() => selectUser(user.name)}
-                    variant={isActive ? "primary" : "ghost"}
-                    className={`relative flex w-full justify-start items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors ${
+                    onClick={async () => {
+                      const next = await contact.selectUser(user.name);
+                      setSelectedUser(next)
+                      }
+                    }
+                    className={`relative flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors ${
                       isActive
                         ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)] text-white"
                         : "border-[#3c3650] bg-[#242033] text-gray-200 hover:bg-[#302a45]"
                     }`}
                   >
-                    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md">
+                    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-visible">
                       <Image
-                        src={user.avatar}
+                        src={user.avatar?.url ?? DEFAULT_PROFILE_ICON.url}
                         alt={user.name}
                         width={64}
                         height={64}
-                        className="h-10 w-10 rounded-md border border-[#3c3650] object-cover"
+                        className="h-12 w-12 rounded-lg border border-[#3c3650] object-cover"
                         unoptimized
                       />
                     </div>
                     <span className="truncate font-semibold">{user.name}</span>
-                    {user.unreadCount > 0 && (
+                    {
+											unreadMap[user.id] > 0 && (
                       <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
-                        {user.unreadCount}
+                        {unreadMap[user.id]}
                       </span>
                     )}
-                  </Button>
+                  </button>
                 );
               })}
-
-              {filteredUsers.length === 0 && (
-                <div className="rounded-xl border border-[#3c3650] bg-[#242033]/70 p-3 text-sm text-gray-300">
-                  No contact found.
-                </div>
-              )}
             </div>
 
             <div className="border-t border-[#3c3650] p-3">
-              <Button
-                onClick={openAddFriendModal}
+              <button
+                onClick={openAddContactModal}
                 disabled={isInviting}
-                className="h-10 w-full py-2 font-bold"
+                className="w-full rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] py-2 font-bold text-white transition-colors hover:bg-[var(--accent-hover)]"
               >
-                {isInviting ? "Searching..." : "+ New contact"}
-              </Button>
+                {isInviting ? "Recherche..." : "+ Nouveau contact"}
+              </button>
             </div>
           </aside>
-
           <section className="flex min-h-0 flex-col">
             <header className="flex items-center justify-between border-b border-[#3c3650] bg-[#242033] px-5 py-4">
               <div className="flex items-center gap-3">
-                <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-md">
+                <div className="relative flex h-10 w-10 items-center justify-center overflow-visible">
                   <Image
-                    src={currentUser.avatar}
-                    alt={currentUser.name}
+                    src={currentUser?.avatar?.url ?? DEFAULT_PROFILE_ICON.url}
+                    alt={currentUser?.name ?? "default"}
                     width={64}
                     height={64}
-                    className="h-10 w-10 rounded-md border border-[#3c3650] object-cover"
+                    className="h-12 w-12 rounded-lg border border-[#3c3650] object-cover"
                     unoptimized
                   />
                 </div>
-                <div>
-                  <h2 className="text-xl font-bold">{currentUser.name}</h2>
-                </div>
+                { <div>
+                  { <h2 className="text-xl font-bold">{currentUser?.name ?? "default"}</h2> }
+                  {hasDraft && <p className="text-xs text-[#b4a8ff]">En train d’écrire...</p>}
+                </div>}
               </div>
 
-              <div className="rounded-xl border border-[#3c3650] bg-[#302a45] px-3 py-1 text-xs text-gray-200">
-                Conversation
-              </div>
+              <button
+                onClick={() => router.push("/home")}
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#3c3650] bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
+                aria-label="Fermer"
+              >
+                ✕
+              </button>
             </header>
 
             <div ref={messageListRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
               {currentMessages.length === 0 && (
                 <div className="rounded-xl border border-[#3c3650] bg-[#242033]/70 p-4 text-sm text-gray-300">
-                  No conversation yet. Send the first message to @{selectedUser}.
+                  Aucune conversation pour le moment. Envoie le premier message à @{selectedUser}.
                 </div>
               )}
 
               {currentMessages.map((msg) => (
-                <div key={msg.id} className={`flex ${msg.isMine ? "justify-end" : "justify-start"}`}>
+                <div key={msg.id} className={`flex ${msg.user_id === currentUser.id ? "justify-end" : "justify-start"}`}>
                   <article
                     className={`max-w-[44rem] rounded-2xl px-5 py-3 ${
-                      msg.isMine
+                      msg.user_id
                         ? "bg-[var(--accent-color)] text-white"
                         : "border border-[#3c3650] bg-[#242033] text-gray-100"
                     }`}
                   >
-                    {msg.text && <p className="leading-relaxed">{msg.text}</p>}
+                    {msg.message && <p className="leading-relaxed">{msg.message}</p>}
 
-                    {msg.attachments.length > 0 && (
+                    {/* {msg.attachments.length > 0 && (
                       <div className={`mt-2 grid gap-2 ${msg.attachments.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
                         {msg.attachments.map((attachment) => {
                           const isImage = attachment.type.startsWith("image/");
@@ -604,7 +560,7 @@ export default function SocialPage() {
                             <div
                               key={attachment.id}
                               className={`rounded-lg border p-2 ${
-                                msg.isMine
+                                msg.user_id === currentUser.id
                                   ? "border-white/30 bg-white/10"
                                   : "border-[#3c3650] bg-[#15131d]"
                               }`}
@@ -629,10 +585,10 @@ export default function SocialPage() {
                           );
                         })}
                       </div>
-                    )}
+                    )} */}
 
-                    <p className={`mt-2 text-[11px] ${msg.isMine ? "text-white/80" : "text-gray-400"}`}>
-                      {msg.sentAt}
+                    <p className={`mt-2 text-[11px] ${msg.user_id === currentUser.id ? "text-white/80" : "text-gray-400"}`}>
+                      {formatTime(msg.createdAt)}
                     </p>
                   </article>
                 </div>
@@ -649,15 +605,13 @@ export default function SocialPage() {
                     >
                       <i className="fa-regular fa-paperclip" />
                       <span className="max-w-[14rem] truncate">{attachment.name}</span>
-                      <Button
+                      <button
                         onClick={() => removeDraftAttachment(attachment.id)}
-                        variant="ghost"
-                        size="sm"
-                        className="h-auto border-0 bg-transparent p-0 text-gray-300 hover:bg-transparent hover:text-white"
-                        aria-label={`Remove ${attachment.name}`}
+                        className="text-gray-300 transition-colors hover:text-white"
+                        aria-label={`Supprimer ${attachment.name}`}
                       >
                         <i className="fa-solid fa-xmark" />
-                      </Button>
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -673,32 +627,31 @@ export default function SocialPage() {
                   accept="image/*,.pdf,.txt,.doc,.docx"
                 />
 
-                <Button
+                <button
                   onClick={handlePickAttachments}
-                  variant="secondary"
-                  className="h-9 w-9 rounded-full border-0 bg-[#302a45] p-0 hover:bg-[#3b3457]"
-                  aria-label="Add attachments"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
+                  aria-label="Ajouter des pièces jointes"
                 >
                   <i className="fa-solid fa-paperclip" />
-                </Button>
+                </button>
 
-                <Input
+                <input
                   type="text"
-                  placeholder={`Send a message to @${selectedUser}`}
+                  placeholder={`Envoyez un message à @${selectedUser}`}
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
                   onKeyDown={handleInputKeyDown}
-                  className="h-auto flex-1 border-0 bg-transparent px-1 py-0 text-sm focus:border-transparent"
+                  className="flex-1 bg-transparent px-1 text-sm text-gray-200 outline-none placeholder:text-gray-500"
                 />
 
-                <Button
+                <button
                   onClick={sendMessage}
                   disabled={!hasDraft}
-                  className="h-9 w-9 rounded-full p-0"
-                  aria-label="Send"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Envoyer"
                 >
                   <i className="fa-solid fa-paper-plane" />
-                </Button>
+                </button>
               </div>
             </footer>
           </section>

@@ -312,7 +312,8 @@ run_prisma_migrations() {
     local attempts=0
     local max_attempts=12
 
-    until docker compose exec -T frontend bunx prisma migrate deploy --config prisma/prisma.config.ts; do
+    #DANGER
+    until docker compose -f docker-compose.yml exec frontend bunx prisma migrate dev --name init --url "postgresql://postgres:postgres@db:5432/aqua_temp"; do
         attempts=$((attempts + 1))
         if [ "$attempts" -ge "$max_attempts" ]; then
             print_info "Impossible d'appliquer les migrations Prisma via dev.sh (frontend en restart)."
@@ -486,5 +487,4 @@ main() {
         wait_any_key
     done
 }
-
 main
