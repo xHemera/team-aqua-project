@@ -3,11 +3,11 @@ import { Server } from "socket.io";
 import express from "express";
 import { createClient } from 'redis';
 
+//redis settings
 const redis = createClient({
     socket: {
       host: 'redis',
       port: 6379,
-      reconnectStrategy: retries => Math.min(retries * 50, 500)
     }
 });
 
@@ -15,16 +15,11 @@ redis.on('error', (err) => console.log('Redis Client Error', err));
 
 await redis.connect();
 
-//parametres de connexion + creation de serveur
+//connection parameters and server creation
 const hostname = "0.0.0.0";
 const port = Number(process.env.PORT || 4001);
 
 const app = express();
-
-app.get("/health", (_req, res) => {
-  res.status(200).json({ ok: true });
-});
-
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
@@ -33,7 +28,8 @@ const io = new Server(httpServer, {
   transports: ["websocket", "polling"],
 });
 
-//fonctions sockets (comme gerer les connexions ou l'envoi de msgs)
+//sockets functions
+//On connect, logs and maps the user to a socket
 io.on("connect", (socket) => {
   socket.on("login", async (user) => {
     await redis.hSet("online_users", user, socket.id);
@@ -42,48 +38,29 @@ io.on("connect", (socket) => {
     io.emit("online_users", users);
   });
 
-  socket.on("msg_sent", async ({sender, receiver}) => {
+  //checks if a message is sent to someone else
+  socket.on("msg_sent", async ({sender, receiver, msg}) => {
     const receiverSock = await redis.hGet("online_users", receiver);
     if (receiverSock)
     {
-      console.log(receiverSock, sender, receiver);
       io.to(receiverSock).emit("received", {
         sender,
-        receiver
+        receiver,
+        msg
       });
     }
   })
 
-  socket.on("like_sent", async ({ sender, senderAvatar, receiver, messageId, liked }) => {
-    const receiverSock = await redis.hGet("online_users", receiver);
-    if (receiverSock) {
-      io.to(receiverSock).emit("like_received", {
-        sender,
-        senderAvatar,
-        receiver,
-        messageId,
-        liked,
-      });
-    }
-  });
-
-  socket.on("profile_updated", ({ user }) => {
-    io.emit("profile_updated", { user });
-  });
-
+  //delete the user's socket if he's disconnected
   socket.on("disconnect", async () => {
-    const onlineUsers = await redis.hGetAll("online_users");
-    const disconnectedUser = Object.keys(onlineUsers).find((name) => onlineUsers[name] === socket.id);
-    if (disconnectedUser) {
-      await redis.hDel("online_users", disconnectedUser);
-    }
+    await redis.hDel("online_users", socket.id);
     const users = await redis.hGetAll("online_users");
     console.log("Client disconnected: ", users);
     io.emit("online_users", users);
   });
 });
 
-//check d'erreur et ecoute du port
+//errors check and set the listening port
 httpServer
   .once("error", (err) => {
     console.error(err);
