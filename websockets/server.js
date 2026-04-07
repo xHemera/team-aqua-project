@@ -51,6 +51,17 @@ io.on("connect", (socket) => {
     }
   })
 
+  socket.on("new_conv", async ({sender, receiver}) => {
+    const receiverSock = await redis.hGet("online_users", receiver);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("add_conv", {
+        sender,
+        receiver,
+      });
+    }
+  })
+
   //delete the user's socket if he's disconnected
   socket.on("disconnect", async () => {
     await redis.hDel("online_users", socket.id);
