@@ -8,6 +8,7 @@ import { authClient } from "@/lib/auth-client";
 import AppPageShell from "@/components/AppPageShell";
 import { DEFAULT_PROFILE_ICON, PROFILE_ICONS } from "@/lib/profile-icons";
 import { contact }  from "./index"
+import NotificationToast from "@/components/organisms/home/NotificationToast";
 
 const esper = PROFILE_ICONS.find((icon) => icon.type === "esper")?.url ?? DEFAULT_PROFILE_ICON.url;
 const dragon = PROFILE_ICONS.find((icon) => icon.type === "dragon")?.url ?? DEFAULT_PROFILE_ICON.url;
@@ -119,6 +120,9 @@ export default function SocialPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [inboxes, setInboxes] = useState<Inbox[]>([]);
 	const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
+  const [showNotification, setShowNotification] = useState(true);
+  const [notification, setNotification] = useState<string | null>(null);
+  const [notifSender, setNotifSender] = useState<string | null>(null);
 
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
 
@@ -193,7 +197,7 @@ export default function SocialPage() {
   //render messages sent by other users
   useEffect(() => {
     if (!userPseudo) return;
-    socket.on("received", async ({sender, receiver}) => {
+    socket.on("received", async ({sender, receiver, msg}) => {
       if (selectedUser === sender)
       {
         const newMessages = await contact.getMsg(userPseudo, sender);
@@ -201,8 +205,13 @@ export default function SocialPage() {
         if (!newMessages) return;
         setCurrentMessages(newMessages);
       }
+      else
+      {
+        setNotifSender(sender);
+        setNotification(msg);
+      }
     })
-  })
+  }, [userPseudo])
 
 	//make the conversation scroll to last message and render them
   //when selecting a user
@@ -361,7 +370,8 @@ export default function SocialPage() {
     //sends a signal to the other user's socket
     socket.emit("msg_sent", {
       sender: currentUser.name,
-      receiver: selectedUser
+      receiver: selectedUser,
+      msg: cleanMessage
     });
 
     setMessage("");
@@ -377,6 +387,7 @@ export default function SocialPage() {
 
   return (
     <AppPageShell>
+      {showNotification && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification!} sender={notifSender!} />)}
       {inviteNotification && (
         <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
           <div

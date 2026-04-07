@@ -6,6 +6,10 @@ import AppPageShell from "@/components/AppPageShell";
 import Button from "@/components/atoms/Button";
 import Input from "@/components/atoms/Input";
 import Card from "@/components/atoms/Card";
+import { socket } from "../../socket"
+import { authClient } from "@/lib/auth-client";
+import NotificationToast from "@/components/organisms/home/NotificationToast";
+
 
 // HARDCODE: default deck icon assets until deck metadata is provided by backend.
 const deckImages: Record<string, string> = {
@@ -196,6 +200,11 @@ export default function DecksPage() {
   const [deckNameError, setDeckNameError] = useState("");
   const [availableCardQuery, setAvailableCardQuery] = useState("");
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
+  const [userPseudo, setUserPseudo] = useState<string | null>(null);
+  const [showPopup, setShowPopup] = useState(false);
+  const [showNotification, setShowNotification] = useState(true);
+  const [notification, setNotification] = useState<string | null>(null);
+  const [notifSender, setNotifSender] = useState<string | null>(null);
 
   useEffect(() => {
     const syncDecksFromStorage = async () => {
@@ -205,9 +214,43 @@ export default function DecksPage() {
       setDeckList(hydratedDeckData.deckList);
       setDeckIcons(hydratedDeckData.deckIcons);
     };
-
     void syncDecksFromStorage();
   }, []);
+
+  //fetch the current user pseudo
+  useEffect(() => {
+    const getUserData = async () => {
+      const { data } = await authClient.getSession();
+      if (data?.user?.name)
+        setUserPseudo(data.user.name);
+    };
+    getUserData();
+  });
+
+  //reconnect socket in case of a page refresh
+  useEffect(() => {
+      if (!userPseudo || socket.connected) return;
+  
+      socket.connect();
+      socket.emit("login", userPseudo);
+  
+      socket.on("online_users", (users) => {
+        console.log("Users from Redis:", users);
+      });
+  
+      return () => {
+        socket.off("online_users");
+      };
+    }, [userPseudo]);
+  
+  //render messages sent by other users
+  useEffect(() => {
+    if (!userPseudo) return;
+    socket.on("received", async ({sender, receiver, msg}) => {
+      setNotifSender(sender);
+      setNotification(msg);
+    })
+  }, [userPseudo])
 
   const selectedDeckIcon = selectedDeck ? deckIcons[selectedDeck] || deckImages.Flygon : deckImages.Flygon;
 
@@ -499,6 +542,7 @@ export default function DecksPage() {
 
   return (
     <AppPageShell showSidebar containerClassName="min-h-0 flex-1">
+    {showNotification && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification!} sender={notifSender!} />)}  
       <div className="relative mx-auto flex h-full w-full max-w-[88rem] flex-col overflow-y-auto pr-1">
         <header className="mb-6 flex items-center justify-between">
         </header>

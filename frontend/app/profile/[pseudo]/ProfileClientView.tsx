@@ -8,10 +8,12 @@ import Button from "@/components/atoms/Button";
 import Card from "@/components/atoms/Card";
 import IconButton from "@/components/atoms/IconButton";
 import Input from "@/components/atoms/Input";
+import { socket } from "../../../socket"
 import { authClient } from "@/lib/auth-client";
 import { applyBackgroundPreferenceToDocument, buildBackgroundStyle, DEFAULT_SITE_BACKGROUND, normalizeImageValue } from "@/lib/background-utils";
 import { persistAvatarPreference } from "@/lib/avatar-preference";
 import { applyAccentPalette, resolveProfileIcon } from "@/lib/profile-icons";
+import NotificationToast from "@/components/organisms/home/NotificationToast";
 
 type AvatarEntry = { id: string; name: string; type: string; url: string; accent: string; accentHover: string };
 
@@ -100,6 +102,10 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
   const [profileBackground, setProfileBackground] = useState(defaultBackground);
   const [profileBanner, setProfileBanner] = useState(defaultBanner);
   const [showCustomizationPanel, setShowCustomizationPanel] = useState(false);
+  const [userPseudo, setUserPseudo] = useState<string | null>(null);
+  const [showNotification, setShowNotification] = useState(true);
+  const [notification, setNotification] = useState<string | null>(null);
+  const [notifSender, setNotifSender] = useState<string | null>(null);
   const bgUploadRef = useRef<HTMLInputElement>(null);
   const bannerUploadRef = useRef<HTMLInputElement>(null);
 
@@ -120,6 +126,44 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
   const [draftAvatarId, setDraftAvatarId] = useState<string | null>(null);
   const [draftBackground, setDraftBackground] = useState(defaultBackground);
   const [draftBanner, setDraftBanner] = useState(defaultBanner);
+
+
+  //fetch the current user pseudo
+  useEffect(() => {
+    const getUserData = async () => {
+      const { data } = await authClient.getSession();
+      if (data?.user?.name) {
+        setUserPseudo(data.user.name);
+      }
+    };
+    void getUserData();
+  }, []);
+
+  
+  //reconnect socket in case of a page refresh
+  useEffect(() => {
+      if (!userPseudo || socket.connected) return;
+  
+      socket.connect();
+      socket.emit("login", userPseudo);
+  
+      socket.on("online_users", (users) => {
+        console.log("Users from Redis:", users);
+      });
+  
+      return () => {
+        socket.off("online_users");
+      };
+    }, [userPseudo]);
+    
+  //render messages sent by other users
+  useEffect(() => {
+    if (!userPseudo) return;
+    socket.on("received", async ({sender, receiver, msg}) => {
+      setNotifSender(sender);
+      setNotification(msg);
+    })
+  }, [userPseudo]);
 
   useEffect(() => {
     const icon = resolveProfileIcon({ url: initialAvatar });
@@ -257,6 +301,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
 
   return (
     <AppPageShell showSidebar containerClassName="min-h-0 flex-1">
+      {showNotification && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification!} sender={notifSender!} />)}
       <div className="mx-auto flex h-full w-full max-w-[88rem] flex-col overflow-y-auto pr-1">
         <header className="mb-5 flex items-center justify-end gap-3">
           {isOwnProfile && (

@@ -39,14 +39,14 @@ io.on("connect", (socket) => {
   });
 
   //checks if a message is sent to someone else
-  socket.on("msg_sent", async ({sender, receiver}) => {
+  socket.on("msg_sent", async ({sender, receiver, msg}) => {
     const receiverSock = await redis.hGet("online_users", receiver);
     if (receiverSock)
     {
-      console.log(receiverSock, sender, receiver);
       io.to(receiverSock).emit("received", {
         sender,
-        receiver
+        receiver,
+        msg
       });
     }
   })
