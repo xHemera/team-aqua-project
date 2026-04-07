@@ -87,7 +87,7 @@ export default function Home() {
 
   return (
     <AppPageShell showSidebar containerClassName="min-h-0 flex-1 flex-col">
-      {showNotification && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification!} sender={notifSender!} />)}
+      {showNotification && notification && notifSender && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
 
       <div className="relative z-10 flex min-h-0 flex-1 w-full items-center justify-center">
         <div className="grid w-full max-w-[88rem] grid-cols-1 items-center gap-8 px-2 lg:grid-cols-[1fr_auto_1fr]">

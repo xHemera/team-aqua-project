@@ -387,7 +387,7 @@ export default function SocialPage() {
 
   return (
     <AppPageShell>
-      {showNotification && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification!} sender={notifSender!} />)}
+      {showNotification && notification && notifSender && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       {inviteNotification && (
         <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
           <div

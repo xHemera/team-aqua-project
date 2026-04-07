@@ -301,7 +301,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
 
   return (
     <AppPageShell showSidebar containerClassName="min-h-0 flex-1">
-      {showNotification && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification!} sender={notifSender!} />)}
+      {showNotification && notification && notifSender && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       <div className="mx-auto flex h-full w-full max-w-[88rem] flex-col overflow-y-auto pr-1">
         <header className="mb-5 flex items-center justify-end gap-3">
           {isOwnProfile && (
