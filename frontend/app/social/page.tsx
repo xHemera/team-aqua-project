@@ -204,7 +204,7 @@ export default function SocialPage() {
         if (!newMessages) return;
         setCurrentMessages(newMessages);
       }
-      else
+      else //set variables to send a notification
       {
         setNotifSender(sender);
         setNotification(msg);
