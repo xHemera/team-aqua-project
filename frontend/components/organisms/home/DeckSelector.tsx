@@ -189,7 +189,7 @@ export default function DeckSelector({
       {showDeckDropdown && (
         <div
           id="home-deck-selector-listbox"
-          className="absolute top-[calc(100%+0.55rem)] z-30 max-h-[min(55vh,22rem)] w-full overflow-y-auto rounded-2xl border border-[#3c3650] bg-[#15131d] p-2 shadow-2xl"
+          className="absolute bottom-[calc(100%+0.55rem)] z-30 max-h-[min(55vh,22rem)] w-full overflow-y-auto rounded-2xl border border-[#3c3650] bg-[#15131d] p-2 shadow-2xl"
           role="listbox"
           aria-label="Deck selection"
           tabIndex={-1}

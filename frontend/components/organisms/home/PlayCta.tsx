@@ -10,10 +10,8 @@ type PlayCtaProps = {
 // Organism: bloc CTA principal de la home.
 export default function PlayCta({ onPlay }: PlayCtaProps) {
   return (
-    <div
-      className={`origin-center transform-gpu bg-black p-0.5 shadow-2xl transition-transform hover:scale-105 ${styles.hexOuter}`}
-    >
-      <div className={`bg-[#ffdb4c] p-2 ${styles.hexInner}`}>
+    <div className={`origin-center  shadow-2xl transition-transform hover:scale-105 ${styles.hexOuter}`}>
+      <div className={`p-2 ${styles.hexInner}`}>
         <Button
           type="button"
           onClick={onPlay}
