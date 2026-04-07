@@ -198,10 +198,9 @@ export default function SocialPage() {
   useEffect(() => {
     if (!userPseudo) return;
     socket.on("received", async ({sender, receiver, msg}) => {
-      if (selectedUser === sender)
+      if (selectedUser === receiver)
       {
         const newMessages = await contact.getMsg(userPseudo, sender);
-        console.log(userPseudo, sender);
         if (!newMessages) return;
         setCurrentMessages(newMessages);
       }
@@ -210,6 +209,10 @@ export default function SocialPage() {
         setNotifSender(sender);
         setNotification(msg);
       }
+    })
+    socket.on("add_conv", async ({sender, receiver}) => {
+      const i = await contact.getInboxes();
+      setInboxes(i);
     })
   }, [userPseudo])
 
@@ -294,7 +297,7 @@ export default function SocialPage() {
         return ;
       }
       //check if the inbox already exist
-      if (await contact.alreadyAdded(userPseudo!, inviteUsername) === false)
+      if (await contact.alreadyAdded(currentUser.name, inviteUsername) === false)
       {
         setInviteNotification({
           type: "error",
@@ -302,9 +305,14 @@ export default function SocialPage() {
         });
         return;
       }
-      //makes a new inbox for both users
-      contact.addContact(userPseudo!, inviteUsername);
-
+      //makes a new inbox for both users and updates it
+      contact.addContact(currentUser.name, inviteUsername);
+      const i = await contact.getInboxes();
+      setInboxes(i);
+      socket.emit("new_conv", {
+        sender: currentUser.name,
+        receiver: inviteUsername,
+      });
       //return if user does not exist
       if (!response.ok || !payload.user) {
         setInviteNotification({
@@ -387,7 +395,7 @@ export default function SocialPage() {
 
   return (
     <AppPageShell>
-      {showNotification && notification && notifSender && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
+      {showNotification && notification && notifSender && (notifSender !== selectedUser) && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       {inviteNotification && (
         <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
           <div
