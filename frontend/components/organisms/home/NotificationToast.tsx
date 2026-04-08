@@ -30,9 +30,7 @@ export default function NotificationToast({ onClose, msg, sender }: Notification
         <div className="h-[2px] w-full bg-black"></div>
         <div className="bg-black px-4 py-4">
           <div className="text-sm leading-tight text-white">
-          {
-            msg
-          }
+          { msg }
           </div>
         </div>
       </div>

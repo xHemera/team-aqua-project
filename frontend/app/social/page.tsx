@@ -210,7 +210,7 @@ export default function SocialPage() {
       }
     })
     //refresh the inboxes to display new conversations
-    socket.on("add_conv", async ({sender, receiver}) => {
+    socket.on("add_conv", async () => {
       const i = await contact.getInboxes();
       setInboxes(i);
     })

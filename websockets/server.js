@@ -55,10 +55,7 @@ io.on("connect", (socket) => {
     const receiverSock = await redis.hGet("online_users", receiver);
     if (receiverSock)
     {
-      io.to(receiverSock).emit("add_conv", {
-        sender,
-        receiver,
-      });
+      io.to(receiverSock).emit("add_conv");
     }
   })
 
