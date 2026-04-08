@@ -59,6 +59,28 @@ io.on("connect", (socket) => {
     }
   })
 
+  socket.on("friend_added", async ({user, friend}) => {
+    const receiverSock = await redis.hGet("online_users", friend);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("adding", {
+        user,
+        friend
+      });
+    }
+  })
+
+  socket.on("friend_or_user_blocked", async ({user, oUser}) => {
+    const receiverSock = await redis.hGet("online_users", oUser);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("blocking", {
+        user,
+        oUser
+      });
+    }
+  })
+
   //delete the user's socket if he's disconnected
   socket.on("disconnect", async () => {
     await redis.hDel("online_users", socket.id);
