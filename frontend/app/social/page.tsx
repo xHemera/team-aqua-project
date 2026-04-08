@@ -394,7 +394,7 @@ export default function SocialPage() {
   };
 
   return (
-    <AppPageShell>
+    <AppPageShell showSidebar containerClassName="min-h-0 flex-1 flex-col">
       {showNotification && notification && notifSender && (notifSender !== selectedUser) && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       {inviteNotification && (
         <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
@@ -445,31 +445,23 @@ export default function SocialPage() {
         </div>
       )}
 
-      <div className="w-full">
-        <section className="grid h-[calc(100vh-2rem)] w-full grid-cols-1 overflow-hidden rounded-3xl border border-[#3c3650] bg-[#15131d]/85 shadow-2xl backdrop-blur-md lg:grid-cols-[19rem_1fr]">
-          <aside className="flex min-h-0 flex-col border-b border-[#3c3650] lg:border-b-0 lg:border-r">
-            <div className="flex items-center justify-between border-b border-[#3c3650] px-5 py-4">
-              <h1 className="text-2xl font-bold tracking-tight">Social</h1>
-              <button
-                onClick={() => router.push("/home")}
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#3c3650] bg-[#242033] text-white transition-colors hover:bg-[#302a45]"
-                aria-label="Retour à l'accueil"
-              >
-                <i className="fa-solid fa-house" />
-              </button>
-            </div>
-
-            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
-              {
-                users.map((user) => {
-                const isActive = selectedUser === user.name;
-                if (user.name === userPseudo)
-                  return null;
-								const hasConversation = inboxes.some(inbox => {
-									const ids = inbox.inboxUser.map(iu => iu.user_id);
-									return ids.includes(user.id) && ids.includes(currentUser.id);
-								});
-								if (!hasConversation) return null;
+      <div className="flex w-full justify-center px-4">
+        <section className="flex h-[calc(100vh-2rem)] w-[calc(100%-14rem)] flex-col overflow-hidden rounded-3xl border border-[#3c3650] bg-[#15131d]/85 shadow-2xl backdrop-blur-md">
+          {/* Header avec contacts et boutons */}
+          <header className="flex items-center justify-between border-b border-[#3c3650] bg-[#242033] px-5 py-2"> 
+            {/* Contacts scroll horizontalement */}
+            <div className="flex-1 overflow-x-auto px-4">
+              <div className="flex gap-2">
+                {
+                  users.map((user) => {
+                  const isActive = selectedUser === user.name;
+                  if (user.name === userPseudo)
+                    return null;
+                  const hasConversation = inboxes.some(inbox => {
+                    const ids = inbox.inboxUser.map(iu => iu.user_id);
+                    return ids.includes(user.id) && ids.includes(currentUser.id);
+                  });
+                  if (!hasConversation) return null;
                 return (
                   <button
                     key={user.name}
@@ -478,25 +470,25 @@ export default function SocialPage() {
                       setSelectedUser(next)
                       }
                     }
-                    className={`relative flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors ${
+                    className={`relative flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 transition-colors ${
                       isActive
                         ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)] text-white"
                         : "border-[#3c3650] bg-[#242033] text-gray-200 hover:bg-[#302a45]"
                     }`}
                   >
-                    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-visible">
+                    <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-visible">
                       <Image
                         src={user.avatar?.url ?? DEFAULT_PROFILE_ICON.url}
                         alt={user.name}
-                        width={64}
-                        height={64}
-                        className="h-12 w-12 rounded-lg border border-[#3c3650] object-cover"
+                        width={32}
+                        height={32}
+                        className="h-8 w-8 rounded-lg border border-[#3c3650] object-cover"
                         unoptimized
                       />
                     </div>
-                    <span className="truncate font-semibold">{user.name}</span>
+                    <span className="shrink-0 whitespace-nowrap text-sm font-semibold">{user.name}</span>
                     {
-											unreadMap[user.id] > 0 && (
+                      unreadMap[user.id] > 0 && (
                       <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
                         {unreadMap[user.id]}
                       </span>
@@ -504,58 +496,47 @@ export default function SocialPage() {
                   </button>
                 );
               })}
+              </div>
             </div>
 
-            <div className="border-t border-[#3c3650] p-3">
+            {/* Boutons à droite */}
+            <div className="flex items-center gap-2">
               <button
                 onClick={openAddContactModal}
                 disabled={isInviting}
-                className="w-full rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] py-2 font-bold text-white transition-colors hover:bg-[var(--accent-hover)]"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-50"
+                aria-label="Ajouter un contact"
               >
-                {isInviting ? "Recherche..." : "+ Nouveau contact"}
+                <i className="fa-solid fa-plus"></i>
               </button>
             </div>
-          </aside>
+          </header>
           <section className="flex min-h-0 flex-col">
-            <header className="flex items-center justify-between border-b border-[#3c3650] bg-[#242033] px-5 py-4">
-              <div className="flex items-center gap-3">
-                <div className="relative flex h-10 w-10 items-center justify-center overflow-visible">
-                  <Image
-                    src={currentUser?.avatar?.url ?? DEFAULT_PROFILE_ICON.url}
-                    alt={currentUser?.name ?? "default"}
-                    width={64}
-                    height={64}
-                    className="h-12 w-12 rounded-lg border border-[#3c3650] object-cover"
-                    unoptimized
-                  />
-                </div>
-                { <div>
-                  { <h2 className="text-xl font-bold">{currentUser?.name ?? "default"}</h2> }
-                  {hasDraft && <p className="text-xs text-[#b4a8ff]">En train d’écrire...</p>}
-                </div>}
-              </div>
-
-              <button
-                onClick={() => router.push("/home")}
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#3c3650] bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
-                aria-label="Fermer"
-              >
-                ✕
-              </button>
-            </header>
 
             <div ref={messageListRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
-              {currentMessages.length === 0 && selectedUser && (
-                <div className="rounded-xl border border-[#3c3650] bg-[#242033]/70 p-4 text-sm text-gray-300">
-                  Aucune conversation pour le moment. Envoie le premier message à @{selectedUser}.
-                </div>
-              )}
-
               {currentMessages.map((msg) => (
-                <div key={msg.id} className={`flex ${msg.user_id === currentUser.id ? "justify-end" : "justify-start"}`}>
+                <div key={msg.id} className={`flex flex-col ${msg.user_id === currentUser.id ? "items-end" : "items-start"}`}>
+                  <div className="mb-1 flex items-center gap-2 text-xs text-gray-400">
+                    <Image
+                      src={
+                        msg.user_id === currentUser.id
+                          ? currentUser?.avatar?.url ?? DEFAULT_PROFILE_ICON.url
+                          : users.find(u => u.name === selectedUser)?.avatar?.url ?? DEFAULT_PROFILE_ICON.url
+                      }
+                      alt="Avatar"
+                      width={20}
+                      height={20}
+                      className="h-4 w-4 rounded border border-[#3c3650]"
+                      unoptimized
+                    />
+                    <span className="font-semibold">
+                      {msg.user_id === currentUser.id ? currentUser?.name : selectedUser}
+                    </span>
+                    <span className="opacity-75">{formatTime(msg.createdAt)}</span>
+                  </div>
                   <article
                     className={`max-w-[44rem] rounded-2xl px-5 py-3 ${
-                      msg.user_id
+                      msg.user_id === currentUser.id
                         ? "bg-[var(--accent-color)] text-white"
                         : "border border-[#3c3650] bg-[#242033] text-gray-100"
                     }`}
@@ -597,72 +578,71 @@ export default function SocialPage() {
                         })}
                       </div>
                     )} */}
-
-                    <p className={`mt-2 text-[11px] ${msg.user_id === currentUser.id ? "text-white/80" : "text-gray-400"}`}>
-                      {formatTime(msg.createdAt)}
-                    </p>
                   </article>
                 </div>
               ))}
             </div>
 
             <footer className="border-t border-[#3c3650] bg-[#15131d] p-4">
-              {draftAttachments.length > 0 && (
-                <div className="mb-3 flex flex-wrap gap-2">
-                  {draftAttachments.map((attachment) => (
-                    <div
-                      key={attachment.id}
-                      className="inline-flex items-center gap-2 rounded-full border border-[#3c3650] bg-[#242033] px-3 py-1 text-xs text-gray-200"
-                    >
-                      <i className="fa-regular fa-paperclip" />
-                      <span className="max-w-[14rem] truncate">{attachment.name}</span>
-                      <button
-                        onClick={() => removeDraftAttachment(attachment.id)}
-                        className="text-gray-300 transition-colors hover:text-white"
-                        aria-label={`Supprimer ${attachment.name}`}
-                      >
-                        <i className="fa-solid fa-xmark" />
-                      </button>
-                    </div>
-                  ))}
+              {selectedUser && (<div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2 rounded-full border border-[#3c3650] bg-[#242033] px-2 py-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    multiple
+                    onChange={handleFilesChange}
+                    accept="image/*,.pdf,.txt,.doc,.docx"
+                  />
+
+                  <button
+                    onClick={handlePickAttachments}
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
+                    aria-label="Ajouter des pièces jointes"
+                  >
+                    <i className="fa-solid fa-paperclip" />
+                  </button>
+
+                  <input
+                    type="text"
+                    placeholder={`Envoyez un message à @${selectedUser}`}
+                    value={message}
+                    onChange={(event) => setMessage(event.target.value)}
+                    onKeyDown={handleInputKeyDown}
+                    className="flex-1 bg-transparent px-1 text-sm text-gray-200 outline-none placeholder:text-gray-500"
+                  />
+
+                  <button
+                    onClick={sendMessage}
+                    disabled={!hasDraft}
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Envoyer"
+                  >
+                    <i className="fa-solid fa-paper-plane" />
+                  </button>
                 </div>
-              )}
 
-              {selectedUser && (<div className="flex items-center gap-2 rounded-full border border-[#3c3650] bg-[#242033] px-2 py-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  className="hidden"
-                  multiple
-                  onChange={handleFilesChange}
-                  accept="image/*,.pdf,.txt,.doc,.docx"
-                />
-
-                <button
-                  onClick={handlePickAttachments}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
-                  aria-label="Ajouter des pièces jointes"
-                >
-                  <i className="fa-solid fa-paperclip" />
-                </button>
-
-                <input
-                  type="text"
-                  placeholder={`Envoyez un message à @${selectedUser}`}
-                  value={message}
-                  onChange={(event) => setMessage(event.target.value)}
-                  onKeyDown={handleInputKeyDown}
-                  className="flex-1 bg-transparent px-1 text-sm text-gray-200 outline-none placeholder:text-gray-500"
-                />
-
-                <button
-                  onClick={sendMessage}
-                  disabled={!hasDraft}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label="Envoyer"
-                >
-                  <i className="fa-solid fa-paper-plane" />
-                </button>
+                {draftAttachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {draftAttachments.map((attachment) => (
+                      <div
+                        key={attachment.id}
+                        className="inline-flex items-center gap-2 rounded-full border border-[#3c3650] bg-[#242033] px-3 py-1 text-xs text-gray-200"
+                      >
+                        <i className="fa-regular fa-paperclip" />
+                        <span className="max-w-[14rem] truncate">{attachment.name}</span>
+                        <span className="opacity-75">({attachment.sizeLabel})</span>
+                        <button
+                          onClick={() => removeDraftAttachment(attachment.id)}
+                          className="text-gray-300 transition-colors hover:text-white"
+                          aria-label={`Supprimer ${attachment.name}`}
+                        >
+                          <i className="fa-solid fa-xmark" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>)}
             </footer>
           </section>
