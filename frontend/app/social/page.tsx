@@ -151,32 +151,31 @@ export default function SocialPage() {
   }, [userPseudo]);
 
   //fetch the number of unreaded messages (BROKEN)
-	useEffect(() => {
-		async function fetchUnread()
-		{
-			if (!currentUser) return;
-			const inbox = await contact.getUnread(currentUser.name);
-			const results: Record<string, number> = {};
-			let userId = null;
-			let unread = 0;
-			if (!inbox) return;
-			for (const iU of inbox)
-			{
-				iU.inboxUser.map((user) => {
-					if (user.user_id != currentUser.id)
-						userId = user.user_id;
-					else
-						unread = user.unread_messages ?? 0;
-				})
-			}
-			if (userId)
-			{
-				results[userId] = unread ?? 0;
-				setUnreadMap(results);
-			}
-		}
-		fetchUnread();
-	}, [currentUser]);
+	// async function fetchUnread()
+  // {
+  //   if (!currentUser) return;
+  //   const inbox = await contact.getUnread(currentUser.name);
+  //   const results: Record<string, number> = {};
+
+  //   for (const iU of inbox!) {
+  //     let otherUserId: string | null = null;
+  //     let unread = 0;
+
+  //     for (const user of iU.inboxUser) {
+  //       if (user.user_id !== currentUser.id) {
+  //         otherUserId = user.user_id;
+  //       } else {
+  //         unread = user.unread_messages ?? 0;
+  //       }
+  //     }
+
+  //     if (otherUserId) {
+  //       results[otherUserId] = unread;
+  //     }
+  //   }
+  //   setUnreadMap(results);
+  // }
+  // fetchUnread();
 
   //reconnect socket in case of a page refresh
   useEffect(() => {
@@ -198,23 +197,24 @@ export default function SocialPage() {
   useEffect(() => {
     if (!userPseudo) return;
     socket.on("received", async ({sender, receiver, msg}) => {
-      if (selectedUser === receiver)
+      if (selectedUser === sender)
       {
         const newMessages = await contact.getMsg(userPseudo, sender);
         if (!newMessages) return;
         setCurrentMessages(newMessages);
       }
-      else
+      else //set variables to send a notification
       {
         setNotifSender(sender);
         setNotification(msg);
       }
     })
-    socket.on("add_conv", async ({sender, receiver}) => {
+    //refresh the inboxes to display new conversations
+    socket.on("add_conv", async () => {
       const i = await contact.getInboxes();
       setInboxes(i);
     })
-  }, [userPseudo])
+  }, [userPseudo, selectedUser])
 
 	//make the conversation scroll to last message and render them
   //when selecting a user
@@ -545,7 +545,7 @@ export default function SocialPage() {
             </header>
 
             <div ref={messageListRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
-              {currentMessages.length === 0 && (
+              {currentMessages.length === 0 && selectedUser && (
                 <div className="rounded-xl border border-[#3c3650] bg-[#242033]/70 p-4 text-sm text-gray-300">
                   Aucune conversation pour le moment. Envoie le premier message à @{selectedUser}.
                 </div>
@@ -628,7 +628,7 @@ export default function SocialPage() {
                 </div>
               )}
 
-              <div className="flex items-center gap-2 rounded-full border border-[#3c3650] bg-[#242033] px-2 py-2">
+              {selectedUser && (<div className="flex items-center gap-2 rounded-full border border-[#3c3650] bg-[#242033] px-2 py-2">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -663,7 +663,7 @@ export default function SocialPage() {
                 >
                   <i className="fa-solid fa-paper-plane" />
                 </button>
-              </div>
+              </div>)}
             </footer>
           </section>
         </section>
