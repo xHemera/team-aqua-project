@@ -201,7 +201,6 @@ export default function DecksPage() {
   const [availableCardQuery, setAvailableCardQuery] = useState("");
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
-  const [showPopup, setShowPopup] = useState(false);
   const [showNotification, setShowNotification] = useState(true);
   const [notification, setNotification] = useState<string | null>(null);
   const [notifSender, setNotifSender] = useState<string | null>(null);
