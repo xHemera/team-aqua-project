@@ -438,3 +438,18 @@ export async function unblockUser(currentUser: string, otherUser: string)
         }
     }
 }
+
+export async function getBlockedUser(currentUser: string)
+{
+    if (!currentUser) return;
+
+    const user = await prisma.user.findFirst({
+        where: { id: currentUser }
+    });
+    if (!user) return ;
+
+    const blocked = await prisma.friends.findMany({
+        where: { friendId: user.id, blocked: true}
+    })
+    return blocked;
+}
