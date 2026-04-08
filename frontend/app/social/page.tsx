@@ -150,33 +150,6 @@ export default function SocialPage() {
     fetchUsers();
   }, [userPseudo]);
 
-  //fetch the number of unreaded messages (BROKEN)
-	// async function fetchUnread()
-  // {
-  //   if (!currentUser) return;
-  //   const inbox = await contact.getUnread(currentUser.name);
-  //   const results: Record<string, number> = {};
-
-  //   for (const iU of inbox!) {
-  //     let otherUserId: string | null = null;
-  //     let unread = 0;
-
-  //     for (const user of iU.inboxUser) {
-  //       if (user.user_id !== currentUser.id) {
-  //         otherUserId = user.user_id;
-  //       } else {
-  //         unread = user.unread_messages ?? 0;
-  //       }
-  //     }
-
-  //     if (otherUserId) {
-  //       results[otherUserId] = unread;
-  //     }
-  //   }
-  //   setUnreadMap(results);
-  // }
-  // fetchUnread();
-
   //reconnect socket in case of a page refresh
   useEffect(() => {
 		if (!userPseudo || socket.connected) return;
@@ -207,7 +180,9 @@ export default function SocialPage() {
       {
         setNotifSender(sender);
         setNotification(msg);
+        await fetchUnread();
       }
+
     })
     //refresh the inboxes to display new conversations
     socket.on("add_conv", async () => {
@@ -216,8 +191,7 @@ export default function SocialPage() {
     })
   }, [userPseudo, selectedUser])
 
-	//make the conversation scroll to last message and render them
-  //when selecting a user
+	//fetch the conversation
 	useEffect(() => {
 		async function fetchmessages()
 		{
@@ -231,7 +205,15 @@ export default function SocialPage() {
 			top: messageListRef.current.scrollHeight,
 			behavior: "smooth",
 		});
-	}, [selectedUser, currentMessages.length]);
+	}, [selectedUser]);
+
+  //scroll the conversation to last message
+  useEffect(() => {
+  messageListRef.current?.scrollTo({
+			top: messageListRef.current.scrollHeight,
+			behavior: "smooth",
+		});
+	}, [selectedUser, currentMessages.length])
 
 	useEffect(() => {
 		return () => {
@@ -255,6 +237,41 @@ export default function SocialPage() {
 	{
 		return <div>Loading...</div>;
 	}
+
+  //fetch the number of unreaded messages (BROKEN)
+  async function fetchUnread()
+  {
+    if (!userPseudo) return;
+    const cU = await contact.getCurrentUser(userPseudo);
+    const inbox = await contact.getUnread(cU.name);
+    if (!inbox) return;
+    const results: Record<string, number> = {};
+    for (const iU of inbox) {
+      let otherUserId: string | null = null;
+      let unread = 0;
+
+      for (const user of iU.inboxUser) {
+        if (user.user_id !== cU.id) {
+          otherUserId = user.user_id;
+        } else {
+          unread = user.unread_messages ?? 0;
+        }
+      }
+
+      if (otherUserId) {
+        results[otherUserId] = unread;
+      }
+      if (!otherUserId)
+      {
+        setNotification("userid null !");
+      }
+      if (unread === 0)
+      {
+        setNotification("unread a 0 !");
+      }
+    }
+    setUnreadMap(results);
+  }
 
   //open a add contact modal
   const openAddContactModal = () => {

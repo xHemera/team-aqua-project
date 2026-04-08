@@ -177,26 +177,28 @@ export async function addMsg(msg: string, sender: string, receiver: string)
             });
             up_inbox.messages.push(messages);
 			up_inbox.inboxUser.map(async (iU) => {
-				if (iU.user_id == user2.id)
-				{
-					const new_iU = await prisma.inbox_users.update({
-						where: { id: iU.id },
-						data: { unread_messages: { increment: 1} }
-					})
-				}
+                if (iU.user_id == user2.id)
+                {
+                    const new_iU = await prisma.inbox_users.update({
+                        where: { id: iU.id },
+                        data: { unread_messages: { increment: 1} }
+                    })
+                }
 			})
 		}
     }
 }
 
-export async function getMsg(sender: string, receiver: string)
+export async function getMsg(user: string, otherUser: string)
 {
-	if (!sender || !receiver) return;
+	if (!user || !otherUser) return;
     const user1 = await prisma.user.findFirst({
-        where: { name: sender }
+        where: { name: user },
+        include: { inboxUser: true }
     })
     const user2 = await prisma.user.findFirst({
-        where: { name: receiver }
+        where: { name: otherUser },
+        include: { inboxUser: true }
     })
     const inboxes = await prisma.inbox.findMany({
         include: { inboxUser: true, messages:true }
@@ -215,6 +217,16 @@ export async function getMsg(sender: string, receiver: string)
 			const messages = await prisma.messages.findMany({
                 where: { inbox_id: inbox.id }
             });
+            for (const iU of user1.inboxUser)
+            {
+                if (iU.inbox_id == inbox.id)
+                {
+                    const new_iU = await prisma.inbox_users.update({
+                        where: { id: iU.id },
+                        data: { unread_messages: 0 }
+                    })
+                }
+            }
 			return messages;
 		}
     }
