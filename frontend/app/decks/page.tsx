@@ -6,6 +6,9 @@ import AppPageShell from "@/components/AppPageShell";
 import Button from "@/components/atoms/Button";
 import Input from "@/components/atoms/Input";
 import Card from "@/components/atoms/Card";
+import { socket } from "../../socket"
+import { authClient } from "@/lib/auth-client";
+import NotificationToast from "@/components/organisms/home/NotificationToast";
 
 const deckImages: Record<string, string> = {
   Flygon: "/decks/flygon-icon.png",
@@ -122,6 +125,10 @@ export default function DecksPage() {
   const [deckNameDraft, setDeckNameDraft] = useState("");
   const [deckNameError, setDeckNameError] = useState("");
   const [availableCardQuery, setAvailableCardQuery] = useState("");
+  const [showNotification, setShowNotification] = useState(true);
+  const [notification, setNotification] = useState<string | null>(null);
+  const [notifSender, setNotifSender] = useState<string | null>(null);
+  const [userPseudo, setUserPseudo] = useState<string | null>(null);
 
   const selectedDeck = useMemo(
     () => decks.find((deck) => deck.id === selectedDeckId) ?? null,
@@ -156,6 +163,38 @@ export default function DecksPage() {
     setDecks(parsed.decks);
     setInvalidCards(brokenCards);
   };
+
+  //fetch the current user pseudo
+  useEffect(() => {
+    const getUserData = async () => {
+      const { data } = await authClient.getSession();
+      if (data?.user?.name) {
+        setUserPseudo(data.user.name);
+      }
+    };
+    void getUserData();
+  }, []);
+
+  
+  //reconnect socket in case of a page refresh
+  useEffect(() => {
+      if (!userPseudo || socket.connected) return;
+  
+      socket.connect();
+      socket.emit("login", userPseudo);
+      return () => {
+        socket.off("online_users");
+      };
+    }, [userPseudo]);
+    
+  //render messages sent by other users
+  useEffect(() => {
+    if (!userPseudo) return;
+    socket.on("received", async ({sender, receiver, msg}) => {
+      setNotification(msg);
+      setNotifSender(sender);
+    })
+  }, [userPseudo])
 
   useEffect(() => {
     const loadDecks = async () => {
@@ -449,6 +488,7 @@ export default function DecksPage() {
 
   return (
     <AppPageShell showSidebar containerClassName="min-h-0 flex-1">
+      {showNotification && notification && notifSender && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       <div className="relative mx-auto flex h-full w-full max-w-[88rem] flex-col overflow-y-auto pr-1">
         <header className="mb-6 flex items-center justify-between" />
 
