@@ -12,7 +12,7 @@ model Friends {
   userId        String
   request_sent  Boolean
   created_at    DateTime    @default(now())
-  user          User?       @relation(fields: [userId], references: [id])
+  user          User        @relation(fields: [userId], references: [id])
 }
 
 model Decks {
@@ -82,13 +82,13 @@ model Avatar {
 }
 
 model User {
-  id                String    @id
+  id                String    @id @default(cuid())
   name              String
   email             String
   emailVerified     Boolean   @default(false)
   image             String?
-  badges            String[]
-  blockedUsers      String[]
+  badges            String[]  @default([])
+  blockedUsers      String[]  @default([])
   profileBackground String?
   profileBanner     String?
   createdAt         DateTime  @default(now())
@@ -108,7 +108,7 @@ model User {
 }
 
 model Session {
-  id        String   @id
+  id        String   @id @default(cuid())
   expiresAt DateTime
   token     String
   createdAt DateTime @default(now())
@@ -124,7 +124,7 @@ model Session {
 }
 
 model Account {
-  id                    String    @id
+  id                    String    @id @default(cuid())
   accountId             String
   providerId            String
   userId                String
@@ -137,14 +137,14 @@ model Account {
   scope                 String?
   password              String?
   createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  updatedAt             DateTime @updatedAt
 
   @@index([userId])
   @@map("account")
 }
 
 model Verification {
-  id         String   @id
+  id         String   @id @default(cuid())
   identifier String
   value      String
   expiresAt  DateTime

@@ -6,6 +6,7 @@ export async function getUsers()
 {
     return await prisma.user.findMany({
         include: {
+            friends: true,
             inbox: {
             include: {
                 messages: true,
@@ -42,6 +43,7 @@ export async function getCurrentUser(current: string)
                 inboxUser: true,
             },
             },
+            friends: true,
             messages: true,
             inboxUser: true,
             avatar: true,
@@ -64,6 +66,7 @@ export async function getUser(name: string)
                 inboxUser: true,
             },
             },
+            friends: true,
             messages: true,
             inboxUser: true,
             avatar: true,

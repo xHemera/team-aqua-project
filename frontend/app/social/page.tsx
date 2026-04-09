@@ -15,11 +15,18 @@ const esper = PROFILE_ICONS.find((icon) => icon.type === "esper")?.url ?? DEFAUL
 const dragon = PROFILE_ICONS.find((icon) => icon.type === "dragon")?.url ?? DEFAULT_PROFILE_ICON.url;
 const mizu = PROFILE_ICONS.find((icon) => icon.type === "mizu")?.url ?? DEFAULT_PROFILE_ICON.url;
 
+type Friends = {
+  friendId:     string;
+  userId:       string;
+  request_sent: boolean;
+  created_at:   Date;
+}
+
 type Messages = {
   id:         string;
   user_id:    string;
   inbox_id:   string;
-  message:   string | null;
+  message:    string | null;
   createdAt:  Date;
 }
 
@@ -54,6 +61,8 @@ type User = {
   name:          			string;
   email:         			string;
   emailVerified:			Boolean;
+  badges:             string[];
+  blockedUsers:       string[];
   image:        			string | null;
   profileBackground:	string | null;
   profileBanner: 			string | null;
@@ -63,7 +72,7 @@ type User = {
   avatar:        			Avatar | null;
   // accounts:      	Account[];
   // decks:        		Decks[];
-  // friends:       	Friends[];
+  friends:       	    Friends[];
   inboxUser:     			Inbox_users[];
   messages:      	    Messages[];
   inbox:         			Inbox[];
@@ -289,21 +298,39 @@ export default function SocialPage() {
     isRequesting();
   }, [currentUser])
 
-  // useEffect(() => {
-  //   async function isBlockedByMe()
-  //   {
-  //     if (!currentUser) return;
-  //     if (!friend) return;
-  //     const blockedUser = await contact.getUser(selectedUser);
-  //     for (const id of currentUser.blockedUsers)
-  //     {
-  //       if (id == blockedUser.id)
-  //         setHasBlocked(true);
-  //     }
-  //     return;
-  //   }
-  //   isBlockedByMe();
-  // }, [currentUser])
+  useEffect(() => {
+    async function isBlockedByMe()
+    {
+      if (!currentUser) return;
+      if (!friend) return;
+      const blockedUser = await contact.getUser(selectedUser);
+      if (!blockedUser) return;
+      for (const id of currentUser.blockedUsers)
+      {
+        if (id == blockedUser.id)
+          setHasBlocked(true);
+      }
+      return;
+    }
+    isBlockedByMe();
+  }, [currentUser])
+
+  useEffect(() => {
+    async function amIBlocked()
+    {
+      if (!currentUser) return;
+      if (!friend) return;
+      const blockingUser = await contact.getUser(selectedUser);
+      if (!blockingUser) return;
+      for (const id of blockingUser.blockedUsers)
+      {
+        if (id == currentUser.id)
+          setIsBlocked(true);
+      }
+      return;
+    }
+    amIBlocked();
+  }, [currentUser])
 
 	useEffect(() => {
 		return () => {
@@ -486,6 +513,7 @@ export default function SocialPage() {
       user: currentUser.name,
       oUser: selectedUser
     });
+    setHasBlocked(true);
   }
 
   async function unblockUser()
@@ -496,6 +524,7 @@ export default function SocialPage() {
       user: currentUser.name,
       oUser: selectedUser
     });
+    setHasBlocked(false);
   }
 
   const handlePickAttachments = () => {
