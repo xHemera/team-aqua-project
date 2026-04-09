@@ -290,6 +290,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
   };
 
   const handleLogout = async () => {
+    socket.disconnect();
     await authClient.signOut();
     router.push("/");
   };

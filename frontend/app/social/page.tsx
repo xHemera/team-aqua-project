@@ -9,7 +9,6 @@ import AppPageShell from "@/components/AppPageShell";
 import { DEFAULT_PROFILE_ICON, PROFILE_ICONS } from "@/lib/profile-icons";
 import { contact }  from "./index"
 import NotificationToast from "@/components/organisms/home/NotificationToast";
-import { selectUser } from "./contact";
 
 const esper = PROFILE_ICONS.find((icon) => icon.type === "esper")?.url ?? DEFAULT_PROFILE_ICON.url;
 const dragon = PROFILE_ICONS.find((icon) => icon.type === "dragon")?.url ?? DEFAULT_PROFILE_ICON.url;
@@ -198,6 +197,7 @@ export default function SocialPage() {
         await fetchUnread();
       }
     });
+
     //refresh the inboxes to display new conversations
     socket.on("add_conv", async () => {
       const i = await contact.getInboxes();
@@ -262,6 +262,7 @@ export default function SocialPage() {
 		});
 	}, [selectedUser, currentMessages.length])
 
+  //sets waiting status
   useEffect(() => {
     async function isWaiting()
     {
@@ -274,6 +275,7 @@ export default function SocialPage() {
     isWaiting();
   }, [currentUser])
 
+  //sets friend status
   useEffect(() => {
     async function isFriend()
     {
@@ -286,6 +288,7 @@ export default function SocialPage() {
     isFriend();
   }, [currentUser])
 
+  //sets request status
   useEffect(() => {
     async function isRequesting()
     {
@@ -298,6 +301,7 @@ export default function SocialPage() {
     isRequesting();
   }, [currentUser])
 
+  //sets blocked status
   useEffect(() => {
     async function isBlockedByMe()
     {
@@ -315,6 +319,7 @@ export default function SocialPage() {
     isBlockedByMe();
   }, [currentUser])
 
+  //sets blocked status from user
   useEffect(() => {
     async function amIBlocked()
     {
@@ -662,7 +667,8 @@ export default function SocialPage() {
                     key={user.name}
                     onClick={async () => {
                       const next = await contact.selectUser(user.name);
-                      setSelectedUser(next)
+                      if (next)
+                        setSelectedUser(next)
                       }
                     }
                     className={`relative flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors ${

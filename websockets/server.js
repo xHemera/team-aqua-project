@@ -116,7 +116,12 @@ io.on("connect", (socket) => {
 
   //delete the user's socket if he's disconnected
   socket.on("disconnect", async () => {
-    await redis.hDel("online_users", socket.id);
+    const onlineUsers = await redis.hGetAll("online_users");
+    const fieldToDelete = Object.keys(onlineUsers).find(
+      key => onlineUsers[key] === socket.id
+    );
+    if (fieldToDelete)
+      await redis.hDel("online_users", fieldToDelete);
     const users = await redis.hGetAll("online_users");
     console.log("Client disconnected: ", users);
     io.emit("online_users", users);

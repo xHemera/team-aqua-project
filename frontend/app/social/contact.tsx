@@ -77,7 +77,7 @@ export async function getUser(name: string)
     return user;
 }
 
-//creation d'une inbox et de deux inbox_users
+//creation of a new inbox with a inbox_user for each user
 export async function addContact(currentUser: string, addUser: string)
 {
     if (!currentUser || !addUser) return;
@@ -107,6 +107,7 @@ export async function addContact(currentUser: string, addUser: string)
     })
 }
 
+//check if a user already has a conversation with someone
 export async function alreadyAdded(currentUser: string, addUser: string)
 {
 	if (!currentUser || !addUser) return;
@@ -134,18 +135,21 @@ export async function alreadyAdded(currentUser: string, addUser: string)
 	return true;
 }
 
+//returns the selected user name and resets the unread messages (BROKEN)
 export async function selectUser(userName: string)
 {
 	const user = await prisma.user.findFirst({
         where: { name: userName }
     });
+    if (!user) return userName;
     const inbox = await prisma.inbox_users.updateMany({
-        where: { user_id: user!.id },
+        where: { user_id: user.id },
         data: { unread_messages: 0}
     });
 	return userName;
 };
 
+//return the avatar name
 export async function getAvatar (userName: string)
 {
     const user = await prisma.user.findFirst({
@@ -157,6 +161,7 @@ export async function getAvatar (userName: string)
     return user?.avatar?.name;
 }
 
+//adds a message written by the first user
 export async function addMsg(msg: string, sender: string, receiver: string)
 {
     if (!sender || !receiver) return;
