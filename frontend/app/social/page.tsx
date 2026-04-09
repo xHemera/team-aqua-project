@@ -9,6 +9,7 @@ import AppPageShell from "@/components/AppPageShell";
 import { DEFAULT_PROFILE_ICON, PROFILE_ICONS } from "@/lib/profile-icons";
 import { contact }  from "./index"
 import NotificationToast from "@/components/organisms/home/NotificationToast";
+import { selectUser } from "./contact";
 
 const esper = PROFILE_ICONS.find((icon) => icon.type === "esper")?.url ?? DEFAULT_PROFILE_ICON.url;
 const dragon = PROFILE_ICONS.find((icon) => icon.type === "dragon")?.url ?? DEFAULT_PROFILE_ICON.url;
@@ -125,7 +126,9 @@ export default function SocialPage() {
   const [notifSender, setNotifSender] = useState<string | null>(null);
   const [request, setRequest] = useState(false);
   const [waiting, setWaiting] = useState(false);
-  const [friend, setFriend] = useState(true);
+  const [friend, setFriend] = useState(false);
+  const [isblocked, setIsBlocked] = useState(false);
+  const [hasBlocked, setHasBlocked] = useState(false);
 
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
 
@@ -206,6 +209,24 @@ export default function SocialPage() {
         setFriend(true);
       }
     });
+
+    //resets status live
+    socket.on("refusing", async ({user, oUser}) => {
+      if (user == selectedUser)
+        setWaiting(false);
+    });
+
+    //sets blocked live
+    socket.on("blocking", async ({user, oUser}) => {
+      if (user == selectedUser)
+        setIsBlocked(true);
+    });
+
+    //resets status live
+    socket.on("unblocking", async ({user, oUser}) => {
+      if (user == selectedUser)
+        setIsBlocked(false);
+    });
   }, [userPseudo, selectedUser]);
 
 	//fetch the conversation
@@ -242,7 +263,7 @@ export default function SocialPage() {
       return;
     }
     isWaiting();
-  })
+  }, [currentUser])
 
   useEffect(() => {
     async function isFriend()
@@ -254,7 +275,7 @@ export default function SocialPage() {
       return;
     }
     isFriend();
-  })
+  }, [currentUser])
 
   useEffect(() => {
     async function isRequesting()
@@ -266,7 +287,23 @@ export default function SocialPage() {
       return;
     }
     isRequesting();
-  })
+  }, [currentUser])
+
+  // useEffect(() => {
+  //   async function isBlockedByMe()
+  //   {
+  //     if (!currentUser) return;
+  //     if (!friend) return;
+  //     const blockedUser = await contact.getUser(selectedUser);
+  //     for (const id of currentUser.blockedUsers)
+  //     {
+  //       if (id == blockedUser.id)
+  //         setHasBlocked(true);
+  //     }
+  //     return;
+  //   }
+  //   isBlockedByMe();
+  // }, [currentUser])
 
 	useEffect(() => {
 		return () => {
@@ -424,6 +461,41 @@ export default function SocialPage() {
     });
     setFriend(true);
     setRequest(false);
+  }
+
+  async function refuseFriendship()
+  {
+    if (!currentUser || !selectedUser) return;
+    contact.denyFriendRequest(currentUser.name, selectedUser);
+    socket.emit("friend_denied", {
+      user: currentUser.name,
+      oUser: selectedUser
+    });
+    setRequest(false);
+  }
+
+  async function blockUser()
+  {
+    if (!currentUser || !selectedUser) return;
+    const oUser = await contact.getFriend(currentUser.name, selectedUser);
+    if (oUser)
+      contact.blockFriend(currentUser.name, selectedUser);
+    else
+      contact.blockUser(currentUser.name, selectedUser);
+    socket.emit("friend_or_user_blocked", {
+      user: currentUser.name,
+      oUser: selectedUser
+    });
+  }
+
+  async function unblockUser()
+  {
+    if (!currentUser || !selectedUser) return;
+    contact.unblockUser(currentUser.name, selectedUser);
+    socket.emit("user_unblocked", {
+      user: currentUser.name,
+      oUser: selectedUser
+    });
   }
 
   const handlePickAttachments = () => {

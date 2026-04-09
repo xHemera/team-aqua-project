@@ -1,7 +1,7 @@
 'use server'
 import prisma from "@/lib/prisma";
 
-
+//get all users and their relations
 export async function getUsers()
 {
     return await prisma.user.findMany({
@@ -19,6 +19,7 @@ export async function getUsers()
         });
 }
 
+//get all inboxes and its relations
 export async function getInboxes()
 {
     return await prisma.inbox.findMany({
@@ -29,10 +30,33 @@ export async function getInboxes()
     })
 }
 
+//get the current user and their relations
 export async function getCurrentUser(current: string)
 {
     const user = await prisma.user.findFirst({
         where: { name: current },
+        include: {
+            inbox: {
+            include: {
+                messages: true,
+                inboxUser: true,
+            },
+            },
+            messages: true,
+            inboxUser: true,
+            avatar: true,
+        },
+    });
+    if (!user)
+        throw new Error("User not found");
+    return user;
+}
+
+//get a user and their relations by name
+export async function getUser(name: string)
+{
+    const user = await prisma.user.findFirst({
+        where: { name: name },
         include: {
             inbox: {
             include: {
@@ -321,7 +345,6 @@ export async function addFriend(currentUser: string, otherUser: string)
         data: {
             friendId: oUser.id,
             userId: cUser.id,
-            blocked: false,
             request_sent: false
         }
     })
@@ -329,7 +352,6 @@ export async function addFriend(currentUser: string, otherUser: string)
         data: {
             friendId: cUser.id,
             userId: oUser.id,
-            blocked: false,
             request_sent: true
         }
     });
@@ -432,41 +454,7 @@ export async function blockFriend(currentUser: string, otherUser: string)
             });
         }
     }
-    for (const friend of oUser.friends)
-    {
-        if (friend.friendId == cUser.id)
-        {
-            const newFriend = await prisma.friends.update({
-                where: {friendId: cUser.id, userId: oUser.id},
-                data: { blocked: true }
-            });
-        }
-    }
-}
-
-export async function unblockFriend(currentUser: string, otherUser: string)
-{
-    if (!currentUser || !otherUser) return;
-
-    const cUser = await prisma.user.findFirst({
-        where: {name: currentUser},
-        include: {friends: true}
-    });
-    const oUser = await prisma.user.findFirst({
-        where: {name: otherUser},
-        include: {friends: true}
-    });
-    if (!cUser || !oUser) return;
-
-    for (const friend of oUser.friends)
-    {
-        if (friend.friendId == cUser.id)
-        {
-            const unblockUser = await prisma.friends.delete({
-                where: {userId: oUser.id, friendId: cUser.id}
-            });
-        }
-    }
+    cUser.blockedUsers.push(oUser.id);
 }
 
 export async function blockUser(currentUser: string, otherUser: string)
@@ -483,15 +471,7 @@ export async function blockUser(currentUser: string, otherUser: string)
     });
     if (!cUser || !oUser) return;
 
-    const oFriend = await prisma.friends.create({
-        data: {
-            friendId: cUser.id,
-            userId: oUser.id,
-            blocked: true,
-            request_sent: true
-        }
-    });
-    oUser.friends.push(oFriend);
+    cUser.blockedUsers.push(oUser.id);
 }
 
 export async function unblockUser(currentUser: string, otherUser: string)
@@ -508,28 +488,8 @@ export async function unblockUser(currentUser: string, otherUser: string)
     });
     if (!cUser || !oUser) return;
 
-    for (const friend of oUser.friends)
-    {
-        if (friend.friendId == cUser.id)
-        {
-            const unblockUser = await prisma.friends.delete({
-                where: {userId: oUser.id, friendId: cUser.id}
-            });
-        }
-    }
-}
+    const index = cUser.blockedUsers.indexOf(oUser.id)
 
-export async function getBlockedUser(currentUser: string)
-{
-    if (!currentUser) return;
-
-    const user = await prisma.user.findFirst({
-        where: { id: currentUser }
-    });
-    if (!user) return ;
-
-    const blocked = await prisma.friends.findMany({
-        where: { friendId: user.id, blocked: true}
-    })
-    return blocked;
+    if (index !== -1)
+        cUser.blockedUsers.splice(index, 1);
 }

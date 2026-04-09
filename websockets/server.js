@@ -81,11 +81,33 @@ io.on("connect", (socket) => {
     }
   })
 
+  socket.on("friend_denied", async ({user, friend}) => {
+    const receiverSock = await redis.hGet("online_users", friend);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("refusing", {
+        user,
+        friend
+      });
+    }
+  })
+
   socket.on("friend_or_user_blocked", async ({user, oUser}) => {
     const receiverSock = await redis.hGet("online_users", oUser);
     if (receiverSock)
     {
       io.to(receiverSock).emit("blocking", {
+        user,
+        oUser
+      });
+    }
+  })
+
+  socket.on("user_unblocked", async ({user, oUser}) => {
+    const receiverSock = await redis.hGet("online_users", oUser);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("unblocking", {
         user,
         oUser
       });

@@ -8,12 +8,11 @@ datasource db {
 }
 
 model Friends {
-  friendId      String
-  userId        String     @id @default(cuid())
-  blocked       Boolean
+  friendId      String      @id
+  userId        String
   request_sent  Boolean
-  created_at    DateTime   @default(now())
-  user          User?      @relation(fields: [userId], references: [id])
+  created_at    DateTime    @default(now())
+  user          User?       @relation(fields: [userId], references: [id])
 }
 
 model Decks {
@@ -89,6 +88,7 @@ model User {
   emailVerified     Boolean   @default(false)
   image             String?
   badges            String[]
+  blockedUsers      String[]
   profileBackground String?
   profileBanner     String?
   createdAt         DateTime  @default(now())
