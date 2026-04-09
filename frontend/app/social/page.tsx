@@ -393,6 +393,20 @@ export default function SocialPage() {
     }
   };
 
+  //bouton pour defier un ami (a completer avec la vrai fonctionnalite corentin)
+  const sendChallenge = async () => {
+    if (!selectedUser || !currentUser) return;
+
+    try {
+      socket.emit("challenge_sent", {
+        sender: currentUser.name,
+        receiver: selectedUser,
+      });
+    } catch (error) {
+      console.error("Erreur lors de l'envoi du défi:", error);
+    }
+  };
+
   return (
     <AppPageShell showSidebar containerClassName="min-h-0 flex-1 flex-col">
       {showNotification && notification && notifSender && (notifSender !== selectedUser) && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
@@ -448,7 +462,7 @@ export default function SocialPage() {
       <div className="flex w-full justify-center px-4">
         <section className="flex h-[calc(100vh-2rem)] w-[calc(100%-14rem)] flex-col overflow-hidden rounded-3xl border border-[#3c3650] bg-[#15131d]/85 shadow-2xl backdrop-blur-md">
           {/* Header avec contacts et boutons */}
-          <header className="flex items-center justify-between border-b border-[#3c3650] bg-[#242033] px-5 py-2"> 
+          <header className="flex items-center border-b border-[#3c3650] px-5 py-3"> 
             {/* Contacts scroll horizontalement */}
             <div className="flex-1 overflow-x-auto px-4">
               <div className="flex gap-2">
@@ -501,6 +515,19 @@ export default function SocialPage() {
 
             {/* Boutons à droite */}
             <div className="flex items-center gap-2">
+              {selectedUser && (
+                <button
+                  onClick={() => {
+                    // TODO: implémenter la logique de blocage
+                    console.log(`Blocage de ${selectedUser}`);
+                  }}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-red-500/50 bg-red-500/10 text-red-400 transition-colors hover:bg-red-500/20"
+                  aria-label="Bloquer l'utilisateur"
+                  title="Bloquer l'utilisateur"
+                >
+                  <i className="fa-solid fa-ban"></i>
+                </button>
+              )}
               <button
                 onClick={openAddContactModal}
                 disabled={isInviting}
@@ -594,6 +621,14 @@ export default function SocialPage() {
                     onChange={handleFilesChange}
                     accept="image/*,.pdf,.txt,.doc,.docx"
                   />
+
+                  <button
+                    onClick={sendChallenge}
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)]"
+                    aria-label="Défier l'ami"
+                  >
+                    <i className="fa-solid fa-bolt" />
+                  </button>
 
                   <button
                     onClick={handlePickAttachments}
