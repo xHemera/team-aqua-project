@@ -479,8 +479,9 @@ export default function SocialPage() {
             <div className="flex-1 overflow-x-auto px-4">
               <div className="flex gap-2">
                 {
-                  conversationUsers.map((user) => {
+                  users.map((user) => {
                   const isActive = selectedUser === user.name;
+                  if (conversationUsers.length === 0) return null;
                 return (
                   <button
                     key={user.name}
