@@ -125,6 +125,18 @@ export default function SocialPage() {
   const [notifSender, setNotifSender] = useState<string | null>(null);
 
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
+  const conversationUsers = useMemo(() => {
+    if (!currentUser) return [];
+
+    return users.filter((user) => {
+      if (user.name === userPseudo) return false;
+
+      return inboxes.some((inbox) => {
+        const ids = inbox.inboxUser.map((iu) => iu.user_id);
+        return ids.includes(user.id) && ids.includes(currentUser.id);
+      });
+    });
+  }, [users, inboxes, currentUser, userPseudo]);
 
   //fetch the current user pseudo
   useEffect(() => {
@@ -467,15 +479,8 @@ export default function SocialPage() {
             <div className="flex-1 overflow-x-auto px-4">
               <div className="flex gap-2">
                 {
-                  users.map((user) => {
+                  conversationUsers.map((user) => {
                   const isActive = selectedUser === user.name;
-                  if (user.name === userPseudo)
-                    return null;
-                  const hasConversation = inboxes.some(inbox => {
-                    const ids = inbox.inboxUser.map(iu => iu.user_id);
-                    return ids.includes(user.id) && ids.includes(currentUser.id);
-                  });
-                  if (!hasConversation) return null;
                 return (
                   <button
                     key={user.name}
@@ -541,7 +546,12 @@ export default function SocialPage() {
           <section className="flex h-full min-h-0 flex-col">
 
             <div ref={messageListRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
-              {currentMessages.map((msg) => (
+              {conversationUsers.length === 0 ? (
+                <div className="flex h-full min-h-[16rem] items-center justify-center text-base font-semibold text-gray-400">
+                  Aucune conversation
+                </div>
+              ) : (
+                currentMessages.map((msg) => (
                 <div key={msg.id} className={`flex flex-col ${msg.user_id === currentUser.id ? "items-end" : "items-start"}`}>
                   <div className="mb-1 flex items-center gap-2 text-xs text-gray-400">
                     <Image
@@ -607,7 +617,8 @@ export default function SocialPage() {
                     )} */}
                   </article>
                 </div>
-              ))}
+                ))
+              )}
             </div>
 
             <footer className="sticky bottom-0 border-t border-[#3c3650] bg-[#15131d] p-4">
