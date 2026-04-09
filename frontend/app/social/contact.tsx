@@ -221,6 +221,7 @@ export async function addMsg(msg: string, sender: string, receiver: string)
     }
 }
 
+//return all messages from a conversation
 export async function getMsg(user: string, otherUser: string)
 {
 	if (!user || !otherUser) return;
@@ -264,6 +265,7 @@ export async function getMsg(user: string, otherUser: string)
     }
 }
 
+//mais c'est quoi cette fonction de merde
 export async function getUnread(currentUser: string)
 {
 	if (!currentUser) return;
@@ -282,6 +284,7 @@ export async function getUnread(currentUser: string)
 	return cUser.inbox;
 }
 
+//return badges array
 export async function getBadge(user: string)
 {
     if (!user) return;
@@ -291,6 +294,7 @@ export async function getBadge(user: string)
     if (dbUser) return dbUser.badges;
 }
 
+//return the other user friend type
 export async function getFriend(currentUser: string, otherUser: string)
 {
     if (!currentUser || !otherUser) return;
@@ -313,6 +317,7 @@ export async function getFriend(currentUser: string, otherUser: string)
     return null;
 }
 
+//return your friend type from the other user side
 export async function getFriendFromOther(currentUser: string, otherUser: string)
 {
     if (!currentUser || !otherUser) return;
@@ -335,6 +340,7 @@ export async function getFriendFromOther(currentUser: string, otherUser: string)
     return null;
 }
 
+//adds a friend relation for each user
 export async function addFriend(currentUser: string, otherUser: string)
 {
     if (!currentUser || !otherUser) return;
@@ -367,6 +373,7 @@ export async function addFriend(currentUser: string, otherUser: string)
     oUser.friends.push(oFriend);
 }
 
+//change both requests to false, making them friends
 export async function acceptFriendRequest(currentUser: string, otherUser: string)
 {
     if (!currentUser || !otherUser) return;
@@ -403,6 +410,7 @@ export async function acceptFriendRequest(currentUser: string, otherUser: string
     }
 }
 
+//refuse and deletes each other friend relation
 export async function denyFriendRequest(currentUser: string, otherUser: string)
 {
     {
@@ -439,6 +447,7 @@ export async function denyFriendRequest(currentUser: string, otherUser: string)
 }
 }
 
+//adds the other user to the blocked list and remove from each their friend relation
 export async function blockFriend(currentUser: string, otherUser: string)
 {
     if (!currentUser || !otherUser) return;
@@ -462,9 +471,19 @@ export async function blockFriend(currentUser: string, otherUser: string)
             });
         }
     }
+    for (const friend of oUser.friends)
+    {
+        if (friend.friendId == cUser.id)
+        {
+            const blockUser = await prisma.friends.delete({
+                where: {userId: oUser.id, friendId: cUser.id}
+            });
+        }
+    }
     cUser.blockedUsers.push(oUser.id);
 }
 
+//adds the other user to the blocked list
 export async function blockUser(currentUser: string, otherUser: string)
 {
     if (!currentUser || !otherUser) return;
@@ -482,6 +501,7 @@ export async function blockUser(currentUser: string, otherUser: string)
     cUser.blockedUsers.push(oUser.id);
 }
 
+//remove the other user from the blocked list
 export async function unblockUser(currentUser: string, otherUser: string)
 {
     if (!currentUser || !otherUser) return;
