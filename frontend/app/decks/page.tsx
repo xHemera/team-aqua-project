@@ -129,6 +129,8 @@ export default function DecksPage() {
   const [notification, setNotification] = useState<string | null>(null);
   const [notifSender, setNotifSender] = useState<string | null>(null);
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
+  const [isEditingDeckIcon, setIsEditingDeckIcon] = useState(false);
+  const [selectedIconOption, setSelectedIconOption] = useState<string | null>(null);
 
   const selectedDeck = useMemo(
     () => decks.find((deck) => deck.id === selectedDeckId) ?? null,
@@ -479,6 +481,37 @@ export default function DecksPage() {
     }
   };
 
+  const updateDeckIcon = async (iconKey: string) => {
+    if (!selectedDeck) return;
+
+    try {
+      const response = await fetch("/api/decks", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          deckId: selectedDeck.id,
+          name: selectedDeck.title,
+          image: deckImages[iconKey],
+        }),
+      });
+
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        alert(data.error || "Impossible de mettre à jour l'icône");
+        return;
+      }
+
+      await fetchDecks();
+      setIsEditingDeckIcon(false);
+      setSelectedIconOption(null);
+    } catch (error) {
+      console.error("Error updating deck icon:", error);
+      alert("Impossible de mettre à jour l'icône");
+    }
+  };
+
   const filteredAvailableCards = useMemo(() => {
     const query = availableCardQuery.trim().toLowerCase();
     if (!query) return [...cardFileBases];
@@ -593,6 +626,15 @@ export default function DecksPage() {
                       aria-label="Rename deck"
                     >
                       <i className="fa-solid fa-pen" />
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => setIsEditingDeckIcon(true)}
+                      variant="ghost"
+                      className="h-9 w-9 rounded-lg bg-[#242033] p-0"
+                      aria-label="Edit deck icon"
+                    >
+                      <i className="fa-solid fa-image" />
                     </Button>
                     <Button
                       type="button"
@@ -808,6 +850,51 @@ export default function DecksPage() {
             className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />
+        </div>
+      )}
+
+      {isEditingDeckIcon && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onClick={() => setIsEditingDeckIcon(false)}
+        >
+          <Card className="w-full max-w-md rounded-2xl bg-[#15131d]" onClick={(e) => e.stopPropagation()}>
+            <div className="border-b border-[#3c3650] px-6 py-4">
+              <h3 className="text-lg font-bold text-white">Changer l&apos;icône du deck</h3>
+            </div>
+            <div className="flex flex-col gap-3 p-6">
+              {Object.entries(deckImages).map(([iconName, iconPath]) => (
+                <button
+                  key={iconName}
+                  onClick={() => updateDeckIcon(iconName)}
+                  className={`flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors ${
+                    selectedDeck?.image === iconPath || selectedIconOption === iconName
+                      ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)]"
+                      : "border-[#3c3650] bg-[#242033] hover:bg-[#302a45]"
+                  }`}
+                >
+                  <Image
+                    src={iconPath}
+                    alt={iconName}
+                    width={48}
+                    height={48}
+                    className="h-12 w-12 object-contain"
+                    style={{ imageRendering: "pixelated" }}
+                  />
+                  <span className="font-semibold text-white">{iconName}</span>
+                </button>
+              ))}
+            </div>
+            <div className="border-t border-[#3c3650] px-6 py-3 flex justify-end">
+              <Button
+                onClick={() => setIsEditingDeckIcon(false)}
+                variant="ghost"
+                className="rounded-lg"
+              >
+                Fermer
+              </Button>
+            </div>
+          </Card>
         </div>
       )}
     </AppPageShell>

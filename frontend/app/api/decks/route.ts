@@ -10,6 +10,7 @@ type CreateDeckBody = {
 type RenameDeckBody = {
   deckId?: string;
   name?: string;
+  image?: string;
 };
 
 type DeleteDeckBody = {
@@ -206,10 +207,14 @@ export async function PATCH(request: Request) {
 
     const updated = await prisma.decks.update({
       where: { id: deckId },
-      data: { title: name },
+      data: { 
+        title: name,
+        ...(body.image && { image: body.image })
+      },
       select: {
         id: true,
         title: true,
+        image: true,
       },
     });
 
