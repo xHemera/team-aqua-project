@@ -731,7 +731,7 @@ export default function SocialPage() {
               </button>
             </div>
           </header>
-          <section className="flex min-h-0 flex-col">
+          <section className="flex h-full min-h-0 flex-col">
 
             <div ref={messageListRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
               {currentMessages.map((msg) => (
@@ -803,7 +803,7 @@ export default function SocialPage() {
               ))}
             </div>
 
-            <footer className="border-t border-[#3c3650] bg-[#15131d] p-4">
+            <footer className="bottom-0 sticky border-t border-[#3c3650] bg-[#15131d] p-4">
               {selectedUser && (<div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2 rounded-full border border-[#3c3650] bg-[#242033] px-2 py-2">
                   <input
