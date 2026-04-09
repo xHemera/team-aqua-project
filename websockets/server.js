@@ -59,6 +59,17 @@ io.on("connect", (socket) => {
     }
   })
 
+  socket.on("friend_request", async ({user, oUser}) => {
+    const receiverSock = await redis.hGet("online_users", oUser);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("request", {
+        user,
+        oUser
+      });
+    }
+  })
+
   socket.on("friend_added", async ({user, friend}) => {
     const receiverSock = await redis.hGet("online_users", friend);
     if (receiverSock)

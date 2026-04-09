@@ -123,6 +123,9 @@ export default function SocialPage() {
   const [showNotification, setShowNotification] = useState(true);
   const [notification, setNotification] = useState<string | null>(null);
   const [notifSender, setNotifSender] = useState<string | null>(null);
+  const [request, setRequest] = useState(false);
+  const [waiting, setWaiting] = useState(false);
+  const [friend, setFriend] = useState(true);
 
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
 
@@ -182,14 +185,28 @@ export default function SocialPage() {
         setNotification(msg);
         await fetchUnread();
       }
-
-    })
+    });
     //refresh the inboxes to display new conversations
     socket.on("add_conv", async () => {
       const i = await contact.getInboxes();
       setInboxes(i);
-    })
-  }, [userPseudo, selectedUser])
+    });
+
+    //adds the request live
+    socket.on("request", async ({user, oUser}) => {
+      if (user == selectedUser)
+        setRequest(true);
+    });
+
+    //adds match button live
+    socket.on("adding", async ({user, oUser}) => {
+      if (user == selectedUser)
+      {
+        setWaiting(false);
+        setFriend(true);
+      }
+    });
+  }, [userPseudo, selectedUser]);
 
 	//fetch the conversation
 	useEffect(() => {
@@ -214,6 +231,42 @@ export default function SocialPage() {
 			behavior: "smooth",
 		});
 	}, [selectedUser, currentMessages.length])
+
+  useEffect(() => {
+    async function isWaiting()
+    {
+      if (!currentUser) return;
+      const friend = await contact.getFriendFromOther(currentUser.name, selectedUser);
+      if (!friend) return;
+      if (friend.request_sent == true) setWaiting(true);
+      return;
+    }
+    isWaiting();
+  })
+
+  useEffect(() => {
+    async function isFriend()
+    {
+      if (!currentUser) return;
+      const friend = await contact.getFriendFromOther(currentUser.name, selectedUser);
+      if (!friend) return;
+      if (friend.request_sent == false) setFriend(true);
+      return;
+    }
+    isFriend();
+  })
+
+  useEffect(() => {
+    async function isRequesting()
+    {
+      if (!currentUser) return;
+      const friend = await contact.getFriend(currentUser.name, selectedUser);
+      if (!friend) return;
+      if (friend.request_sent == true) setRequest(true);
+      return;
+    }
+    isRequesting();
+  })
 
 	useEffect(() => {
 		return () => {
@@ -260,14 +313,6 @@ export default function SocialPage() {
 
       if (otherUserId) {
         results[otherUserId] = unread;
-      }
-      if (!otherUserId)
-      {
-        setNotification("userid null !");
-      }
-      if (unread === 0)
-      {
-        setNotification("unread a 0 !");
       }
     }
     setUnreadMap(results);
@@ -356,6 +401,30 @@ export default function SocialPage() {
       setIsInviting(false);
     }
   };
+
+  //
+  async function sendFriendRequest()
+  {
+    if (!currentUser || !selectedUser) return;
+    contact.addFriend(currentUser.name, selectedUser);
+    socket.emit("friend_request", {
+      user: currentUser.name,
+      oUser: selectedUser
+    });
+    setWaiting(true);
+  }
+
+  async function addFriend()
+  {
+    if (!currentUser || !selectedUser) return;
+    contact.acceptFriendRequest(currentUser.name, selectedUser);
+    socket.emit("friend_added", {
+      user: currentUser.name,
+      oUser: selectedUser
+    });
+    setFriend(true);
+    setRequest(false);
+  }
 
   const handlePickAttachments = () => {
     fileInputRef.current?.click();

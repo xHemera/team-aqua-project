@@ -259,6 +259,50 @@ export async function getBadge(user: string)
     if (dbUser) return dbUser.badges;
 }
 
+export async function getFriend(currentUser: string, otherUser: string)
+{
+    if (!currentUser || !otherUser) return;
+
+    const cUser = await prisma.user.findFirst({
+        where: {name: currentUser},
+        include: {friends: true}
+    });
+    const oUser = await prisma.user.findFirst({
+        where: {name: otherUser},
+        include: {friends: true}
+    });
+    if (!cUser || !oUser) return;
+
+    for (const friend of cUser.friends)
+    {
+        if (friend.friendId === oUser.id && friend.userId === cUser.id)
+            return friend;
+    }
+    return null;
+}
+
+export async function getFriendFromOther(currentUser: string, otherUser: string)
+{
+    if (!currentUser || !otherUser) return;
+
+    const cUser = await prisma.user.findFirst({
+        where: {name: currentUser},
+        include: {friends: true}
+    });
+    const oUser = await prisma.user.findFirst({
+        where: {name: otherUser},
+        include: {friends: true}
+    });
+    if (!cUser || !oUser) return;
+
+    for (const friend of oUser.friends)
+    {
+        if (friend.friendId === cUser.id && friend.userId === oUser.id)
+            return friend;
+    }
+    return null;
+}
+
 export async function addFriend(currentUser: string, otherUser: string)
 {
     if (!currentUser || !otherUser) return;
@@ -278,7 +322,7 @@ export async function addFriend(currentUser: string, otherUser: string)
             friendId: oUser.id,
             userId: cUser.id,
             blocked: false,
-            request_sent: true
+            request_sent: false
         }
     })
     const oFriend = await prisma.friends.create({
@@ -327,6 +371,42 @@ export async function acceptFriendRequest(currentUser: string, otherUser: string
             });
         }
     }
+}
+
+export async function denyFriendRequest(currentUser: string, otherUser: string)
+{
+    {
+    if (!currentUser || !otherUser) return;
+
+    const cUser = await prisma.user.findFirst({
+        where: {name: currentUser},
+        include: {friends: true}
+    });
+    const oUser = await prisma.user.findFirst({
+        where: {name: otherUser},
+        include: {friends: true}
+    });
+    if (!cUser || !oUser) return;
+
+    for (const friend of cUser.friends)
+    {
+        if (friend.friendId == oUser.id)
+        {
+            const refused = await prisma.friends.delete({
+                where: {userId: cUser.id, friendId: oUser.id}
+            });
+        }
+    }
+    for (const friend of oUser.friends)
+    {
+        if (friend.friendId == cUser.id)
+        {
+            const refused = await prisma.friends.delete({
+                where: {userId: oUser.id, friendId: cUser.id}
+            });
+        }
+    }
+}
 }
 
 export async function blockFriend(currentUser: string, otherUser: string)
