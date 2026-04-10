@@ -600,8 +600,8 @@ export default function SocialPage() {
     }
   };
 
-  const openProfileViewerForUserName = (name: string) => {
-    const targetUser = users.find((user) => user.name === name) ?? null;
+  const openProfileViewerForUserName = async (name: string) => {
+    const targetUser = await contact.getUser(name) ?? null;
     setProfileViewerUser(targetUser);
     setShowProfileViewer(true);
   };
