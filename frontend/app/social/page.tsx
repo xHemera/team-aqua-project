@@ -486,7 +486,6 @@ export default function SocialPage() {
     }
   };
 
-  //
   async function sendFriendRequest()
   {
     if (!currentUser || !selectedUser) return;
@@ -519,32 +518,6 @@ export default function SocialPage() {
       oUser: selectedUser
     });
     setRequest(false);
-  }
-
-  async function blockUser()
-  {
-    if (!currentUser || !selectedUser) return;
-    const oUser = await contact.getFriend(currentUser.name, selectedUser);
-    if (oUser)
-      contact.blockFriend(currentUser.name, selectedUser);
-    else
-      contact.blockUser(currentUser.name, selectedUser);
-    socket.emit("friend_or_user_blocked", {
-      user: currentUser.name,
-      oUser: selectedUser
-    });
-    setHasBlocked(true);
-  }
-
-  async function unblockUser()
-  {
-    if (!currentUser || !selectedUser) return;
-    contact.unblockUser(currentUser.name, selectedUser);
-    socket.emit("user_unblocked", {
-      user: currentUser.name,
-      oUser: selectedUser
-    });
-    setHasBlocked(false);
   }
 
   const handlePickAttachments = () => {
@@ -682,7 +655,7 @@ export default function SocialPage() {
                 {
                   users.map((user) => {
                   const isActive = selectedUser === user.name;
-                  if (conversationUsers.length === 0) return null;
+                  if (conversationUsers.length === 0 || user.name == currentUser.name) return null;
                 return (
                   <button
                     key={user.name}
@@ -862,11 +835,15 @@ export default function SocialPage() {
 
                   <input
                     type="text"
-                    placeholder={`Envoyez un message à @${selectedUser}`}
+                    placeholder={isblocked ? "You are blocked by this user" : `Envoyez un message à @${selectedUser}`}
                     value={message}
                     onChange={(event) => setMessage(event.target.value)}
                     onKeyDown={handleInputKeyDown}
-                    className="flex-1 bg-transparent px-1 text-sm text-gray-200 outline-none placeholder:text-gray-500"
+                    className={`flex-1 bg-transparent px-1 text-sm outline-none ${
+                        isblocked
+                          ? "text-gray-500 placeholder:text-gray-600 cursor-not-allowed"
+                          : "text-gray-200 placeholder:text-gray-500"
+                      }`}
                   />
 
                   <button

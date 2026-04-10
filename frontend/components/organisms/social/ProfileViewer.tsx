@@ -5,17 +5,71 @@ import { useEffect, useState } from "react";
 import Button from "@/components/atoms/Button";
 import Card from "@/components/atoms/Card";
 import IconButton from "@/components/atoms/IconButton";
+import { socket } from "../../../socket"
+import { contact }  from "../../../app/social/index"
+import { authClient } from "@/lib/auth-client";
+import NotificationToast from "@/components/organisms/home/NotificationToast";
+
+
+type Friends = {
+  friendId:     string;
+  userId:       string;
+  request_sent: boolean;
+  created_at:   Date;
+}
+
+type Messages = {
+  id:         string;
+  user_id:    string;
+  inbox_id:   string;
+  message:    string | null;
+  createdAt:  Date;
+}
+
+type Inbox_users = {
+	id:								string;
+	inbox_id:					string;
+	user_id:					string;
+	unread_messages:	number | null;
+};
+
+type Inbox = {
+  id: 								string;
+  last_message: 			string | null;
+  last_sent_user_id:  string | null;
+  createdAt:  				Date;
+  inboxUser:  				Inbox_users[];
+	messages:					  Messages[];
+};
 
 type Avatar = {
-  url: string;
+  url:					string;
+  id:						string;
+  name:					string;
+  type:					string;
+  accent: 			string;
+  accentHover:	string;
+	users?:				any;
 };
 
 type User = {
-  id: string;
-  name: string;
-  image: string | null;
-  badges: string[];
-  avatar: Avatar | null;
+  id:            			string;
+  name:          			string;
+  email:         			string;
+  emailVerified:			Boolean;
+  badges:             string[];
+  blockedUsers:       string[];
+  image:        			string | null;
+  profileBackground:	string | null;
+  profileBanner: 			string | null;
+  createdAt:    			Date;
+  updatedAt:    			Date;
+  avatarId:      			string | null;
+  avatar:        			Avatar | null;
+  friends:       	    Friends[];
+  inboxUser:     			Inbox_users[];
+  messages:      	    Messages[];
+  inbox:         			Inbox[];
 };
 
 type ProfileViewerModalProps = {
@@ -37,9 +91,226 @@ export default function ProfileViewerModal({
   pseudo = "Joueur inconnu",
   avatarUrl = null,
   badges = [],
-  isFriend = false,
-  isBlocked = false,
+  // isFriend = false,
+  // isBlocked = false,
 }: ProfileViewerModalProps) {
+  const [userPseudo, setUserPseudo] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [request, setRequest] = useState(false);
+  const [waiting, setWaiting] = useState(false);
+  const [friend, setFriend] = useState(false);
+  const [isblocked, setIsBlocked] = useState(false);
+  const [hasBlocked, setHasBlocked] = useState(false);
+  const [showNotification, setShowNotification] = useState(true);
+  const [notification, setNotification] = useState<string | null>(null);
+  const [notifSender, setNotifSender] = useState<string | null>(null);
+
+  //fetch the current user pseudo
+  useEffect(() => {
+    const getUserData = async () => {
+      const { data } = await authClient.getSession();
+      if (data?.user?.name)
+        setUserPseudo(data.user.name);
+    };
+    getUserData();
+  });
+
+  //fetch users and their inboxes
+  useEffect(() => {
+    async function fetchUsers() {
+    if (!userPseudo) return;
+      const cU = await contact.getCurrentUser(userPseudo);
+      setCurrentUser(cU);
+    }
+    fetchUsers();
+  }, [userPseudo]);
+
+  useEffect(() => {
+    if (!currentUser || !inputUser) return;
+    socket.on("received", async ({sender, receiver, msg}) => {
+      {
+        setNotifSender(sender);
+        setNotification(msg);
+        //await fetchUnread();
+      }
+    });
+
+    //refresh the inboxes to display new conversations
+    // socket.on("add_conv", async () => {
+    //   const i = await contact.getInboxes();
+    //   setInboxes(i);
+    // });
+
+    //adds the request live
+    socket.on("request", async ({user, oUser}) => {
+      if (user == inputUser.name)
+        setRequest(true);
+    });
+
+    //adds match button live
+    socket.on("adding", async ({user, oUser}) => {
+      if (user == inputUser.name)
+      {
+        setWaiting(false);
+        setFriend(true);
+      }
+    });
+
+    //resets status live
+    socket.on("refusing", async ({user, oUser}) => {
+      if (user == inputUser.name)
+        setWaiting(false);
+    });
+
+    //sets blocked live
+    socket.on("blocking", async ({user, oUser}) => {
+      if (user == inputUser.name)
+        setIsBlocked(true);
+    });
+
+    //resets status live
+    socket.on("unblocking", async ({user, oUser}) => {
+      if (user == inputUser.name)
+        setIsBlocked(false);
+    });
+  }, [currentUser, inputUser]);
+
+  //sets waiting status
+  useEffect(() => {
+    async function isWaiting()
+    {
+      if (!currentUser || !inputUser) return;
+      const friend = await contact.getFriendFromOther(currentUser.name, inputUser.name);
+      if (!friend) return;
+      if (friend.request_sent == true) setWaiting(true);
+      return;
+    }
+    isWaiting();
+  }, [currentUser])
+
+  //sets friend status
+  useEffect(() => {
+    async function isFriend()
+    {
+      if (!currentUser || !inputUser) return;
+      const friend = await contact.getFriendFromOther(currentUser.name, inputUser.name);
+      if (!friend) return;
+      if (friend.request_sent == false) setFriend(true);
+      return;
+    }
+    isFriend();
+  }, [currentUser])
+
+  //sets request status
+  useEffect(() => {
+    async function isRequesting()
+    {
+      if (!currentUser || !inputUser) return;
+      const friend = await contact.getFriend(currentUser.name, inputUser.name);
+      if (!friend) return;
+      if (friend.request_sent == true) setRequest(true);
+      return;
+    }
+    isRequesting();
+  }, [currentUser])
+
+  //sets blocked status
+  useEffect(() => {
+    async function isBlockedByMe()
+    {
+      if (!currentUser || !inputUser) return;
+      for (const id of currentUser.blockedUsers)
+      {
+        if (id == inputUser.id)
+          setHasBlocked(true);
+      }
+      return;
+    }
+    isBlockedByMe();
+  }, [currentUser])
+
+  //sets blocked status from user
+  useEffect(() => {
+    async function amIBlocked()
+    {
+      if (!currentUser || !inputUser) return;
+      for (const id of inputUser.blockedUsers)
+      {
+        if (id == currentUser.id)
+          setIsBlocked(true);
+      }
+      return;
+    }
+    amIBlocked();
+  }, [currentUser])
+
+  async function sendFriendRequest()
+  {
+    if (!currentUser || !inputUser) return;
+    if (isblocked)
+    {
+      onClose();
+      return;
+    }
+    contact.addFriend(currentUser.name, inputUser.name);
+    socket.emit("friend_request", {
+      user: currentUser.name,
+      oUser: inputUser
+    });
+    setWaiting(true);
+    onClose();
+  }
+
+  async function addFriend()
+  {
+    if (!currentUser || !inputUser) return;
+    contact.acceptFriendRequest(currentUser.name, inputUser.name);
+    socket.emit("friend_added", {
+      user: currentUser.name,
+      oUser: inputUser
+    });
+    setFriend(true);
+    setRequest(false);
+  }
+
+  async function refuseFriendship()
+  {
+    if (!currentUser || !inputUser) return;
+    contact.denyFriendRequest(currentUser.name, inputUser.name);
+    socket.emit("friend_denied", {
+      user: currentUser.name,
+      oUser: inputUser
+    });
+    setRequest(false);
+  }
+
+  async function blockUser()
+  {
+    if (!currentUser || !inputUser) return;
+    if (hasBlocked === false)
+    {
+      const oUser = await contact.getFriend(currentUser.name, inputUser.name);
+      if (oUser)
+        contact.blockFriend(currentUser.name, inputUser.name);
+      else
+        contact.blockUser(currentUser.name, inputUser.name);
+      socket.emit("friend_or_user_blocked", {
+        user: currentUser.name,
+        oUser: inputUser
+      });
+      setHasBlocked(true);
+    }
+    else
+    {
+      contact.unblockUser(currentUser.name, inputUser.name);
+      socket.emit("user_unblocked", {
+        user: currentUser.name,
+        oUser: inputUser
+      });
+      setHasBlocked(false);
+    }
+    onClose();
+  }
 
   const displayedUser = inputUser;
 
@@ -53,6 +324,7 @@ export default function ProfileViewerModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={onClose}>
+      {inputUser && showNotification && notification && notifSender && (notifSender !== inputUser.name) && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       <Card
         className="w-full max-w-md rounded-2xl border border-[#3c3650] bg-[#15131d] p-6 shadow-2xl"
         role="dialog"
@@ -112,6 +384,7 @@ export default function ProfileViewerModal({
               size="lg"
               title="Envoyer un message"
               aria-label="Envoyer un message"
+              onClick={onClose}
             >
               <i className="fa-regular fa-paper-plane text-lg" />
             </IconButton>
@@ -119,9 +392,10 @@ export default function ProfileViewerModal({
             <IconButton
               type="button"
               size="lg"
-              title={isFriend ? "Deja ami" : "Ajouter en ami"}
-              aria-label={isFriend ? "Deja ami" : "Ajouter en ami"}
-              className={isFriend ? "border-emerald-500/70 bg-emerald-900/20 text-emerald-200" : undefined}
+              title={friend ? "Deja ami" : "Ajouter en ami"}
+              aria-label={friend ? "Deja ami" : "Ajouter en ami"}
+              className={friend ? "border-emerald-500/70 bg-emerald-900/20 text-emerald-200" : undefined}
+              onClick={() => friend === false && sendFriendRequest()}
             >
               <i className="fa-solid fa-user-plus text-lg" />
             </IconButton>
@@ -132,6 +406,7 @@ export default function ProfileViewerModal({
               title="Bloquer"
               aria-label="Bloquer"
               className="border-red-500/70 bg-red-900/20 text-red-200 hover:bg-red-900/35"
+              onClick={() => blockUser()}
             >
               <i className="fa-solid fa-ban text-lg" />
             </IconButton>

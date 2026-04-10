@@ -393,7 +393,7 @@ export async function acceptFriendRequest(currentUser: string, otherUser: string
         if (friend.friendId == oUser.id)
         {
             const newFriend = await prisma.friends.update({
-                where: {friendId: oUser.id, userId: cUser.id},
+                where: { userId_friendId: { userId: cUser.id, friendId: oUser.id } },
                 data: { request_sent: false}
             });
         }
@@ -403,7 +403,7 @@ export async function acceptFriendRequest(currentUser: string, otherUser: string
         if (friend.friendId == cUser.id)
         {
             const newFriend = await prisma.friends.update({
-                where: {friendId: cUser.id, userId: oUser.id},
+                where: { userId_friendId: { userId: cUser.id, friendId: oUser.id } },
                 data: { request_sent: false}
             });
         }
@@ -431,7 +431,7 @@ export async function denyFriendRequest(currentUser: string, otherUser: string)
         if (friend.friendId == oUser.id)
         {
             const refused = await prisma.friends.delete({
-                where: {userId: cUser.id, friendId: oUser.id}
+                where: { userId_friendId: { userId: cUser.id, friendId: oUser.id } }
             });
         }
     }
@@ -440,7 +440,7 @@ export async function denyFriendRequest(currentUser: string, otherUser: string)
         if (friend.friendId == cUser.id)
         {
             const refused = await prisma.friends.delete({
-                where: {userId: oUser.id, friendId: cUser.id}
+                where: { userId_friendId: { userId: cUser.id, friendId: oUser.id } }
             });
         }
     }
@@ -462,25 +462,22 @@ export async function blockFriend(currentUser: string, otherUser: string)
     });
     if (!cUser || !oUser) return;
 
-    for (const friend of cUser.friends)
-    {
-        if (friend.friendId == oUser.id)
-        {
-            const blockUser = await prisma.friends.delete({
-                where: {userId: cUser.id, friendId: oUser.id}
-            });
+    await prisma.friends.deleteMany({
+        where: {
+            OR: [
+                { userId: cUser.id, friendId: oUser.id },
+                { userId: oUser.id, friendId: cUser.id },
+            ]
         }
-    }
-    for (const friend of oUser.friends)
-    {
-        if (friend.friendId == cUser.id)
-        {
-            const blockUser = await prisma.friends.delete({
-                where: {userId: oUser.id, friendId: cUser.id}
-            });
+    })
+    await prisma.user.update({
+        where: {id: cUser.id},
+        data: {
+            blockedUsers: {
+                push: oUser.id
+            }
         }
-    }
-    cUser.blockedUsers.push(oUser.id);
+    })
 }
 
 //adds the other user to the blocked list
@@ -498,7 +495,14 @@ export async function blockUser(currentUser: string, otherUser: string)
     });
     if (!cUser || !oUser) return;
 
-    cUser.blockedUsers.push(oUser.id);
+    await prisma.user.update({
+        where: {id: cUser.id},
+        data: {
+            blockedUsers: {
+                push: oUser.id
+            }
+        }
+    })
 }
 
 //remove the other user from the blocked list
@@ -516,8 +520,13 @@ export async function unblockUser(currentUser: string, otherUser: string)
     });
     if (!cUser || !oUser) return;
 
-    const index = cUser.blockedUsers.indexOf(oUser.id)
 
-    if (index !== -1)
-        cUser.blockedUsers.splice(index, 1);
+    await prisma.user.update({
+        where: {id: cUser.id},
+        data: {
+            blockedUsers: {
+                set: cUser.blockedUsers.filter(id => id !== oUser.id),
+            }
+        }
+    })
 }
