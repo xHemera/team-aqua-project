@@ -24,18 +24,12 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   const profileUser = await prisma.user.findFirst({
     where: {
-      name: {
-        equals: decodedPseudo,
-        mode: "insensitive",
-      },
+      name: decodedPseudo,
     },
-    select: {
-      id: true,
-      name: true,
-      badges: true,
-      avatarId: true,
-      image: true,
-    },
+    include: {
+      matchHistory: true,
+      avatar: true,
+    }
   });
 
   if (!profileUser) {
@@ -53,6 +47,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       profileBadges={profileUser.badges ?? []}
       initialAvatar={avatar}
       isOwnProfile={profileUser.id === session.user.id}
+      matchHistory={profileUser.matchHistory}
     />
   );
 }

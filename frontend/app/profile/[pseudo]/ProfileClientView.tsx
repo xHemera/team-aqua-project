@@ -15,12 +15,31 @@ import { persistAvatarPreference } from "@/lib/avatar-preference";
 import { applyAccentPalette, resolveProfileIcon } from "@/lib/profile-icons";
 import NotificationToast from "@/components/organisms/home/NotificationToast";
 
-type AvatarEntry = { id: string; name: string; type: string; url: string; accent: string; accentHover: string };
+type Match_history = {
+  id:           string;
+  result:       string;
+  createdAt:    Date;
+  playedDeck:   string;
+  opponentDeck: string;
+  opponent:     string;
+  user_id:      string;
+}
+
+type Avatar = {
+  id: string;
+  name: string;
+  type: string;
+  url: string;
+  accent: string;
+  accentHover: string
+};
 
 type ProfileClientViewProps = {
   profileName: string;
   initialAvatar: string;
   isOwnProfile: boolean;
+  profileBadges: string[];
+  matchHistory: Match_history[];
 };
 
 type ProfilePayload = {
@@ -44,44 +63,65 @@ const defaultBanner = "https://www.katebackdrop.fr/cdn/shop/files/B4035519.jpg?v
 const defaultBackground = DEFAULT_SITE_BACKGROUND;
 
 // HARDCODE: temporary mocked match history while battle history API is pending.
-const matchHistory = [
-  {
-    result: "Victoire",
-    resultStyle: "bg-green-600",
-    borderStyle: "border-green-500",
-    date: "26 janv. 2026",
-    playedDeck: "Flygon",
-    opponentDeck: "Ceruledge",
-    opponent: "SunMiaou",
-  },
-  {
-    result: "Défaite",
-    resultStyle: "bg-red-600",
-    borderStyle: "border-red-500",
-    date: "18 janv. 2026",
-    playedDeck: "Zacian",
-    opponentDeck: "Toxtricity",
-    opponent: "Xoco",
-  },
-  {
-    result: "Victoire",
-    resultStyle: "bg-green-600",
-    borderStyle: "border-green-500",
-    date: "09 déc. 2025",
-    playedDeck: "Ceruledge",
-    opponentDeck: "Flygon",
-    opponent: "Sauralt",
-  },
-  {
-    result: "Victoire",
-    resultStyle: "bg-green-600",
-    borderStyle: "border-green-500",
-    date: "22 nov. 2025",
-    playedDeck: "Toxtricity",
-    opponentDeck: "Zacian",
-    opponent: "GeekMaster",
-  },
-];
+// const matchHistory = [
+//   {
+//     result: "Victoire",
+//     resultStyle: "bg-green-600",
+//     borderStyle: "border-green-500",
+//     date: "26 janv. 2026",
+//     playedDeck: "Flygon",
+//     opponentDeck: "Ceruledge",
+//     opponent: "SunMiaou",
+//   },
+//   {
+//     result: "Défaite",
+//     resultStyle: "bg-red-600",
+//     borderStyle: "border-red-500",
+//     date: "18 janv. 2026",
+//     playedDeck: "Zacian",
+//     opponentDeck: "Toxtricity",
+//     opponent: "Xoco",
+//   },
+//   {
+//     result: "Victoire",
+//     resultStyle: "bg-green-600",
+//     borderStyle: "border-green-500",
+//     date: "09 déc. 2025",
+//     playedDeck: "Ceruledge",
+//     opponentDeck: "Flygon",
+//     opponent: "Sauralt",
+//   },
+//   {
+//     result: "Victoire",
+//     resultStyle: "bg-green-600",
+//     borderStyle: "border-green-500",
+//     date: "22 nov. 2025",
+//     playedDeck: "Toxtricity",
+//     opponentDeck: "Zacian",
+//     opponent: "GeekMaster",
+//   },
+// ];
+
+const formatTime = (date: Date) =>
+  date.toLocaleTimeString("fr-FR", {
+    timeZone: "Europe/Paris",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  });
+
+const BORDER_STYLES = {
+  win: "border-green-500",
+  lose: "border-red-500"
+};
+
+const RESULT_STYLES: Record<string, string> = {
+  win: "bg-green-600",
+  lose: "bg-red-600"
+};
+
+const greenRes = "bg-green-600";
+const redRes = "bg-red-600";
 
 // HARDCODE: static deck icon map used for history presentation.
 const deckpublic: Record<string, string> = {
@@ -94,9 +134,9 @@ const deckpublic: Record<string, string> = {
 const normalizeBackgroundValue = (value: string) => normalizeImageValue(value, defaultBackground);
 const normalizeBannerValue = (value: string) => normalizeImageValue(value, defaultBanner);
 
-export default function ProfileClientView({ profileName, initialAvatar, isOwnProfile }: ProfileClientViewProps) {
+export default function ProfileClientView({ profileName, initialAvatar, isOwnProfile, profileBadges, matchHistory }: ProfileClientViewProps) {
   const router = useRouter();
-  const [avatars, setAvatars] = useState<AvatarEntry[]>([]);
+  const [avatars, setAvatars] = useState<Avatar[]>([]);
   const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
   const [avatar, setAvatar] = useState(initialAvatar);
   const [profileBackground, setProfileBackground] = useState(defaultBackground);
@@ -127,7 +167,6 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
   const [draftBackground, setDraftBackground] = useState(defaultBackground);
   const [draftBanner, setDraftBanner] = useState(defaultBanner);
 
-
   //fetch the current user pseudo
   useEffect(() => {
     const getUserData = async () => {
@@ -139,11 +178,9 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
     void getUserData();
   }, []);
 
-  
   //reconnect socket in case of a page refresh
   useEffect(() => {
       if (!userPseudo || socket.connected) return;
-  
       socket.connect();
       socket.emit("login", userPseudo);
       return () => {
@@ -172,7 +209,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
       const avatarsRes = await fetch("/api/avatars");
       let profile: ProfilePayload | null = null;
       if (avatarsRes.ok) {
-        const avatarList: AvatarEntry[] = await avatarsRes.json();
+        const avatarList: Avatar[] = await avatarsRes.json();
         setAvatars(avatarList);
 
         const profileRes = await fetch("/api/profile");
@@ -292,7 +329,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
 
   const bannerStyle = buildBackgroundStyle(profileBanner, defaultBanner);
   const totalMatches = matchHistory.length;
-  const totalWins = matchHistory.filter((match) => match.result.toLowerCase() === "victoire").length;
+  const totalWins = matchHistory.filter((match) => match.result.toLowerCase() === "win").length;
   const totalLosses = totalMatches - totalWins;
 
   return (
@@ -377,16 +414,16 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                 <div className="space-y-3.5 pb-1">
                   {matchHistory.map((match, index) => (
                     <article
-                      key={`${match.date}-${match.opponent}-${index}`}
-                      className={`rounded-xl border-l-4 ${match.borderStyle} bg-[#211d2e] p-5 transition-colors hover:bg-[#2a253b]`}
+                      key={`${formatTime(match.createdAt)}-${match.opponent}-${index}`}
+                      className={`rounded-xl border-l-4 ${BORDER_STYLES[match.result as keyof typeof BORDER_STYLES] ?? "border-gray-500"} bg-[#211d2e] p-5 transition-colors hover:bg-[#2a253b]`}
                     >
                       <div className="grid gap-4 md:grid-cols-12 md:items-center">
                         <div className="md:col-span-3">
                           <div className="flex flex-wrap items-center gap-3">
-                            <span className={`rounded-md px-3.5 py-1.5 text-sm font-bold uppercase tracking-wide ${match.resultStyle}`}>
+                            <span className={`rounded-md px-3.5 py-1.5 text-sm font-bold uppercase tracking-wide ${RESULT_STYLES[match.result as keyof typeof RESULT_STYLES] ?? "border-gray-600"}`}>
                               {match.result}
                             </span>
-                            <span className="text-base text-gray-300">{match.date}</span>
+                            <span className="text-base text-gray-300">{formatTime(match.createdAt)}</span>
                           </div>
                         </div>
 

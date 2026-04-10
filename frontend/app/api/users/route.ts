@@ -3,16 +3,18 @@ import prisma from "@/lib/prisma";
 export async function GET() {
   try {
     const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        name: true,
-        image: true,
-        badges: true,
-        avatar: {
-          select: {
-            url: true,
+      include: {
+        inbox: {
+          include: {
+              messages: true,
+              inboxUser: true,
           },
-        },
+          },
+          friends: true,
+          messages: true,
+          inboxUser: true,
+          avatar: true,
+          matchHistory: true
       },
       orderBy: {
         name: "asc",

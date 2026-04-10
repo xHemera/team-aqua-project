@@ -69,8 +69,6 @@ type User = {
   updatedAt:    			Date;
   avatarId:      			string | null;
   avatar:        			Avatar | null;
-  // accounts:      	Account[];
-  // decks:        		Decks[];
   friends:       	    Friends[];
   inboxUser:     			Inbox_users[];
   messages:      	    Messages[];
@@ -112,7 +110,6 @@ const buildAttachmentFromFile = (file: File): Attachment => ({
 });
 
 export default function SocialPage() {
-  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
 

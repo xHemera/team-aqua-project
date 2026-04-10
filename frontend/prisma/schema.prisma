@@ -17,7 +17,7 @@ model Friends {
 
 model Decks {
   id        String    @id @default(cuid())
-  title     String?
+  title     String
   image     String?
   body      String?
   cards     Cards[]
@@ -81,6 +81,17 @@ model Avatar {
   users       User[]
 }
 
+model Match_history {
+  id            String    @id @default(cuid())
+  result        String
+  createdAt     DateTime  @default(now())
+  playedDeck    String
+  opponentDeck  String
+  opponent      String
+  user_id       String
+  user          User?     @relation(fields: [user_id], references: [id])
+}
+
 model User {
   id                String    @id @default(cuid())
   name              String
@@ -102,6 +113,7 @@ model User {
   inboxUser         Inbox_users[]
   messages          Messages[]
   inbox             Inbox[]
+  matchHistory      Match_history[]
 
   @@unique([email])
   @@map("user")
