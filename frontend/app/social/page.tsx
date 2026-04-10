@@ -9,6 +9,7 @@ import AppPageShell from "@/components/AppPageShell";
 import { DEFAULT_PROFILE_ICON, PROFILE_ICONS } from "@/lib/profile-icons";
 import { contact }  from "./index"
 import NotificationToast from "@/components/organisms/home/NotificationToast";
+import ProfileViewerModal from "@/components/organisms/social/ProfileViewer";
 
 const esper = PROFILE_ICONS.find((icon) => icon.type === "esper")?.url ?? DEFAULT_PROFILE_ICON.url;
 const dragon = PROFILE_ICONS.find((icon) => icon.type === "dragon")?.url ?? DEFAULT_PROFILE_ICON.url;
@@ -54,6 +55,7 @@ type User = {
   email:         			string;
   emailVerified:			Boolean;
   image:        			string | null;
+  badges:               string[];
   profileBackground:	string | null;
   profileBanner: 			string | null;
   createdAt:    			Date;
@@ -123,6 +125,8 @@ export default function SocialPage() {
   const [showNotification, setShowNotification] = useState(true);
   const [notification, setNotification] = useState<string | null>(null);
   const [notifSender, setNotifSender] = useState<string | null>(null);
+  const [showProfileViewer, setShowProfileViewer] = useState(false);
+  const [profileViewerUser, setProfileViewerUser] = useState<User | null>(null);
 
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
   const conversationUsers = useMemo(() => {
@@ -405,6 +409,12 @@ export default function SocialPage() {
     }
   };
 
+  const openProfileViewerForUserName = (name: string) => {
+    const targetUser = users.find((user) => user.name === name) ?? null;
+    setProfileViewerUser(targetUser);
+    setShowProfileViewer(true);
+  };
+
   //bouton pour defier un ami (a completer avec la vrai fonctionnalite corentin)
   const sendChallenge = async () => {
     if (!selectedUser || !currentUser) return;
@@ -554,7 +564,15 @@ export default function SocialPage() {
               ) : (
                 currentMessages.map((msg) => (
                 <div key={msg.id} className={`flex flex-col ${msg.user_id === currentUser.id ? "items-end" : "items-start"}`}>
-                  <div className="mb-1 flex items-center gap-2 text-xs text-gray-400">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (msg.user_id !== currentUser.id) {
+                        openProfileViewerForUserName(selectedUser);
+                      }
+                    }}
+                    className="mb-1 flex items-center gap-2 text-xs text-gray-400"
+                  >
                     <Image
                       src={
                         msg.user_id === currentUser.id
@@ -571,7 +589,7 @@ export default function SocialPage() {
                       {msg.user_id === currentUser.id ? currentUser?.name : selectedUser}
                     </span>
                     <span className="opacity-75">{formatTime(msg.createdAt)}</span>
-                  </div>
+                  </button>
                   <article
                     className={`max-w-[44rem] rounded-2xl px-5 py-3 ${
                       msg.user_id === currentUser.id
@@ -695,6 +713,12 @@ export default function SocialPage() {
           </section>
         </section>
       </div>
+
+      <ProfileViewerModal
+        open={showProfileViewer}
+        onClose={() => setShowProfileViewer(false)}
+        user={profileViewerUser}
+      />
     </AppPageShell>
   );
 }
