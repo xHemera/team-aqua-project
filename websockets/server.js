@@ -59,9 +59,69 @@ io.on("connect", (socket) => {
     }
   })
 
+  socket.on("friend_request", async ({user, oUser}) => {
+    const receiverSock = await redis.hGet("online_users", oUser);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("request", {
+        user,
+        oUser
+      });
+    }
+  })
+
+  socket.on("friend_added", async ({user, friend}) => {
+    const receiverSock = await redis.hGet("online_users", friend);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("adding", {
+        user,
+        friend
+      });
+    }
+  })
+
+  socket.on("friend_denied", async ({user, friend}) => {
+    const receiverSock = await redis.hGet("online_users", friend);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("refusing", {
+        user,
+        friend
+      });
+    }
+  })
+
+  socket.on("friend_or_user_blocked", async ({user, oUser}) => {
+    const receiverSock = await redis.hGet("online_users", oUser);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("blocking", {
+        user,
+        oUser
+      });
+    }
+  })
+
+  socket.on("user_unblocked", async ({user, oUser}) => {
+    const receiverSock = await redis.hGet("online_users", oUser);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("unblocking", {
+        user,
+        oUser
+      });
+    }
+  })
+
   //delete the user's socket if he's disconnected
   socket.on("disconnect", async () => {
-    await redis.hDel("online_users", socket.id);
+    const onlineUsers = await redis.hGetAll("online_users");
+    const fieldToDelete = Object.keys(onlineUsers).find(
+      key => onlineUsers[key] === socket.id
+    );
+    if (fieldToDelete)
+      await redis.hDel("online_users", fieldToDelete);
     const users = await redis.hGetAll("online_users");
     console.log("Client disconnected: ", users);
     io.emit("online_users", users);

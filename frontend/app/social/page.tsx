@@ -15,11 +15,18 @@ const esper = PROFILE_ICONS.find((icon) => icon.type === "esper")?.url ?? DEFAUL
 const dragon = PROFILE_ICONS.find((icon) => icon.type === "dragon")?.url ?? DEFAULT_PROFILE_ICON.url;
 const mizu = PROFILE_ICONS.find((icon) => icon.type === "mizu")?.url ?? DEFAULT_PROFILE_ICON.url;
 
+type Friends = {
+  friendId:     string;
+  userId:       string;
+  request_sent: boolean;
+  created_at:   Date;
+}
+
 type Messages = {
   id:         string;
   user_id:    string;
   inbox_id:   string;
-  message:   string | null;
+  message:    string | null;
   createdAt:  Date;
 }
 
@@ -54,8 +61,9 @@ type User = {
   name:          			string;
   email:         			string;
   emailVerified:			Boolean;
+  badges:             string[];
+  blockedUsers:       string[];
   image:        			string | null;
-  badges:               string[];
   profileBackground:	string | null;
   profileBanner: 			string | null;
   createdAt:    			Date;
@@ -64,7 +72,7 @@ type User = {
   avatar:        			Avatar | null;
   // accounts:      	Account[];
   // decks:        		Decks[];
-  // friends:       	Friends[];
+  friends:       	    Friends[];
   inboxUser:     			Inbox_users[];
   messages:      	    Messages[];
   inbox:         			Inbox[];
@@ -127,6 +135,11 @@ export default function SocialPage() {
   const [notifSender, setNotifSender] = useState<string | null>(null);
   const [showProfileViewer, setShowProfileViewer] = useState(false);
   const [profileViewerUser, setProfileViewerUser] = useState<User | null>(null);
+  const [request, setRequest] = useState(false);
+  const [waiting, setWaiting] = useState(false);
+  const [friend, setFriend] = useState(false);
+  const [isblocked, setIsBlocked] = useState(false);
+  const [hasBlocked, setHasBlocked] = useState(false);
 
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
   const conversationUsers = useMemo(() => {
@@ -166,33 +179,6 @@ export default function SocialPage() {
     fetchUsers();
   }, [userPseudo]);
 
-  //fetch the number of unreaded messages (BROKEN)
-	// async function fetchUnread()
-  // {
-  //   if (!currentUser) return;
-  //   const inbox = await contact.getUnread(currentUser.name);
-  //   const results: Record<string, number> = {};
-
-  //   for (const iU of inbox!) {
-  //     let otherUserId: string | null = null;
-  //     let unread = 0;
-
-  //     for (const user of iU.inboxUser) {
-  //       if (user.user_id !== currentUser.id) {
-  //         otherUserId = user.user_id;
-  //       } else {
-  //         unread = user.unread_messages ?? 0;
-  //       }
-  //     }
-
-  //     if (otherUserId) {
-  //       results[otherUserId] = unread;
-  //     }
-  //   }
-  //   setUnreadMap(results);
-  // }
-  // fetchUnread();
-
   //reconnect socket in case of a page refresh
   useEffect(() => {
 		if (!userPseudo || socket.connected) return;
@@ -223,17 +209,51 @@ export default function SocialPage() {
       {
         setNotifSender(sender);
         setNotification(msg);
+        await fetchUnread();
       }
-    })
+    });
+
     //refresh the inboxes to display new conversations
     socket.on("add_conv", async () => {
       const i = await contact.getInboxes();
       setInboxes(i);
-    })
-  }, [userPseudo, selectedUser])
+    });
 
-	//make the conversation scroll to last message and render them
-  //when selecting a user
+    //adds the request live
+    socket.on("request", async ({user, oUser}) => {
+      if (user == selectedUser)
+        setRequest(true);
+    });
+
+    //adds match button live
+    socket.on("adding", async ({user, oUser}) => {
+      if (user == selectedUser)
+      {
+        setWaiting(false);
+        setFriend(true);
+      }
+    });
+
+    //resets status live
+    socket.on("refusing", async ({user, oUser}) => {
+      if (user == selectedUser)
+        setWaiting(false);
+    });
+
+    //sets blocked live
+    socket.on("blocking", async ({user, oUser}) => {
+      if (user == selectedUser)
+        setIsBlocked(true);
+    });
+
+    //resets status live
+    socket.on("unblocking", async ({user, oUser}) => {
+      if (user == selectedUser)
+        setIsBlocked(false);
+    });
+  }, [userPseudo, selectedUser]);
+
+	//fetch the conversation
 	useEffect(() => {
 		async function fetchmessages()
 		{
@@ -247,7 +267,90 @@ export default function SocialPage() {
 			top: messageListRef.current.scrollHeight,
 			behavior: "smooth",
 		});
-	}, [selectedUser, currentMessages.length]);
+	}, [selectedUser]);
+
+  //scroll the conversation to last message
+  useEffect(() => {
+  messageListRef.current?.scrollTo({
+			top: messageListRef.current.scrollHeight,
+			behavior: "smooth",
+		});
+	}, [selectedUser, currentMessages.length])
+
+  //sets waiting status
+  useEffect(() => {
+    async function isWaiting()
+    {
+      if (!currentUser) return;
+      const friend = await contact.getFriendFromOther(currentUser.name, selectedUser);
+      if (!friend) return;
+      if (friend.request_sent == true) setWaiting(true);
+      return;
+    }
+    isWaiting();
+  }, [currentUser])
+
+  //sets friend status
+  useEffect(() => {
+    async function isFriend()
+    {
+      if (!currentUser) return;
+      const friend = await contact.getFriendFromOther(currentUser.name, selectedUser);
+      if (!friend) return;
+      if (friend.request_sent == false) setFriend(true);
+      return;
+    }
+    isFriend();
+  }, [currentUser])
+
+  //sets request status
+  useEffect(() => {
+    async function isRequesting()
+    {
+      if (!currentUser) return;
+      const friend = await contact.getFriend(currentUser.name, selectedUser);
+      if (!friend) return;
+      if (friend.request_sent == true) setRequest(true);
+      return;
+    }
+    isRequesting();
+  }, [currentUser])
+
+  //sets blocked status
+  useEffect(() => {
+    async function isBlockedByMe()
+    {
+      if (!currentUser) return;
+      if (!friend) return;
+      const blockedUser = await contact.getUser(selectedUser);
+      if (!blockedUser) return;
+      for (const id of currentUser.blockedUsers)
+      {
+        if (id == blockedUser.id)
+          setHasBlocked(true);
+      }
+      return;
+    }
+    isBlockedByMe();
+  }, [currentUser])
+
+  //sets blocked status from user
+  useEffect(() => {
+    async function amIBlocked()
+    {
+      if (!currentUser) return;
+      if (!friend) return;
+      const blockingUser = await contact.getUser(selectedUser);
+      if (!blockingUser) return;
+      for (const id of blockingUser.blockedUsers)
+      {
+        if (id == currentUser.id)
+          setIsBlocked(true);
+      }
+      return;
+    }
+    amIBlocked();
+  }, [currentUser])
 
 	useEffect(() => {
 		return () => {
@@ -271,6 +374,33 @@ export default function SocialPage() {
 	{
 		return <div>Loading...</div>;
 	}
+
+  //fetch the number of unreaded messages (BROKEN)
+  async function fetchUnread()
+  {
+    if (!userPseudo) return;
+    const cU = await contact.getCurrentUser(userPseudo);
+    const inbox = await contact.getUnread(cU.name);
+    if (!inbox) return;
+    const results: Record<string, number> = {};
+    for (const iU of inbox) {
+      let otherUserId: string | null = null;
+      let unread = 0;
+
+      for (const user of iU.inboxUser) {
+        if (user.user_id !== cU.id) {
+          otherUserId = user.user_id;
+        } else {
+          unread = user.unread_messages ?? 0;
+        }
+      }
+
+      if (otherUserId) {
+        results[otherUserId] = unread;
+      }
+    }
+    setUnreadMap(results);
+  }
 
   //open a add contact modal
   const openAddContactModal = () => {
@@ -355,6 +485,67 @@ export default function SocialPage() {
       setIsInviting(false);
     }
   };
+
+  //
+  async function sendFriendRequest()
+  {
+    if (!currentUser || !selectedUser) return;
+    contact.addFriend(currentUser.name, selectedUser);
+    socket.emit("friend_request", {
+      user: currentUser.name,
+      oUser: selectedUser
+    });
+    setWaiting(true);
+  }
+
+  async function addFriend()
+  {
+    if (!currentUser || !selectedUser) return;
+    contact.acceptFriendRequest(currentUser.name, selectedUser);
+    socket.emit("friend_added", {
+      user: currentUser.name,
+      oUser: selectedUser
+    });
+    setFriend(true);
+    setRequest(false);
+  }
+
+  async function refuseFriendship()
+  {
+    if (!currentUser || !selectedUser) return;
+    contact.denyFriendRequest(currentUser.name, selectedUser);
+    socket.emit("friend_denied", {
+      user: currentUser.name,
+      oUser: selectedUser
+    });
+    setRequest(false);
+  }
+
+  async function blockUser()
+  {
+    if (!currentUser || !selectedUser) return;
+    const oUser = await contact.getFriend(currentUser.name, selectedUser);
+    if (oUser)
+      contact.blockFriend(currentUser.name, selectedUser);
+    else
+      contact.blockUser(currentUser.name, selectedUser);
+    socket.emit("friend_or_user_blocked", {
+      user: currentUser.name,
+      oUser: selectedUser
+    });
+    setHasBlocked(true);
+  }
+
+  async function unblockUser()
+  {
+    if (!currentUser || !selectedUser) return;
+    contact.unblockUser(currentUser.name, selectedUser);
+    socket.emit("user_unblocked", {
+      user: currentUser.name,
+      oUser: selectedUser
+    });
+    setHasBlocked(false);
+  }
 
   const handlePickAttachments = () => {
     fileInputRef.current?.click();
@@ -497,7 +688,8 @@ export default function SocialPage() {
                     key={user.name}
                     onClick={async () => {
                       const next = await contact.selectUser(user.name);
-                      setSelectedUser(next)
+                      if (next)
+                        setSelectedUser(next)
                       }
                     }
                     className={`relative flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 transition-colors ${
