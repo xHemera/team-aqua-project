@@ -40,43 +40,8 @@ export default function ProfileViewerModal({
   isFriend = false,
   isBlocked = false,
 }: ProfileViewerModalProps) {
-  const [fetchedUser, setFetchedUser] = useState<User | null>(null);
 
-  useEffect(() => {
-    if (!open || inputUser) return;
-
-    let isCancelled = false;
-
-    const fetchProfile = async () => {
-      try {
-        const response = await fetch("/api/profile", {
-          method: "GET",
-          cache: "no-store",
-        });
-
-        if (!response.ok) return;
-
-        const newUser = await response.json();
-        const realUser = newUser as User;
-
-        if (!isCancelled) {
-          setFetchedUser(realUser);
-        }
-      } catch {
-        if (!isCancelled) {
-          setFetchedUser(null);
-        }
-      }
-    };
-
-    void fetchProfile();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [open, inputUser]);
-
-  const displayedUser = inputUser ?? fetchedUser;
+  const displayedUser = inputUser;
 
   const displayedPseudo = displayedUser?.name ?? pseudo;
   const displayedAvatarUrl = displayedUser?.avatar?.url ?? displayedUser?.image ?? avatarUrl;
