@@ -244,6 +244,9 @@ export default function ProfileViewerModal({
     amIBlocked();
   }, [currentUser])
 
+  if (!currentUser || !inputUser)
+    return <div>Loading...</div>;
+
   async function sendFriendRequest()
   {
     if (!currentUser || !inputUser) return;

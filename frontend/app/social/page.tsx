@@ -138,7 +138,7 @@ export default function SocialPage() {
   const [request, setRequest] = useState(false);
   const [waiting, setWaiting] = useState(false);
   const [friend, setFriend] = useState(false);
-  const [isblocked, setIsBlocked] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
   const [hasBlocked, setHasBlocked] = useState(false);
 
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
@@ -371,9 +371,7 @@ export default function SocialPage() {
 
 	//Loading screen while currentUser is not set
 	if (!currentUser)
-	{
 		return <div>Loading...</div>;
-	}
 
   //fetch the number of unreaded messages (BROKEN)
   async function fetchUnread()
@@ -567,7 +565,7 @@ export default function SocialPage() {
   };
 
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
+    if (!isBlocked && !hasBlocked && event.key === "Enter") {
       event.preventDefault();
       sendMessage();
     }
@@ -835,19 +833,19 @@ export default function SocialPage() {
 
                   <input
                     type="text"
-                    placeholder={isblocked ? "You are blocked by this user" : `Envoyez un message à @${selectedUser}`}
+                    placeholder={isBlocked ? "You are blocked by this user" : `Send a message to @${selectedUser}`}
                     value={message}
                     onChange={(event) => setMessage(event.target.value)}
                     onKeyDown={handleInputKeyDown}
                     className={`flex-1 bg-transparent px-1 text-sm outline-none ${
-                        isblocked
+                        isBlocked
                           ? "text-gray-500 placeholder:text-gray-600 cursor-not-allowed"
                           : "text-gray-200 placeholder:text-gray-500"
                       }`}
                   />
 
                   <button
-                    onClick={sendMessage}
+                    onClick={() => !isBlocked && !hasBlocked && sendMessage}
                     disabled={!hasDraft}
                     className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
                     aria-label="Envoyer"
