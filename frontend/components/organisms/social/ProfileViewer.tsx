@@ -9,6 +9,8 @@ import { socket } from "../../../socket"
 import { contact }  from "../../../app/social/index"
 import { authClient } from "@/lib/auth-client";
 import NotificationToast from "@/components/organisms/home/NotificationToast";
+import Validate from "../Validate";
+import { acceptFriendRequest } from "@/app/social/contact";
 
 
 type Friends = {
@@ -91,8 +93,6 @@ export default function ProfileViewerModal({
   pseudo = "Joueur inconnu",
   avatarUrl = null,
   badges = [],
-  // isFriend = false,
-  // isBlocked = false,
 }: ProfileViewerModalProps) {
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -104,6 +104,7 @@ export default function ProfileViewerModal({
   const [showNotification, setShowNotification] = useState(true);
   const [notification, setNotification] = useState<string | null>(null);
   const [notifSender, setNotifSender] = useState<string | null>(null);
+  const [openValidate, setOpenValidate] = useState(false);
 
   //fetch the current user pseudo
   useEffect(() => {
@@ -135,15 +136,9 @@ export default function ProfileViewerModal({
       }
     });
 
-    //refresh the inboxes to display new conversations
-    // socket.on("add_conv", async () => {
-    //   const i = await contact.getInboxes();
-    //   setInboxes(i);
-    // });
-
     //adds the request live
     socket.on("request", async ({user, oUser}) => {
-      if (user == inputUser.name)
+      if (oUser == currentUser.name)
         setRequest(true);
     });
 
@@ -180,7 +175,7 @@ export default function ProfileViewerModal({
     async function isWaiting()
     {
       if (!currentUser || !inputUser) return;
-      const friend = await contact.getFriendFromOther(currentUser.name, inputUser.name);
+      const friend = await contact.getFriend(currentUser.name, inputUser.name);
       if (!friend) return;
       if (friend.request_sent == true) setWaiting(true);
       return;
@@ -205,10 +200,12 @@ export default function ProfileViewerModal({
   useEffect(() => {
     async function isRequesting()
     {
+			//console.error("Before check: ", request);
       if (!currentUser || !inputUser) return;
-      const friend = await contact.getFriend(currentUser.name, inputUser.name);
+      const friend = await contact.getFriendFromOther(currentUser.name, inputUser.name);
       if (!friend) return;
       if (friend.request_sent == true) setRequest(true);
+			console.error("After check: ", request);
       return;
     }
     isRequesting();
@@ -244,9 +241,6 @@ export default function ProfileViewerModal({
     amIBlocked();
   }, [currentUser])
 
-  if (!currentUser || !inputUser)
-    return <div>Loading...</div>;
-
   async function sendFriendRequest()
   {
     if (!currentUser || !inputUser) return;
@@ -258,9 +252,10 @@ export default function ProfileViewerModal({
     contact.addFriend(currentUser.name, inputUser.name);
     socket.emit("friend_request", {
       user: currentUser.name,
-      oUser: inputUser
+      oUser: inputUser.name
     });
     setWaiting(true);
+		setOpenValidate(false);
     onClose();
   }
 
@@ -270,7 +265,7 @@ export default function ProfileViewerModal({
     contact.acceptFriendRequest(currentUser.name, inputUser.name);
     socket.emit("friend_added", {
       user: currentUser.name,
-      oUser: inputUser
+      oUser: inputUser.name
     });
     setFriend(true);
     setRequest(false);
@@ -282,7 +277,7 @@ export default function ProfileViewerModal({
     contact.denyFriendRequest(currentUser.name, inputUser.name);
     socket.emit("friend_denied", {
       user: currentUser.name,
-      oUser: inputUser
+      oUser: inputUser.name
     });
     setRequest(false);
   }
@@ -299,7 +294,7 @@ export default function ProfileViewerModal({
         contact.blockUser(currentUser.name, inputUser.name);
       socket.emit("friend_or_user_blocked", {
         user: currentUser.name,
-        oUser: inputUser
+        oUser: inputUser.name
       });
       setHasBlocked(true);
     }
@@ -308,7 +303,7 @@ export default function ProfileViewerModal({
       contact.unblockUser(currentUser.name, inputUser.name);
       socket.emit("user_unblocked", {
         user: currentUser.name,
-        oUser: inputUser
+        oUser: inputUser.name
       });
       setHasBlocked(false);
     }
@@ -374,6 +369,14 @@ export default function ProfileViewerModal({
               </div>
             </div>
 
+            <Validate
+              open={request}
+              title={"Do you accept this user's request ?"}
+              onYes={() => {
+                addFriend();
+              }}
+              onNo={() => refuseFriendship()}
+            />
             <Button type="button" onClick={onClose} variant="ghost" size="sm" className="h-9 w-9 rounded-xl p-0">
               X
             </Button>
@@ -398,11 +401,20 @@ export default function ProfileViewerModal({
               title={friend ? "Deja ami" : "Ajouter en ami"}
               aria-label={friend ? "Deja ami" : "Ajouter en ami"}
               className={friend ? "border-emerald-500/70 bg-emerald-900/20 text-emerald-200" : undefined}
-              onClick={() => friend === false && sendFriendRequest()}
+              onClick={() => setOpenValidate(true)}
             >
               <i className="fa-solid fa-user-plus text-lg" />
             </IconButton>
-
+            <Validate
+              open={openValidate}
+              title={"Do you want to be friend with this user ?"}
+              onYes={() => {
+                if (!friend) {
+                  sendFriendRequest();
+                }
+              }}
+              onNo={() => {setOpenValidate(false); onClose;}}
+            />
             <IconButton
               type="button"
               size="lg"

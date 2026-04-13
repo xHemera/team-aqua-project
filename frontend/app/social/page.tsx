@@ -10,6 +10,7 @@ import { DEFAULT_PROFILE_ICON, PROFILE_ICONS } from "@/lib/profile-icons";
 import { contact }  from "./index"
 import NotificationToast from "@/components/organisms/home/NotificationToast";
 import ProfileViewerModal from "@/components/organisms/social/ProfileViewer";
+import Validate from "@/components/organisms/Validate";
 
 const esper = PROFILE_ICONS.find((icon) => icon.type === "esper")?.url ?? DEFAULT_PROFILE_ICON.url;
 const dragon = PROFILE_ICONS.find((icon) => icon.type === "dragon")?.url ?? DEFAULT_PROFILE_ICON.url;
@@ -295,9 +296,10 @@ export default function SocialPage() {
     async function isFriend()
     {
       if (!currentUser) return;
-      const friend = await contact.getFriendFromOther(currentUser.name, selectedUser);
-      if (!friend) return;
-      if (friend.request_sent == false) setFriend(true);
+      const myFriend = await contact.getFriend(currentUser.name, selectedUser);
+      const theirFriend = await contact.getFriendFromOther(currentUser.name, selectedUser);
+      if (!myFriend || !theirFriend) return;
+      if (myFriend.request_sent == false && theirFriend.request_sent == false) setFriend(true);
       return;
     }
     isFriend();
@@ -310,7 +312,11 @@ export default function SocialPage() {
       if (!currentUser) return;
       const friend = await contact.getFriend(currentUser.name, selectedUser);
       if (!friend) return;
-      if (friend.request_sent == true) setRequest(true);
+      if (friend.request_sent == true) 
+      {
+        console.log("here");
+        setRequest(true);
+      }
       return;
     }
     isRequesting();
