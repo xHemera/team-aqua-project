@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import AuthPageLayout from "@/components/AuthPageLayout";
+import Button from "@/components/atoms/Button";
+import IconField from "@/components/molecules/IconField";
 
 // Page d'inscription dédiée
 export default function RegisterPage() {
@@ -23,7 +25,7 @@ export default function RegisterPage() {
     setMessage("");
 
     if (password !== confirmPassword) {
-      setMessage("Les mots de passe ne correspondent pas");
+      setMessage("Passwords do not match");
       setLoading(false);
       return;
     }
@@ -35,9 +37,9 @@ export default function RegisterPage() {
     });
 
     if (error) {
-      setMessage(error.message ?? "Erreur d'inscription");
+      setMessage(error.message ?? "Registration error");
     } else {
-      setMessage("Inscription réussie");
+      setMessage("Registration successful");
       setTimeout(() => {
         router.push(`/profile/${pseudo}`);
       }, 700);
@@ -49,81 +51,62 @@ export default function RegisterPage() {
   return (
     <AuthPageLayout>
       <form onSubmit={onSubmit} className="space-y-4">
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
-            <i className="fa-solid fa-user"></i>
-          </div>
-          <input
-            type="text"
-            value={pseudo}
-            onChange={(e) => setPseudo(e.target.value)}
-            placeholder="Pseudo"
-            className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[var(--accent-color)] focus:outline-none"
-            required
-          />
-        </div>
+        {/* Usage molecule/atom: IconField standardise la structure input + icone. */}
+        <IconField
+          iconClassName="fa-solid fa-user"
+          type="text"
+          value={pseudo}
+          onChange={(e) => setPseudo(e.target.value)}
+          placeholder="Username"
+          required
+        />
 
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
-            <i className="fa-regular fa-user"></i>
-          </div>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-            className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[var(--accent-color)] focus:outline-none"
-            required
-          />
-        </div>
+        <IconField
+          iconClassName="fa-regular fa-user"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email"
+          required
+        />
 
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
-            <i className="fa-solid fa-lock"></i>
-          </div>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Mot de passe"
-            className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[var(--accent-color)] focus:outline-none"
-            required
-          />
-        </div>
+        <IconField
+          iconClassName="fa-solid fa-lock"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Password"
+          required
+        />
 
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
-            <i className="fa-solid fa-lock"></i>
-          </div>
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder="Confirmer le mot de passe"
-            className="w-full rounded-xl border border-[#3c3650] bg-[#242033] py-3 pl-12 pr-4 text-gray-200 placeholder-gray-400 transition focus:border-[var(--accent-color)] focus:outline-none"
-            required
-          />
-        </div>
+        <IconField
+          iconClassName="fa-solid fa-lock"
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          placeholder="Confirm password"
+          required
+        />
 
         <div className="grid grid-cols-2 gap-3">
-          <button
+          {/* Usage atomique: Button garantit des variants coherents dans tout le front. */}
+          <Button
             type="button"
             onClick={() => router.push("/")}
-            className="rounded-xl border border-[#3c3650] bg-[#242033] py-3 font-semibold text-gray-100 transition-colors hover:bg-[#302a45]"
+            variant="ghost"
           >
-            Retour
-          </button>
-          <button
+            Back
+          </Button>
+          <Button
             type="submit"
             disabled={loading}
-            className="rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] py-3 font-semibold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? "Chargement..." : "S'inscrire"}
-          </button>
+            {loading ? "Loading..." : "Sign up"}
+          </Button>
         </div>
 
         {message && (
-          <p className={`text-center text-sm ${message.includes("réussie") ? "text-green-400" : "text-red-400"}`}>
+          <p className={`text-center text-sm ${message.includes("successful") ? "text-green-400" : "text-red-400"}`}>
             {message}
           </p>
         )}

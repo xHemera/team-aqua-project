@@ -1,8 +1,4 @@
 services:
-  redis:
-    image: redis:7
-    ports:
-      - "6380:6379"
   db:
     image: postgres:16-alpine
     container_name: aqua-db-temp
@@ -22,6 +18,17 @@ services:
       retries: 5
       start_period: 5s
 
+  redis:
+    image: redis:7-alpine
+    container_name: aqua-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+      start_period: 3s
+
   frontend:
     build:
       context: ./frontend
@@ -31,19 +38,18 @@ services:
     working_dir: /app
     command: >
       sh -c "
-      pnpm install --frozen-lockfile --ignore-scripts=false &&
-      pnpm prisma generate &&
-      pnpm auth:migrate &&
-      pnpm dev --hostname 0.0.0.0
+      bun install --ignore-scripts &&
+      bunx prisma generate &&
+      bunx prisma migrate deploy --config prisma/prisma.config.ts &&
+      bun run dev -- --hostname 0.0.0.0 --port 3000
       "
     ports:
       - "3000:3000"
     volumes:
       - ./frontend:/app
-      - frontend_pnpm_store:/pnpm/store
+      - frontend_bun_cache:/home/bun/.bun/install/cache
     environment:
       NODE_ENV: development
-      CHOKIDAR_USEPOLLING: "true"
       BETTER_AUTH_URL: http://localhost:3000
       BETTER_AUTH_SECRET: dev-secret-change-me-please-at-least-32-characters
       BETTER_AUTH_DATABASE_URL: postgres://postgres:postgres@db:5432/aqua_temp
@@ -61,24 +67,33 @@ services:
     container_name: aqua-websockets
     restart: unless-stopped
     working_dir: /app
+    stdin_open: true
+    tty: true
+    command: >
+      sh -c "
+      bun install --ignore-scripts &&
+      bun run server.js
+      "
     ports:
       - "4001:4001"
     volumes:
       - ./websockets:/app
-      - /app/node_modules
-      - backend_pnpm_store:/pnpm/store
+      - backend_bun_cache:/home/bun/.bun/install/cache
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       DATABASE_URL: postgresql://postgres:postgres@db:5432/aqua_temp
       PORT: 4001
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres_data:
-  frontend_pnpm_store:
+  frontend_node_modules:
+  frontend_bun_cache:
   backend_node_modules:
-  backend_pnpm_store:
+  backend_bun_cache:
   game_engine_node_modules:
-  game_engine_pnpm_store:
+  game_engine_bun_cache:

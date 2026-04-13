@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { AVATAR_CHANGED_EVENT, persistAvatarPreference } from "@/lib/avatar-preference";
 import { applyAccentPalette, resolveProfileIcon } from "@/lib/profile-icons";
 
 export default function AccentPreferenceSync() {
@@ -26,8 +27,11 @@ export default function AccentPreferenceSync() {
         const id = payload.avatar?.id ?? payload.avatarId;
         const url = payload.avatar?.url ?? payload.image;
 
-        if (id) localStorage.setItem("avatarId", id);
-        if (url) localStorage.setItem("avatar", url);
+        if (url) {
+          persistAvatarPreference(url, id ?? undefined);
+        } else {
+          if (id) localStorage.setItem("avatarId", id);
+        }
         applyFromStorage(id, url);
       } catch {
         applyFromStorage();
@@ -46,9 +50,15 @@ export default function AccentPreferenceSync() {
       }
     };
 
+    const handleAvatarChanged = () => {
+      applyFromStorage();
+    };
+
     window.addEventListener("storage", handleStorage);
+    window.addEventListener(AVATAR_CHANGED_EVENT, handleAvatarChanged as EventListener);
     return () => {
       window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(AVATAR_CHANGED_EVENT, handleAvatarChanged as EventListener);
     };
   }, []);
 

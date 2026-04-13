@@ -1,0 +1,14 @@
+import "dotenv/config";
+
+const config = {
+  schema: "schema.prisma",
+  migrations: {
+    path: "migrations",
+  },
+  datasource: {
+    //DANGER
+    url: process.env.DATABASE_URL || "postgresql://postgres:postgres@db:5432/aqua_temp",
+  },
+};
+
+export default config;

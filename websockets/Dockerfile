@@ -1,18 +1,13 @@
-FROM node:20-alpine
-
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
+FROM oven/bun:1-alpine
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json bun.lock ./
 
-RUN corepack enable && corepack prepare pnpm@10.30.0 --activate
-
-RUN pnpm install
+RUN bun install --ignore-scripts
 
 COPY . .
 
 EXPOSE 4001
 
-CMD ["node", "server.js"]
+CMD ["bun", "run", "server.js"]

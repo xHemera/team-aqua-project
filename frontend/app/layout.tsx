@@ -12,11 +12,12 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  preload: false,
 });
 
 export const metadata: Metadata = {
   title: "Team Aqua Project",
-  description: "Frontend minimal avec Better Auth",
+  description: "Minimal frontend with Better Auth",
 };
 
 export default function RootLayout({
@@ -35,9 +36,7 @@ export default function RootLayout({
           referrerPolicy="no-referrer"
         />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <BackgroundPreferenceSync />
         <AccentPreferenceSync />
         {children}

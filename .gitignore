@@ -2,7 +2,9 @@
 **/node_modules/
 
 # Package manager stores
-frontend/.pnpm-store/
+frontend/.bun/
+websockets/.bun/
+**/.bun/
 **/.pnpm-store/
 
 # Build outputs

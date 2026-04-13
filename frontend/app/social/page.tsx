@@ -7,33 +7,82 @@ import { socket } from "../../socket"
 import { authClient } from "@/lib/auth-client";
 import AppPageShell from "@/components/AppPageShell";
 import { DEFAULT_PROFILE_ICON, PROFILE_ICONS } from "@/lib/profile-icons";
-import { addContact}  from "./contact"
+import { contact }  from "./index"
+import NotificationToast from "@/components/organisms/home/NotificationToast";
 
 const esper = PROFILE_ICONS.find((icon) => icon.type === "esper")?.url ?? DEFAULT_PROFILE_ICON.url;
 const dragon = PROFILE_ICONS.find((icon) => icon.type === "dragon")?.url ?? DEFAULT_PROFILE_ICON.url;
 const mizu = PROFILE_ICONS.find((icon) => icon.type === "mizu")?.url ?? DEFAULT_PROFILE_ICON.url;
 
+type Friends = {
+  friendId:     string;
+  userId:       string;
+  request_sent: boolean;
+  created_at:   Date;
+}
+
+type Messages = {
+  id:         string;
+  user_id:    string;
+  inbox_id:   string;
+  message:    string | null;
+  createdAt:  Date;
+}
+
+type Inbox_users = {
+	id:								string;
+	inbox_id:					string;
+	user_id:					string;
+	unread_messages:	number | null;
+};
+
+type Inbox = {
+  id: 								string;
+  last_message: 			string | null;
+  last_sent_user_id:  string | null;
+  createdAt:  				Date;
+  inboxUser:  				Inbox_users[];
+	messages:					  Messages[];
+};
+
+type Avatar = {
+  url:					string;
+  id:						string;
+  name:					string;
+  type:					string;
+  accent: 			string;
+  accentHover:	string;
+	users?:				any;
+};
+
+type User = {
+  id:            			string;
+  name:          			string;
+  email:         			string;
+  emailVerified:			Boolean;
+  badges:             string[];
+  blockedUsers:       string[];
+  image:        			string | null;
+  profileBackground:	string | null;
+  profileBanner: 			string | null;
+  createdAt:    			Date;
+  updatedAt:    			Date;
+  avatarId:      			string | null;
+  avatar:        			Avatar | null;
+  // accounts:      	Account[];
+  // decks:        		Decks[];
+  friends:       	    Friends[];
+  inboxUser:     			Inbox_users[];
+  messages:      	    Messages[];
+  inbox:         			Inbox[];
+};
+
 type Attachment = {
-  id: string;
-  name: string;
-  sizeLabel: string;
-  type: string;
+  id: 				string;
+  name: 			string;
+  sizeLabel:	string;
+  type: 			string;
   previewUrl: string;
-};
-
-type ChatUser = {
-  name: string;
-  avatar: string;
-  unreadCount: number;
-};
-
-type ChatMessage = {
-  id: string;
-  sender: string;
-  text: string;
-  isMine: boolean;
-  sentAt: string;
-  attachments: Attachment[];
 };
 
 type InviteNotification = {
@@ -53,6 +102,7 @@ const toSizeLabel = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
 };
 
+//creation d'un fichier a partager
 const buildAttachmentFromFile = (file: File): Attachment => ({
   id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
   name: file.name,
@@ -62,13 +112,9 @@ const buildAttachmentFromFile = (file: File): Attachment => ({
 });
 
 export default function SocialPage() {
-
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
-
-  const [users, setUsers] = useState<ChatUser[]>([
-  ]);
 
   const [selectedUser, setSelectedUser] = useState("");
   const [message, setMessage] = useState("");
@@ -77,24 +123,24 @@ export default function SocialPage() {
   const [isInviting, setIsInviting] = useState(false);
   const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
   const [inviteUsername, setInviteUsername] = useState("");
-  const [userPseudo, setUserPseudo] = useState<string | null>(null)
-  const [messagesByUser, setMessagesByUser] = useState<Record<string, ChatMessage[]>>({
-  });
-
-  //a modifier ou supprimer
-  const currentUser = useMemo(
-    () => users.find((user) => user.name === selectedUser) ?? users[0],
-    [selectedUser, users],
-  );
-
-  const currentMessages = useMemo(
-    () => messagesByUser[selectedUser] ?? [],
-    [messagesByUser, selectedUser],
-  );
+  const [userPseudo, setUserPseudo] = useState<string | null>(null);
+  const [currentMessages, setCurrentMessages] = useState<Messages[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [inboxes, setInboxes] = useState<Inbox[]>([]);
+	const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
+  const [showNotification, setShowNotification] = useState(true);
+  const [notification, setNotification] = useState<string | null>(null);
+  const [notifSender, setNotifSender] = useState<string | null>(null);
+  const [request, setRequest] = useState(false);
+  const [waiting, setWaiting] = useState(false);
+  const [friend, setFriend] = useState(false);
+  const [isblocked, setIsBlocked] = useState(false);
+  const [hasBlocked, setHasBlocked] = useState(false);
 
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
 
-
+  //fetch the current user pseudo
   useEffect(() => {
     const getUserData = async () => {
       const { data } = await authClient.getSession();
@@ -104,114 +150,310 @@ export default function SocialPage() {
     getUserData();
   });
 
+  //fetch users and their inboxes
   useEffect(() => {
-    if (socket.connected || !userPseudo) return;
-    socket.connect()
-    socket.emit("login", userPseudo);
-    socket.on("online_users", (users) => {
-      console.log("Users from Redis:", users);
+    async function fetchUsers() {
+    if (!userPseudo) return;
+      const u = await contact.getUsers();
+      const cU = await contact.getCurrentUser(userPseudo);
+      const i = await contact.getInboxes();
+      setUsers(u);
+      setCurrentUser(cU);
+      setInboxes(i);
+    }
+    fetchUsers();
+  }, [userPseudo]);
+
+  //reconnect socket in case of a page refresh
+  useEffect(() => {
+		if (!userPseudo || socket.connected) return;
+
+		socket.connect();
+		socket.emit("login", userPseudo);
+
+		socket.on("online_users", (users) => {
+			console.log("Users from Redis:", users);
+		});
+
+		return () => {
+			socket.off("online_users");
+		};
+	}, [userPseudo]);
+
+  //render messages sent by other users
+  useEffect(() => {
+    if (!userPseudo) return;
+    socket.on("received", async ({sender, receiver, msg}) => {
+      if (selectedUser === sender)
+      {
+        const newMessages = await contact.getMsg(userPseudo, sender);
+        if (!newMessages) return;
+        setCurrentMessages(newMessages);
+      }
+      else //set variables to send a notification
+      {
+        setNotifSender(sender);
+        setNotification(msg);
+        await fetchUnread();
+      }
     });
-  });
 
-  useEffect(() => {
-    messageListRef.current?.scrollTo({
-      top: messageListRef.current.scrollHeight,
-      behavior: "smooth",
+    //refresh the inboxes to display new conversations
+    socket.on("add_conv", async () => {
+      const i = await contact.getInboxes();
+      setInboxes(i);
     });
-  }, [selectedUser, currentMessages.length]);
 
+    //adds the request live
+    socket.on("request", async ({user, oUser}) => {
+      if (user == selectedUser)
+        setRequest(true);
+    });
+
+    //adds match button live
+    socket.on("adding", async ({user, oUser}) => {
+      if (user == selectedUser)
+      {
+        setWaiting(false);
+        setFriend(true);
+      }
+    });
+
+    //resets status live
+    socket.on("refusing", async ({user, oUser}) => {
+      if (user == selectedUser)
+        setWaiting(false);
+    });
+
+    //sets blocked live
+    socket.on("blocking", async ({user, oUser}) => {
+      if (user == selectedUser)
+        setIsBlocked(true);
+    });
+
+    //resets status live
+    socket.on("unblocking", async ({user, oUser}) => {
+      if (user == selectedUser)
+        setIsBlocked(false);
+    });
+  }, [userPseudo, selectedUser]);
+
+	//fetch the conversation
+	useEffect(() => {
+		async function fetchmessages()
+		{
+			if (!currentUser) return;
+			const newMessages = await contact.getMsg(currentUser.name, selectedUser);
+			if (!newMessages) return;
+    	setCurrentMessages(newMessages);
+		}
+		fetchmessages();
+		messageListRef.current?.scrollTo({
+			top: messageListRef.current.scrollHeight,
+			behavior: "smooth",
+		});
+	}, [selectedUser]);
+
+  //scroll the conversation to last message
   useEffect(() => {
-    return () => {
-      draftAttachments.forEach((attachment) => URL.revokeObjectURL(attachment.previewUrl));
-    };
-  }, [draftAttachments]);
+  messageListRef.current?.scrollTo({
+			top: messageListRef.current.scrollHeight,
+			behavior: "smooth",
+		});
+	}, [selectedUser, currentMessages.length])
 
+  //sets waiting status
   useEffect(() => {
-    if (!inviteNotification) return;
+    async function isWaiting()
+    {
+      if (!currentUser) return;
+      const friend = await contact.getFriendFromOther(currentUser.name, selectedUser);
+      if (!friend) return;
+      if (friend.request_sent == true) setWaiting(true);
+      return;
+    }
+    isWaiting();
+  }, [currentUser])
 
-    const timeoutId = setTimeout(() => {
-      setInviteNotification(null);
-    }, 3000);
+  //sets friend status
+  useEffect(() => {
+    async function isFriend()
+    {
+      if (!currentUser) return;
+      const friend = await contact.getFriendFromOther(currentUser.name, selectedUser);
+      if (!friend) return;
+      if (friend.request_sent == false) setFriend(true);
+      return;
+    }
+    isFriend();
+  }, [currentUser])
 
-    return () => clearTimeout(timeoutId);
-  }, [inviteNotification]);
+  //sets request status
+  useEffect(() => {
+    async function isRequesting()
+    {
+      if (!currentUser) return;
+      const friend = await contact.getFriend(currentUser.name, selectedUser);
+      if (!friend) return;
+      if (friend.request_sent == true) setRequest(true);
+      return;
+    }
+    isRequesting();
+  }, [currentUser])
 
-  const selectUser = (userName: string) => {
-    setSelectedUser(userName);
-    setUsers((prevUsers) =>
-      prevUsers.map((user) =>
-        user.name === userName ? { ...user, unreadCount: 0 } : user,
-      ),
-    );
-  };
+  //sets blocked status
+  useEffect(() => {
+    async function isBlockedByMe()
+    {
+      if (!currentUser) return;
+      if (!friend) return;
+      const blockedUser = await contact.getUser(selectedUser);
+      if (!blockedUser) return;
+      for (const id of currentUser.blockedUsers)
+      {
+        if (id == blockedUser.id)
+          setHasBlocked(true);
+      }
+      return;
+    }
+    isBlockedByMe();
+  }, [currentUser])
 
+  //sets blocked status from user
+  useEffect(() => {
+    async function amIBlocked()
+    {
+      if (!currentUser) return;
+      if (!friend) return;
+      const blockingUser = await contact.getUser(selectedUser);
+      if (!blockingUser) return;
+      for (const id of blockingUser.blockedUsers)
+      {
+        if (id == currentUser.id)
+          setIsBlocked(true);
+      }
+      return;
+    }
+    amIBlocked();
+  }, [currentUser])
+
+	useEffect(() => {
+		return () => {
+			draftAttachments.forEach((attachment) => URL.revokeObjectURL(attachment.previewUrl));
+		};
+	}, [draftAttachments]);
+
+	//notifications timer
+	useEffect(() => {
+		if (!inviteNotification) return;
+
+		const timeoutId = setTimeout(() => {
+			setInviteNotification(null);
+		}, 3000);
+
+		return () => clearTimeout(timeoutId);
+	}, [inviteNotification]);
+
+	//Loading screen while currentUser is not set
+	if (!currentUser)
+	{
+		return <div>Loading...</div>;
+	}
+
+  //fetch the number of unreaded messages (BROKEN)
+  async function fetchUnread()
+  {
+    if (!userPseudo) return;
+    const cU = await contact.getCurrentUser(userPseudo);
+    const inbox = await contact.getUnread(cU.name);
+    if (!inbox) return;
+    const results: Record<string, number> = {};
+    for (const iU of inbox) {
+      let otherUserId: string | null = null;
+      let unread = 0;
+
+      for (const user of iU.inboxUser) {
+        if (user.user_id !== cU.id) {
+          otherUserId = user.user_id;
+        } else {
+          unread = user.unread_messages ?? 0;
+        }
+      }
+
+      if (otherUserId) {
+        results[otherUserId] = unread;
+      }
+    }
+    setUnreadMap(results);
+  }
+
+  //open a add contact modal
   const openAddContactModal = () => {
     if (isInviting) return;
     setInviteUsername("");
     setIsAddContactModalOpen(true);
   };
 
+  //close the add contact modal
   const closeAddContactModal = () => {
     if (isInviting) return;
     setIsAddContactModalOpen(false);
     setInviteUsername("");
   };
 
-  //cree une nouvelle discussion
+  //create a new contact
   const submitContactInvite = async () => {
     const username = inviteUsername.trim();
     if (isInviting || !username) return;
     try {
       setIsInviting(true);
 
+      //makes an appropriate response and configure variables
       const response = await fetch("/api/social/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username }),
       });
-      addContact(userPseudo!, inviteUsername);
       const payload = (await response.json()) as {
         error?: string;
         user?: { name: string; avatarUrl?: string | null };
       };
-
+      //return if we invite ourselves
+      if (payload.error === "vous ne pouvez pas vous inviter")
+      {
+        setInviteNotification({
+          type: "error",
+          message: payload.error,
+        });
+        return ;
+      }
+      //check if the inbox already exist
+      if (await contact.alreadyAdded(currentUser.name, inviteUsername) === false)
+      {
+        setInviteNotification({
+          type: "error",
+          message: payload.error ?? "une discussion a deja ete cree.",
+        });
+        return;
+      }
+      //makes a new inbox for both users and updates it
+      contact.addContact(currentUser.name, inviteUsername);
+      const i = await contact.getInboxes();
+      setInboxes(i);
+      socket.emit("new_conv", {
+        sender: currentUser.name,
+        receiver: inviteUsername,
+      });
+      //return if user does not exist
       if (!response.ok || !payload.user) {
         setInviteNotification({
           type: "error",
-          message: payload.error ?? "ce joueur n'existe pas",
+          message: payload.error ?? "ce joueur n'existe pas.",
         });
         return;
       }
 
       const foundName = payload.user.name;
-      const foundAvatar = payload.user.avatarUrl || DEFAULT_PROFILE_ICON.url;
-
-      setUsers((prevUsers) => {
-        if (prevUsers.some((user) => user.name === foundName)) {
-          return prevUsers;
-        }
-
-        return [
-          ...prevUsers,
-          {
-            name: foundName,
-            avatar: foundAvatar,
-            unreadCount: 0,
-          },
-        ];
-      });
-
-      setMessagesByUser((prevMessages) => {
-        if (prevMessages[foundName]) {
-          return prevMessages;
-        }
-
-        return {
-          ...prevMessages,
-          [foundName]: [],
-        };
-      });
-
       setSelectedUser(foundName);
       setInviteNotification({
         type: "success",
@@ -228,7 +470,67 @@ export default function SocialPage() {
       setIsInviting(false);
     }
   };
-  //fin de la fonction a modifier
+
+  //
+  async function sendFriendRequest()
+  {
+    if (!currentUser || !selectedUser) return;
+    contact.addFriend(currentUser.name, selectedUser);
+    socket.emit("friend_request", {
+      user: currentUser.name,
+      oUser: selectedUser
+    });
+    setWaiting(true);
+  }
+
+  async function addFriend()
+  {
+    if (!currentUser || !selectedUser) return;
+    contact.acceptFriendRequest(currentUser.name, selectedUser);
+    socket.emit("friend_added", {
+      user: currentUser.name,
+      oUser: selectedUser
+    });
+    setFriend(true);
+    setRequest(false);
+  }
+
+  async function refuseFriendship()
+  {
+    if (!currentUser || !selectedUser) return;
+    contact.denyFriendRequest(currentUser.name, selectedUser);
+    socket.emit("friend_denied", {
+      user: currentUser.name,
+      oUser: selectedUser
+    });
+    setRequest(false);
+  }
+
+  async function blockUser()
+  {
+    if (!currentUser || !selectedUser) return;
+    const oUser = await contact.getFriend(currentUser.name, selectedUser);
+    if (oUser)
+      contact.blockFriend(currentUser.name, selectedUser);
+    else
+      contact.blockUser(currentUser.name, selectedUser);
+    socket.emit("friend_or_user_blocked", {
+      user: currentUser.name,
+      oUser: selectedUser
+    });
+    setHasBlocked(true);
+  }
+
+  async function unblockUser()
+  {
+    if (!currentUser || !selectedUser) return;
+    contact.unblockUser(currentUser.name, selectedUser);
+    socket.emit("user_unblocked", {
+      user: currentUser.name,
+      oUser: selectedUser
+    });
+    setHasBlocked(false);
+  }
 
   const handlePickAttachments = () => {
     fileInputRef.current?.click();
@@ -254,30 +556,28 @@ export default function SocialPage() {
     });
   };
 
-
-
-  //Ecrire et envoyer un message
-  const sendMessage = () => {
+  //sends a message to selected user
+  const sendMessage = async () => {
     const cleanMessage = message.trim();
     if (!cleanMessage && draftAttachments.length === 0) return;
 
-    const newMessage: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      sender: "me",
-      text: cleanMessage,
-      isMine: true,
-      sentAt: formatTime(new Date()),
-      attachments: draftAttachments,
-    };
+    contact.addMsg(cleanMessage, currentUser.name, selectedUser);
 
-    setMessagesByUser((prevMessages) => ({
-      ...prevMessages,
-      [selectedUser]: [...(prevMessages[selectedUser] ?? []), newMessage],
-    }));
+    //fetch messages between users
+		const newMessages = await contact.getMsg(currentUser.name, selectedUser);
+		if (!newMessages) return;
+    setCurrentMessages(newMessages);
+    //sends a signal to the other user's socket
+    socket.emit("msg_sent", {
+      sender: currentUser.name,
+      receiver: selectedUser,
+      msg: cleanMessage
+    });
 
     setMessage("");
     setDraftAttachments([]);
   };
+
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -285,11 +585,23 @@ export default function SocialPage() {
     }
   };
 
+  //bouton pour defier un ami (a completer avec la vrai fonctionnalite corentin)
+  const sendChallenge = async () => {
+    if (!selectedUser || !currentUser) return;
 
-
+    try {
+      socket.emit("challenge_sent", {
+        sender: currentUser.name,
+        receiver: selectedUser,
+      });
+    } catch (error) {
+      console.error("Erreur lors de l'envoi du défi:", error);
+    }
+  };
 
   return (
-    <AppPageShell>
+    <AppPageShell showSidebar containerClassName="min-h-0 flex-1 flex-col">
+      {showNotification && notification && notifSender && (notifSender !== selectedUser) && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       {inviteNotification && (
         <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
           <div
@@ -339,112 +651,119 @@ export default function SocialPage() {
         </div>
       )}
 
-      <div className="w-full">
-        <section className="grid h-[calc(100vh-2rem)] w-full grid-cols-1 overflow-hidden rounded-3xl border border-[#3c3650] bg-[#15131d]/85 shadow-2xl backdrop-blur-md lg:grid-cols-[19rem_1fr]">
-          <aside className="flex min-h-0 flex-col border-b border-[#3c3650] lg:border-b-0 lg:border-r">
-            <div className="flex items-center justify-between border-b border-[#3c3650] px-5 py-4">
-              <h1 className="text-2xl font-bold tracking-tight">Social</h1>
-              <button
-                onClick={() => router.push("/home")}
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#3c3650] bg-[#242033] text-white transition-colors hover:bg-[#302a45]"
-                aria-label="Retour à l'accueil"
-              >
-                <i className="fa-solid fa-house" />
-              </button>
-            </div>
-
-            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
-              {users.map((user) => {
-                const isActive = selectedUser === user.name;
-
+      <div className="flex w-full justify-center px-4">
+        <section className="flex h-[calc(100vh-2rem)] w-[calc(100%-14rem)] flex-col overflow-hidden rounded-3xl border border-[#3c3650] bg-[#15131d]/85 shadow-2xl backdrop-blur-md">
+          {/* Header avec contacts et boutons */}
+          <header className="flex items-center border-b border-[#3c3650] px-5 py-3"> 
+            {/* Contacts scroll horizontalement */}
+            <div className="flex-1 overflow-x-auto px-4">
+              <div className="flex gap-2">
+                {
+                  users.map((user) => {
+                  const isActive = selectedUser === user.name;
+                  if (user.name === userPseudo)
+                    return null;
+                  const hasConversation = inboxes.some(inbox => {
+                    const ids = inbox.inboxUser.map(iu => iu.user_id);
+                    return ids.includes(user.id) && ids.includes(currentUser.id);
+                  });
+                  if (!hasConversation) return null;
                 return (
                   <button
                     key={user.name}
-                    onClick={() => selectUser(user.name)}
-                    className={`relative flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors ${
+                    onClick={async () => {
+                      const next = await contact.selectUser(user.name);
+                      if (next)
+                        setSelectedUser(next)
+                      }
+                    }
+                    className={`relative flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 transition-colors ${
                       isActive
                         ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)] text-white"
                         : "border-[#3c3650] bg-[#242033] text-gray-200 hover:bg-[#302a45]"
                     }`}
                   >
-                    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-visible">
+                    <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-visible">
                       <Image
-                        src={user.avatar}
+                        src={user.avatar?.url ?? DEFAULT_PROFILE_ICON.url}
                         alt={user.name}
-                        width={64}
-                        height={64}
-                        className="h-12 w-12 rounded-lg border border-[#3c3650] object-cover"
+                        width={32}
+                        height={32}
+                        className="h-8 w-8 rounded-lg border border-[#3c3650] object-cover"
                         unoptimized
                       />
                     </div>
-                    <span className="truncate font-semibold">{user.name}</span>
-                    {user.unreadCount > 0 && (
+                    <span className="shrink-0 whitespace-nowrap text-sm font-semibold">{user.name}</span>
+                    {
+                      unreadMap[user.id] > 0 && (
                       <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
-                        {user.unreadCount}
+                        {unreadMap[user.id]}
                       </span>
                     )}
                   </button>
                 );
               })}
+              </div>
             </div>
 
-            <div className="border-t border-[#3c3650] p-3">
+            {/* Boutons à droite */}
+            <div className="flex items-center gap-2">
+              {selectedUser && (
+                <button
+                  onClick={() => {
+                    // TODO: implémenter la logique de blocage
+                    console.log(`Blocage de ${selectedUser}`);
+                  }}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-red-500/50 bg-red-500/10 text-red-400 transition-colors hover:bg-red-500/20"
+                  aria-label="Bloquer l'utilisateur"
+                  title="Bloquer l'utilisateur"
+                >
+                  <i className="fa-solid fa-ban"></i>
+                </button>
+              )}
               <button
                 onClick={openAddContactModal}
                 disabled={isInviting}
-                className="w-full rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] py-2 font-bold text-white transition-colors hover:bg-[var(--accent-hover)]"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-50"
+                aria-label="Ajouter un contact"
               >
-                {isInviting ? "Recherche..." : "+ Nouveau contact"}
+                <i className="fa-solid fa-plus"></i>
               </button>
             </div>
-          </aside>
+          </header>
           <section className="flex min-h-0 flex-col">
-            <header className="flex items-center justify-between border-b border-[#3c3650] bg-[#242033] px-5 py-4">
-              <div className="flex items-center gap-3">
-                <div className="relative flex h-10 w-10 items-center justify-center overflow-visible">
-                  {/* <Image
-                    src={currentUser.avatar}
-                    alt={currentUser.name}
-                    width={64}
-                    height={64}
-                    className="h-12 w-12 rounded-lg border border-[#3c3650] object-cover"
-                    unoptimized
-                  /> */}
-                </div>
-                {/* <div>
-                  <h2 className="text-xl font-bold">{currentUser.name}</h2>
-                  {hasDraft && <p className="text-xs text-[#b4a8ff]">En train d’écrire...</p>}
-                </div> */}
-              </div>
-
-              <button
-                onClick={() => router.push("/home")}
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#3c3650] bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
-                aria-label="Fermer"
-              >
-                ✕
-              </button>
-            </header>
 
             <div ref={messageListRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
-              {currentMessages.length === 0 && (
-                <div className="rounded-xl border border-[#3c3650] bg-[#242033]/70 p-4 text-sm text-gray-300">
-                  Aucune conversation pour le moment. Envoie le premier message à @{selectedUser}.
-                </div>
-              )}
-
               {currentMessages.map((msg) => (
-                <div key={msg.id} className={`flex ${msg.isMine ? "justify-end" : "justify-start"}`}>
+                <div key={msg.id} className={`flex flex-col ${msg.user_id === currentUser.id ? "items-end" : "items-start"}`}>
+                  <div className="mb-1 flex items-center gap-2 text-xs text-gray-400">
+                    <Image
+                      src={
+                        msg.user_id === currentUser.id
+                          ? currentUser?.avatar?.url ?? DEFAULT_PROFILE_ICON.url
+                          : users.find(u => u.name === selectedUser)?.avatar?.url ?? DEFAULT_PROFILE_ICON.url
+                      }
+                      alt="Avatar"
+                      width={20}
+                      height={20}
+                      className="h-4 w-4 rounded border border-[#3c3650]"
+                      unoptimized
+                    />
+                    <span className="font-semibold">
+                      {msg.user_id === currentUser.id ? currentUser?.name : selectedUser}
+                    </span>
+                    <span className="opacity-75">{formatTime(msg.createdAt)}</span>
+                  </div>
                   <article
                     className={`max-w-[44rem] rounded-2xl px-5 py-3 ${
-                      msg.isMine
+                      msg.user_id === currentUser.id
                         ? "bg-[var(--accent-color)] text-white"
                         : "border border-[#3c3650] bg-[#242033] text-gray-100"
                     }`}
                   >
-                    {msg.text && <p className="leading-relaxed">{msg.text}</p>}
+                    {msg.message && <p className="leading-relaxed">{msg.message}</p>}
 
-                    {msg.attachments.length > 0 && (
+                    {/* {msg.attachments.length > 0 && (
                       <div className={`mt-2 grid gap-2 ${msg.attachments.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
                         {msg.attachments.map((attachment) => {
                           const isImage = attachment.type.startsWith("image/");
@@ -453,7 +772,7 @@ export default function SocialPage() {
                             <div
                               key={attachment.id}
                               className={`rounded-lg border p-2 ${
-                                msg.isMine
+                                msg.user_id === currentUser.id
                                   ? "border-white/30 bg-white/10"
                                   : "border-[#3c3650] bg-[#15131d]"
                               }`}
@@ -478,74 +797,81 @@ export default function SocialPage() {
                           );
                         })}
                       </div>
-                    )}
-
-                    <p className={`mt-2 text-[11px] ${msg.isMine ? "text-white/80" : "text-gray-400"}`}>
-                      {msg.sentAt}
-                    </p>
+                    )} */}
                   </article>
                 </div>
               ))}
             </div>
 
             <footer className="border-t border-[#3c3650] bg-[#15131d] p-4">
-              {draftAttachments.length > 0 && (
-                <div className="mb-3 flex flex-wrap gap-2">
-                  {draftAttachments.map((attachment) => (
-                    <div
-                      key={attachment.id}
-                      className="inline-flex items-center gap-2 rounded-full border border-[#3c3650] bg-[#242033] px-3 py-1 text-xs text-gray-200"
-                    >
-                      <i className="fa-regular fa-paperclip" />
-                      <span className="max-w-[14rem] truncate">{attachment.name}</span>
-                      <button
-                        onClick={() => removeDraftAttachment(attachment.id)}
-                        className="text-gray-300 transition-colors hover:text-white"
-                        aria-label={`Supprimer ${attachment.name}`}
-                      >
-                        <i className="fa-solid fa-xmark" />
-                      </button>
-                    </div>
-                  ))}
+              {selectedUser && (<div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2 rounded-full border border-[#3c3650] bg-[#242033] px-2 py-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    multiple
+                    onChange={handleFilesChange}
+                    accept="image/*,.pdf,.txt,.doc,.docx"
+                  />
+
+                  <button
+                    onClick={sendChallenge}
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)]"
+                    aria-label="Défier l'ami"
+                  >
+                    <i className="fa-solid fa-bolt" />
+                  </button>
+
+                  <button
+                    onClick={handlePickAttachments}
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
+                    aria-label="Ajouter des pièces jointes"
+                  >
+                    <i className="fa-solid fa-paperclip" />
+                  </button>
+
+                  <input
+                    type="text"
+                    placeholder={`Envoyez un message à @${selectedUser}`}
+                    value={message}
+                    onChange={(event) => setMessage(event.target.value)}
+                    onKeyDown={handleInputKeyDown}
+                    className="flex-1 bg-transparent px-1 text-sm text-gray-200 outline-none placeholder:text-gray-500"
+                  />
+
+                  <button
+                    onClick={sendMessage}
+                    disabled={!hasDraft}
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Envoyer"
+                  >
+                    <i className="fa-solid fa-paper-plane" />
+                  </button>
                 </div>
-              )}
 
-              <div className="flex items-center gap-2 rounded-full border border-[#3c3650] bg-[#242033] px-2 py-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  className="hidden"
-                  multiple
-                  onChange={handleFilesChange}
-                  accept="image/*,.pdf,.txt,.doc,.docx"
-                />
-
-                <button
-                  onClick={handlePickAttachments}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
-                  aria-label="Ajouter des pièces jointes"
-                >
-                  <i className="fa-solid fa-paperclip" />
-                </button>
-
-                <input
-                  type="text"
-                  placeholder={`Envoyez un message à @${selectedUser}`}
-                  value={message}
-                  onChange={(event) => setMessage(event.target.value)}
-                  onKeyDown={handleInputKeyDown}
-                  className="flex-1 bg-transparent px-1 text-sm text-gray-200 outline-none placeholder:text-gray-500"
-                />
-
-                <button
-                  onClick={sendMessage}
-                  disabled={!hasDraft}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label="Envoyer"
-                >
-                  <i className="fa-solid fa-paper-plane" />
-                </button>
-              </div>
+                {draftAttachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {draftAttachments.map((attachment) => (
+                      <div
+                        key={attachment.id}
+                        className="inline-flex items-center gap-2 rounded-full border border-[#3c3650] bg-[#242033] px-3 py-1 text-xs text-gray-200"
+                      >
+                        <i className="fa-regular fa-paperclip" />
+                        <span className="max-w-[14rem] truncate">{attachment.name}</span>
+                        <span className="opacity-75">({attachment.sizeLabel})</span>
+                        <button
+                          onClick={() => removeDraftAttachment(attachment.id)}
+                          className="text-gray-300 transition-colors hover:text-white"
+                          aria-label={`Supprimer ${attachment.name}`}
+                        >
+                          <i className="fa-solid fa-xmark" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>)}
             </footer>
           </section>
         </section>
