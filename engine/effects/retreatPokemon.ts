@@ -1,4 +1,3 @@
-import { PokemonCard } from "../cards/PokemonCard";
 import { GameState } from "../GameState";
 import { PokemonInstance } from "../instances/PokemonInstance";
 import { playActive } from "./playPokemon";
@@ -12,14 +11,24 @@ export function retreatPokemon(
 	cardUid: string ,
 ): GameState {
 	const player = state.players[playerIndex]
-	if (player.active) {
-		const pokemon = new PokemonInstance(
+
+	const newBench = player.active
+	? [
+		...player.bench,
+		new PokemonInstance(
 			player.active.uid,
 			player.active.card,
 			player.active.owner
-		)
-		player.bench.push(pokemon);
-	}
-	state = playActive(state, playerIndex, cardUid);
-	return state;
+		),
+	  ]	
+	: [...player.bench];
+
+	const stateWithBech: GameState = {
+		...state,
+		players: state.players.map((p, i) =>
+		 i === playerIndex ? { ...p, bench: newBench} : p
+		),
+	};
+
+	return playActive(stateWithBech, playerIndex, cardUid);
 }

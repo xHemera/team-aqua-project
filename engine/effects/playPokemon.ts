@@ -17,14 +17,24 @@ export function playPokemon(
 	if (!(CardInstance.card instanceof PokemonCard)) {
 		throw new Error("Card is not a Pokemon")
 	}
-	player.hand.splice(handIndex, 1)
 	const pokemon = new PokemonInstance(
 		CardInstance.uid,
-		CardInstance.card,
+		CardInstance.card, 
 		CardInstance.owner
 	)
-	player.bench.push(pokemon)
-	return state
+
+	return {
+		...state,
+		players: state.players.map((p, i) =>
+		i === playerIndex
+			? {
+				...p,
+				hand: p.hand.filter((_, j) => j !== handIndex),
+				bench: [...p.bench, pokemon],
+			}
+			: p
+		),
+	};
 }
 
 //Permet de deplacer un pokemon depuis le banc vers la main
@@ -47,7 +57,17 @@ export function	playActive(
 		CardInstance.uid,
 		CardInstance.card,
 		CardInstance.owner
-	)
-	player.active = pokemon
-	return state
+	);
+	return {
+		...state,
+		players: state.players.map((p, i) =>
+		i === playerIndex
+			? {
+				...p,
+				bench: p.bench.filter((_, j) => j !== benchIndex),
+				active: pokemon,
+			}
+			: p
+		),
+	};
 }
