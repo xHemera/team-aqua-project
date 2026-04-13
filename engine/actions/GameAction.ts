@@ -11,3 +11,13 @@ export type GameAction =
 		attackIndex: number
 	  }
 	| { type: "END_TURN", player: number}
+	| { 
+		type: "PLAY_ACTIVE"
+		player: number
+		cardUid: string
+	  }
+	| { 
+		type: "RETREAT_POKEMON"
+		player: number
+		cardUid: string
+	  }
