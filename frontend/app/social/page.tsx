@@ -95,7 +95,7 @@ export default function SocialPage() {
   const [friend, setFriend] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [hasBlocked, setHasBlocked] = useState(false);
-  const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
+  const [conversationMap, setConversationMap] = useState<Record<string, boolean>>({});  const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [messageImages, setMessageImages] = useState<Record<string, Array<{ id: string; name: string; data: string }>>>({});
 
   const MAX_MESSAGE_LENGTH = 500;
@@ -360,6 +360,23 @@ export default function SocialPage() {
 
 		return () => clearTimeout(timeoutId);
 	}, [inviteNotification]);
+
+  useEffect(() => {
+    const checkAll = async () => {
+      if (!currentUser || !users) return;
+
+      const results: Record<string, boolean> = {};
+
+      for (const user of users) {
+        const exists = await contact.alreadyAdded(currentUser.name, user.name);
+        results[user.name] = exists;
+      }
+
+      setConversationMap(results);
+    };
+
+    checkAll();
+  }, [currentUser, users]);
 
 	//Loading screen while currentUser is not set
 	if (!currentUser)
@@ -671,11 +688,8 @@ export default function SocialPage() {
                   const isActive = selectedUser === user.name;
                   if (user.name === userPseudo)
                     return null;
-                  const hasConversation = async () => {
-                    const flag = await contact.alreadyAdded(currentUser.name, user.name);
-                    return flag;
-                  };
-                  if (!hasConversation) return null;
+                  if (conversationMap[user.name]) return null;
+                  
                   if (user.name == currentUser.name) return null;
                   return (
                     <button

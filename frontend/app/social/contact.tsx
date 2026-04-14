@@ -86,7 +86,8 @@ export async function addContact(currentUser: string, addUser: string)
 //check if a user already has a conversation with someone
 export async function alreadyAdded(currentUser: string, addUser: string)
 {
-	if (!currentUser || !addUser) return;
+	if (!currentUser || !addUser)
+		return true
     const user1 = await prisma.user.findFirst({
         where: { name: currentUser }
     })
@@ -95,7 +96,7 @@ export async function alreadyAdded(currentUser: string, addUser: string)
     })
 
 	if (!user1 || !user2)
-		throw new Error("User not found");
+		return true
 
 	const inbox = await prisma.inbox.findFirst({
 		where: {
