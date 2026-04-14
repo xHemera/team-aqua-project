@@ -12,10 +12,6 @@ import NotificationToast from "@/components/organisms/home/NotificationToast";
 import ProfileViewerModal from "@/components/organisms/social/ProfileViewer";
 import Validate from "@/components/organisms/Validate";
 
-const esper = PROFILE_ICONS.find((icon) => icon.type === "esper")?.url ?? DEFAULT_PROFILE_ICON.url;
-const dragon = PROFILE_ICONS.find((icon) => icon.type === "dragon")?.url ?? DEFAULT_PROFILE_ICON.url;
-const mizu = PROFILE_ICONS.find((icon) => icon.type === "mizu")?.url ?? DEFAULT_PROFILE_ICON.url;
-
 type Friends = {
   friendId:     string;
   userId:       string;
@@ -71,8 +67,6 @@ type User = {
   updatedAt:    			Date;
   avatarId:      			string | null;
   avatar:        			Avatar | null;
-  // accounts:      	Account[];
-  // decks:        		Decks[];
   friends:       	    Friends[];
   inboxUser:     			Inbox_users[];
   messages:      	    Messages[];
@@ -114,7 +108,6 @@ const buildAttachmentFromFile = (file: File): Attachment => ({
 });
 
 export default function SocialPage() {
-  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
 
@@ -231,6 +224,7 @@ export default function SocialPage() {
       if (user == selectedUser)
       {
         setWaiting(false);
+        setRequest(false)
         setFriend(true);
       }
     });
@@ -238,13 +232,17 @@ export default function SocialPage() {
     //resets status live
     socket.on("refusing", async ({user, oUser}) => {
       if (user == selectedUser)
+      {
         setWaiting(false);
+        setFriend(false);
+      }
     });
 
     //sets blocked live
     socket.on("blocking", async ({user, oUser}) => {
       if (user == selectedUser)
         setIsBlocked(true);
+        setFriend(false);
     });
 
     //resets status live
@@ -289,7 +287,7 @@ export default function SocialPage() {
       return;
     }
     isWaiting();
-  }, [currentUser])
+  }, [currentUser, selectedUser])
 
   //sets friend status
   useEffect(() => {
@@ -303,7 +301,7 @@ export default function SocialPage() {
       return;
     }
     isFriend();
-  }, [currentUser])
+  }, [currentUser, selectedUser])
 
   //sets request status
   useEffect(() => {
@@ -320,7 +318,7 @@ export default function SocialPage() {
       return;
     }
     isRequesting();
-  }, [currentUser])
+  }, [currentUser, selectedUser])
 
   //sets blocked status
   useEffect(() => {
@@ -338,7 +336,7 @@ export default function SocialPage() {
       return;
     }
     isBlockedByMe();
-  }, [currentUser])
+  }, [currentUser, selectedUser])
 
   //sets blocked status from user
   useEffect(() => {
@@ -356,7 +354,7 @@ export default function SocialPage() {
       return;
     }
     amIBlocked();
-  }, [currentUser])
+  }, [currentUser, selectedUser])
 
 	useEffect(() => {
 		return () => {
@@ -583,20 +581,6 @@ export default function SocialPage() {
     setShowProfileViewer(true);
   };
 
-  //bouton pour defier un ami (a completer avec la vrai fonctionnalite corentin)
-  const sendChallenge = async () => {
-    if (!selectedUser || !currentUser) return;
-
-    try {
-      socket.emit("challenge_sent", {
-        sender: currentUser.name,
-        receiver: selectedUser,
-      });
-    } catch (error) {
-      console.error("Erreur lors de l'envoi du défi:", error);
-    }
-  };
-
   return (
     <AppPageShell showSidebar containerClassName="min-h-0 flex-1 flex-col">
       {showNotification && notification && notifSender && (notifSender !== selectedUser) && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
@@ -700,19 +684,6 @@ export default function SocialPage() {
 
             {/* Boutons à droite */}
             <div className="flex items-center gap-2">
-              {selectedUser && (
-                <button
-                  onClick={() => {
-                    // TODO: implémenter la logique de blocage
-                    console.log(`Blocage de ${selectedUser}`);
-                  }}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-red-500/50 bg-red-500/10 text-red-400 transition-colors hover:bg-red-500/20"
-                  aria-label="Bloquer l'utilisateur"
-                  title="Bloquer l'utilisateur"
-                >
-                  <i className="fa-solid fa-ban"></i>
-                </button>
-              )}
               <button
                 onClick={openAddContactModal}
                 disabled={isInviting}
@@ -821,15 +792,7 @@ export default function SocialPage() {
                     accept="image/*,.pdf,.txt,.doc,.docx"
                   />
 
-                  <button
-                    onClick={sendChallenge}
-                    className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)]"
-                    aria-label="Défier l'ami"
-                  >
-                    <i className="fa-solid fa-bolt" />
-                  </button>
-
-                  <button
+                <button
                     onClick={handlePickAttachments}
                     className="flex h-9 w-9 items-center justify-center rounded-full bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
                     aria-label="Ajouter des pièces jointes"
@@ -891,6 +854,7 @@ export default function SocialPage() {
         open={showProfileViewer}
         onClose={() => setShowProfileViewer(false)}
         user={profileViewerUser}
+        currentUser={currentUser}
       />
     </AppPageShell>
   );
