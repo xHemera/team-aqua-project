@@ -3,22 +3,20 @@ import prisma from "@/lib/prisma";
 export async function GET() {
   try {
     const users = await prisma.user.findMany({
-      include: {
-        inbox: {
-          include: {
-              messages: true,
-              inboxUser: true,
-          },
-          },
-          friends: true,
-          messages: true,
-          inboxUser: true,
-          avatar: true,
-          matchHistory: true
+      select: {
+        id: true,
+        name: true,
+        image: true,
+        badges: true,
+        avatar: {
+          select: {
+            url: true,
+          }
+        },
       },
       orderBy: {
         name: "asc",
-      },
+      }
     });
 
     const result = users.map((user) => ({

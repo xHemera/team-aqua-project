@@ -13,20 +13,24 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: {
-            inbox: {
-            include: {
-                messages: true,
-                inboxUser: true,
-            },
-            },
-            friends: true,
-            messages: true,
-            inboxUser: true,
-            avatar: true,
-            matchHistory: true
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        badges: true,
+        avatarId: true,
+        image: true,
+        profileBackground: true,
+        profileBanner: true,
+        avatar: {
+          select: {
+            id: true,
+            name: true,
+            url: true,
+          },
         },
-    });
+      },
+      });
 
     if (!user) {
       return Response.json({ error: "User not found" }, { status: 404 });
