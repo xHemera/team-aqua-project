@@ -438,7 +438,7 @@ export default function DecksPage() {
 
       const data = (await response.json()) as { error?: string };
       if (!response.ok) {
-        setDeckNameError(data.error || "Impossible de renommer le deck");
+        setDeckNameError(data.error || "Impossible to rename the deck");
         return;
       }
 
@@ -447,13 +447,13 @@ export default function DecksPage() {
       setDeckNameError("");
     } catch (error) {
       console.error("Error renaming deck:", error);
-      setDeckNameError("Impossible de renommer le deck");
+      setDeckNameError("Impossible to rename the deck");
     }
   };
 
   const deleteSelectedDeck = async () => {
     if (!selectedDeck) return;
-    const shouldDelete = window.confirm(`Supprimer le deck \"${selectedDeck.title}\" ?`);
+    const shouldDelete = window.confirm(`Delete the deck \"${selectedDeck.title}\" ?`);
     if (!shouldDelete) return;
 
     try {
@@ -469,7 +469,7 @@ export default function DecksPage() {
 
       const data = (await response.json()) as { error?: string };
       if (!response.ok) {
-        alert(data.error || "Impossible de supprimer le deck");
+        alert(data.error || "Impossible to delete the deck");
         return;
       }
 
@@ -477,7 +477,7 @@ export default function DecksPage() {
       closeDeckPopup();
     } catch (error) {
       console.error("Error deleting deck:", error);
-      alert("Impossible de supprimer le deck");
+      alert("Impossible to delete the deck");
     }
   };
 
@@ -499,7 +499,7 @@ export default function DecksPage() {
 
       const data = (await response.json()) as { error?: string };
       if (!response.ok) {
-        alert(data.error || "Impossible de mettre à jour l'icône");
+        alert(data.error || "Impossible to update the icon");
         return;
       }
 
@@ -508,7 +508,7 @@ export default function DecksPage() {
       setSelectedIconOption(null);
     } catch (error) {
       console.error("Error updating deck icon:", error);
-      alert("Impossible de mettre à jour l'icône");
+      alert("Impossible to update the icon");
     }
   };
 
@@ -756,7 +756,7 @@ export default function DecksPage() {
                           void addCard(selectedDeck.id);
                         }
                       }}
-                      placeholder="Nom de la carte..."
+                      placeholder="card name..."
                       className="rounded-lg py-2"
                     />
                     <Button
@@ -860,7 +860,7 @@ export default function DecksPage() {
         >
           <Card className="w-full max-w-md rounded-2xl bg-[#15131d]" onClick={(e) => e.stopPropagation()}>
             <div className="border-b border-[#3c3650] px-6 py-4">
-              <h3 className="text-lg font-bold text-white">Changer l&apos;icône du deck</h3>
+              <h3 className="text-lg font-bold text-white">Change deck icon</h3>
             </div>
             <div className="flex flex-col gap-3 p-6">
               {Object.entries(deckImages).map(([iconName, iconPath]) => (
