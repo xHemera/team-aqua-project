@@ -127,8 +127,24 @@ export default function SocialPage() {
   const [friend, setFriend] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [hasBlocked, setHasBlocked] = useState(false);
+  const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
+
+  const MAX_MESSAGE_LENGTH = 500;
+  const MAX_DISPLAY_LENGTH = 200;
 
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
+
+  const toggleMessageExpanded = (messageId: string) => {
+    setExpandedMessages((prev) => {
+      const next = new Set(prev);
+      if (next.has(messageId)) {
+        next.delete(messageId);
+      } else {
+        next.add(messageId);
+      }
+      return next;
+    });
+  };
   const conversationUsers = useMemo(() => {
     if (!currentUser) return [];
 
@@ -467,7 +483,7 @@ export default function SocialPage() {
       setSelectedUser(foundName);
       setInviteNotification({
         type: "success",
-        message: "votre invitation a bien ete envoyer",
+        message: "invitation sent",
       });
       setIsAddContactModalOpen(false);
       setInviteUsername("");
@@ -594,14 +610,14 @@ export default function SocialPage() {
       {isAddContactModalOpen && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 px-4">
           <div className="w-full max-w-md rounded-2xl border border-[#3c3650] bg-[#1b1826] p-5 shadow-2xl">
-            <h3 className="text-lg font-bold text-white">entrez le nom d&apos;utilisateur</h3>
-            <p className="mt-1 text-sm text-gray-300">Saisis le pseudo du joueur pour envoyer une invitation.</p>
+            <h3 className="text-lg font-bold text-white">enter a username</h3>
+            <p className="mt-1 text-sm text-gray-300">Enter the username of the player to send an invitation.</p>
 
             <input
               type="text"
               value={inviteUsername}
               onChange={(event) => setInviteUsername(event.target.value)}
-              placeholder="Pseudo du joueur"
+              placeholder="Player username"
               className="mt-4 w-full rounded-xl border border-[#3c3650] bg-[#242033] px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-[var(--accent-color)]"
               autoFocus
             />
@@ -612,14 +628,14 @@ export default function SocialPage() {
                 disabled={isInviting}
                 className="rounded-xl border border-[#3c3650] bg-[#242033] px-4 py-2 text-sm font-semibold text-gray-200 transition-colors hover:bg-[#302a45] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Annuler
+                cancel
               </button>
               <button
                 onClick={submitContactInvite}
                 disabled={isInviting || inviteUsername.trim().length === 0}
                 className="rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {isInviting ? "Recherche..." : "Envoyer"}
+                {isInviting ? "Recherche..." : "Send"}
               </button>
             </div>
           </div>
@@ -697,9 +713,13 @@ export default function SocialPage() {
           <section className="flex h-full min-h-0 flex-col">
 
             <div ref={messageListRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
-              {conversationUsers.length === 0 ? (
+              {!selectedUser ? (
                 <div className="flex h-full min-h-[16rem] items-center justify-center text-base font-semibold text-gray-400">
-                  Aucune conversation
+                  No conversation selected
+                </div>
+              ) : conversationUsers.length === 0 ? (
+                <div className="flex h-full min-h-[16rem] items-center justify-center text-base font-semibold text-gray-400">
+                  No conversations
                 </div>
               ) : (
                 currentMessages.map((msg) => (
@@ -737,7 +757,25 @@ export default function SocialPage() {
                         : "border border-[#3c3650] bg-[#242033] text-gray-100"
                     }`}
                   >
-                    {msg.message && <p className="leading-relaxed">{msg.message}</p>}
+                    {msg.message && (
+                      <div>
+                        <p className="leading-relaxed break-words whitespace-pre-wrap">
+                          {expandedMessages.has(msg.id) ? msg.message : msg.message.slice(0, MAX_DISPLAY_LENGTH)}
+                        </p>
+                        {msg.message.length > MAX_DISPLAY_LENGTH && (
+                          <button
+                            onClick={() => toggleMessageExpanded(msg.id)}
+                            className={`mt-2 text-xs font-semibold transition-colors ${
+                              msg.user_id === currentUser.id
+                                ? "text-white/80 hover:text-white"
+                                : "text-gray-300 hover:text-gray-100"
+                            }`}
+                          >
+                            {expandedMessages.has(msg.id) ? "voir moins" : "voir plus"}
+                          </button>
+                        )}
+                      </div>
+                    )}
 
                     {/* {msg.attachments.length > 0 && (
                       <div className={`mt-2 grid gap-2 ${msg.attachments.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
@@ -804,20 +842,29 @@ export default function SocialPage() {
                     type="text"
                     placeholder={isBlocked ? "You are blocked by this user" : `Send a message to @${selectedUser}`}
                     value={message}
-                    onChange={(event) => setMessage(event.target.value)}
+                    onChange={(event) => {
+                      const newValue = event.target.value.slice(0, MAX_MESSAGE_LENGTH);
+                      setMessage(newValue);
+                    }}
                     onKeyDown={handleInputKeyDown}
+                    maxLength={MAX_MESSAGE_LENGTH}
                     className={`flex-1 bg-transparent px-1 text-sm outline-none ${
                         isBlocked
                           ? "text-gray-500 placeholder:text-gray-600 cursor-not-allowed"
                           : "text-gray-200 placeholder:text-gray-500"
                       }`}
                   />
+                  <span className="text-xs text-gray-500">{message.length}/{MAX_MESSAGE_LENGTH}</span>
 
                   <button
-                    onClick={() => !isBlocked && !hasBlocked && sendMessage}
-                    disabled={!hasDraft}
+                    onClick={() => {
+                      if (!isBlocked && !hasBlocked) {
+                        sendMessage();
+                      }
+                    }}
+                    disabled={!hasDraft || isBlocked || hasBlocked}
                     className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-                    aria-label="Envoyer"
+                    aria-label="Send message"
                   >
                     <i className="fa-solid fa-paper-plane" />
                   </button>
@@ -836,7 +883,7 @@ export default function SocialPage() {
                         <button
                           onClick={() => removeDraftAttachment(attachment.id)}
                           className="text-gray-300 transition-colors hover:text-white"
-                          aria-label={`Supprimer ${attachment.name}`}
+                          aria-label={`Delete ${attachment.name}`}
                         >
                           <i className="fa-solid fa-xmark" />
                         </button>
