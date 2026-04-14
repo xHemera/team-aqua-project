@@ -52,7 +52,6 @@ export default function ProfileViewerModal({
   const [showNotification, setShowNotification] = useState(true);
   const [notification, setNotification] = useState<string | null>(null);
   const [notifSender, setNotifSender] = useState<string | null>(null);
-  const [openRequest, setOpenRequest] = useState(false);
   const [openRemove, setOpenRemove] = useState(false);
 
   useEffect(() => {
@@ -203,7 +202,6 @@ export default function ProfileViewerModal({
     });
     setFriend(true);
     setRequest(false);
-    setOpenRequest(false)
     onClose();
   }
 
@@ -324,24 +322,6 @@ export default function ProfileViewerModal({
               </div>
             </div>
 
-            <Validate
-              open={request}
-              title={"Do you accept this user's friend request ?"}
-              onYes={() => {
-                addFriend();
-              }}
-              onNo={() => refuseFriendship()}
-            />
-
-            <Validate
-              open={hasBlocked}
-              title={"You have blocked this user, do you want to unblock them ?"}
-              onYes={() => {
-                blockUser();
-              }}
-              onNo={() => (onClose)}
-            />
-
             <Button type="button" onClick={onClose} variant="ghost" size="sm" className="h-9 w-9 rounded-xl p-0">
               X
             </Button>
@@ -360,27 +340,16 @@ export default function ProfileViewerModal({
               <i className="fa-regular fa-paper-plane text-lg" />
             </IconButton>}
 
-            {!isBlocked && <IconButton
+            {!isBlocked && !hasBlocked && <IconButton
               type="button"
               size="lg"
               title={friend ? "Already friends" : "Add friend"}
               aria-label={friend ? "Already friends" : "Add friend"}
               className={friend ? "border-emerald-500/70 bg-emerald-900/20 text-emerald-200" : undefined}
-              onClick={() => !friend ? setOpenRequest(true) : setOpenRemove(true)}
+              onClick={() => !friend ? sendFriendRequest() : setOpenRemove(true)}
             >
               <i className="fa-solid fa-user-plus text-lg" />
             </IconButton>}
-
-            <Validate
-              open={openRequest}
-              title={"Do you want to be friend with this user ?"}
-              onYes={() => {
-                if (!friend) {
-                  sendFriendRequest();
-                }
-              }}
-              onNo={() => {setOpenRequest(false); onClose;}}
-            />
 
             <Validate
               open={openRemove}
@@ -396,12 +365,12 @@ export default function ProfileViewerModal({
             <IconButton
               type="button"
               size="lg"
-              title="Bloquer"
-              aria-label="Bloquer"
-              className="border-red-500/70 bg-red-900/20 text-red-200 hover:bg-red-900/35"
+              title={hasBlocked ? "Unblock user" : "Block user"}
+              aria-label={hasBlocked ? "Unblock user" : "Block user"}
+              className={hasBlocked ? "border-emerald-500/70 bg-emerald-900/20 text-emerald-200 hover:bg-emerald-900/35" : "border-red-500/70 bg-red-900/20 text-red-200 hover:bg-red-900/35"}
               onClick={() => blockUser()}
             >
-              <i className="fa-solid fa-ban text-lg" />
+              <i className={`fa-solid ${hasBlocked ? "fa-circle-check" : "fa-ban"} text-lg`} />
             </IconButton>
 
             {friend && <IconButton
