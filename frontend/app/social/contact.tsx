@@ -88,19 +88,21 @@ export async function addContact(currentUser: string, addUser: string)
         where: { name: addUser }
     })
 
+	if (!user1 || !user2) return;
+
     const inbox = await prisma.inbox.create({
-        data: {user: { connect: { id: user1!.id } }}
+        data: {user: { connect: { id: user1.id } }}
     })
-    const inboxUser1 = await prisma.inbox_users.create({
+    await prisma.inbox_users.create({
         data: {
-            user_id: user1!.id,
+            user_id: user1.id,
             inbox_id: inbox.id,
             unread_messages: 0
         }
     })
-    const inboxUser2 = await prisma.inbox_users.create({
+    await prisma.inbox_users.create({
         data: {
-            user_id: user2!.id,
+            user_id: user2.id,
             inbox_id: inbox.id,
             unread_messages: 0
         }
@@ -117,21 +119,23 @@ export async function alreadyAdded(currentUser: string, addUser: string)
     const user2 = await prisma.user.findFirst({
         where: { name: addUser }
     })
-    const inboxes = await prisma.inbox.findMany({
-        select: { inboxUser: { select: { user_id: true } } }
-    });
 
-	if (inboxes.length === 0) return true;
+	if (!user1 || !user2)
+		throw new Error("User not found");
 
-    for (const inbox of inboxes)
-    {
-        const ids = inbox.inboxUser.map(inboxUser => inboxUser.user_id);
-
-		if (ids.includes(user1!.id) && ids.includes(user2!.id))
-		{
-			return false;
+	const inbox = await prisma.inbox.findFirst({
+		where: {
+			inboxUser: {
+				some: { user_id: user1.id }
+			},
+			AND: { 
+				inboxUser: {
+					some: { user_id: user2.id }
+				}
+			}
 		}
-    };
+	})
+	if (inbox) return false;
 	return true;
 }
 
@@ -154,7 +158,7 @@ export async function getAvatar (userName: string)
 {
     const user = await prisma.user.findFirst({
         where: { name: userName},
-        include: {
+        select: {
             avatar: true
         }
     })
@@ -166,59 +170,45 @@ export async function addMsg(msg: string, sender: string, receiver: string)
 {
     if (!sender || !receiver) return;
     const user1 = await prisma.user.findFirst({
-        where: { name: sender }
+        where: { name: sender },
+		select: {id: true}
     })
     const user2 = await prisma.user.findFirst({
-        where: { name: receiver }
+        where: { name: receiver },
+		select: {id: true}
     })
-    const inboxes = await prisma.inbox.findMany({
-        include: { inboxUser: true, messages:true }
-    });
 
     if (!user1 || !user2) return;
 
-	if (inboxes.length === 0) return;
-
-    for (const inbox of inboxes)
-    {
-        const ids = inbox.inboxUser.map(inboxUser => inboxUser.user_id);
-
-		if (ids.includes(user1.id) && ids.includes(user2.id))
-		{
-			const messages = await prisma.messages.create({
-                data: {
-                    message: msg,
-                    user: {
-                        connect: { id: user1.id }
-                    },
-                    inbox: {
-                        connect: { id: inbox.id }
-                    }
-                }
-            });
-            const up_inbox = await prisma.inbox.update({
-                where: { id: inbox.id },
-                data: {
-                    last_message: msg,
-                    last_sent_user_id: user1.id,
-                },
-                include: {
-                    messages: true,
-					inboxUser: true
-                }
-            });
-            up_inbox.messages.push(messages);
-			up_inbox.inboxUser.map(async (iU) => {
-                if (iU.user_id == user2.id)
-                {
-                    const new_iU = await prisma.inbox_users.update({
-                        where: { id: iU.id },
-                        data: { unread_messages: { increment: 1} }
-                    })
-                }
-			})
+	const inbox = await prisma.inbox.findFirst({
+		where: {
+			inboxUser: {
+				some: { user_id: user1.id }
+			},
+			AND: { 
+				inboxUser: {
+					some: { user_id: user2.id }
+				}
+			}
 		}
-    }
+	})
+
+	if (!inbox)
+		throw Error("Not discussion found or created");
+
+	const messages = await prisma.messages.create({
+		data: {
+			message: msg,
+			user: {
+				connect: { id: user1.id }
+			},
+			inbox: {
+				connect: { id: inbox.id }
+			}
+		}
+	});
+	if (!messages)
+		throw Error("Could not create the message");
 }
 
 //return all messages from a conversation
@@ -227,42 +217,28 @@ export async function getMsg(user: string, otherUser: string)
 	if (!user || !otherUser) return;
     const user1 = await prisma.user.findFirst({
         where: { name: user },
-        include: { inboxUser: true }
     })
     const user2 = await prisma.user.findFirst({
         where: { name: otherUser },
-        include: { inboxUser: true }
     })
-    const inboxes = await prisma.inbox.findMany({
-        include: { inboxUser: true, messages:true }
-    });
 
     if (!user1 || !user2) return;
 
-	if (inboxes.length === 0) return;
-
-    for (const inbox of inboxes)
-    {
-        const ids = inbox.inboxUser.map(inboxUser => inboxUser.user_id);
-
-		if (ids.includes(user1.id) && ids.includes(user2.id))
-		{
-			const messages = await prisma.messages.findMany({
-                where: { inbox_id: inbox.id }
-            });
-            for (const iU of user1.inboxUser)
-            {
-                if (iU.inbox_id == inbox.id)
-                {
-                    const new_iU = await prisma.inbox_users.update({
-                        where: { id: iU.id },
-                        data: { unread_messages: 0 }
-                    })
-                }
-            }
-			return messages;
-		}
-    }
+    const msgs = await prisma.inbox.findFirst({
+		where: {
+			inboxUser: {
+				some: {user_id: user1.id}
+			},
+			AND: {
+				inboxUser: {
+					some: {user_id: user2.id}
+				}
+			}
+		},
+		select: {messages: true}
+	})
+	if (!msgs) return;
+	return msgs.messages;
 }
 
 //mais c'est quoi cette fonction de merde
@@ -272,9 +248,9 @@ export async function getUnread(currentUser: string)
 
 	const cUser = await prisma.user.findFirst({
 		where: { name: currentUser },
-        include: {
+        select: {
             inbox: {
-				include: { inboxUser: true }
+				select: { inboxUser: true }
 			},
         },
     });
@@ -301,20 +277,24 @@ export async function getFriend(currentUser: string, otherUser: string)
 
     const cUser = await prisma.user.findFirst({
         where: {name: currentUser},
-        include: {friends: true}
+        select: {id: true}
     });
     const oUser = await prisma.user.findFirst({
         where: {name: otherUser},
-        include: {friends: true}
+        select: {id: true}
     });
     if (!cUser || !oUser) return;
 
-    for (const friend of cUser.friends)
-    {
-        if (friend.friendId === oUser.id && friend.userId === cUser.id)
-            return friend;
-    }
-    return null;
+    const friend = await prisma.friends.findUnique({
+		where: {
+			userId_friendId: {
+				userId: cUser.id,
+				friendId: oUser.id
+			},
+		}
+	});
+    if (!friend) return null;
+	return friend;
 }
 
 //return your friend type from the other user side
@@ -324,20 +304,24 @@ export async function getFriendFromOther(currentUser: string, otherUser: string)
 
     const cUser = await prisma.user.findFirst({
         where: {name: currentUser},
-        include: {friends: true}
+        select: {id: true}
     });
     const oUser = await prisma.user.findFirst({
         where: {name: otherUser},
-        include: {friends: true}
+        select: {id: true}
     });
     if (!cUser || !oUser) return;
 
-    for (const friend of oUser.friends)
-    {
-        if (friend.friendId === cUser.id && friend.userId === oUser.id)
-            return friend;
-    }
-    return null;
+    const friend = await prisma.friends.findUnique({
+		where: {
+			userId_friendId: {
+				userId: oUser.id,
+				friendId: cUser.id
+			},
+		}
+	});
+    if (!friend) return null;
+	return friend;
 }
 
 //adds a friend relation for each user
@@ -347,11 +331,11 @@ export async function addFriend(currentUser: string, otherUser: string)
 
     const cUser = await prisma.user.findFirst({
         where: {name: currentUser},
-        include: {friends: true}
+        select: {id: true}
     });
     const oUser = await prisma.user.findFirst({
         where: {name: otherUser},
-        include: {friends: true}
+        select: {id: true}
     });
     if (!cUser || !oUser) return;
 
@@ -401,71 +385,46 @@ export async function acceptFriendRequest(currentUser: string, otherUser: string
 
     const cUser = await prisma.user.findFirst({
         where: {name: currentUser},
-        include: {friends: true}
+        select: {id: true}
     });
     const oUser = await prisma.user.findFirst({
         where: {name: otherUser},
-        include: {friends: true}
+        select: {id: true}
     });
     if (!cUser || !oUser) return;
 
-    for (const friend of cUser.friends)
-    {
-        if (friend.friendId == oUser.id)
-        {
-            const newFriend = await prisma.friends.update({
-                where: { userId_friendId: { userId: cUser.id, friendId: oUser.id } },
-                data: { request_sent: false}
-            });
-        }
-    }
-    for (const friend of oUser.friends)
-    {
-        if (friend.friendId == cUser.id)
-        {
-            const newFriend = await prisma.friends.update({
-                where: { userId_friendId: { userId: cUser.id, friendId: oUser.id } },
-                data: { request_sent: false}
-            });
-        }
-    }
+    
+	await prisma.friends.update({
+		where: { userId_friendId: { userId: cUser.id, friendId: oUser.id } },
+		data: { request_sent: false}
+	});
+	await prisma.friends.update({
+		where: { userId_friendId: { userId: cUser.id, friendId: oUser.id } },
+		data: { request_sent: false}
+	});
 }
 
 //refuse and deletes each other friend relation
 export async function denyFriendRequest(currentUser: string, otherUser: string)
 {
-    {
     if (!currentUser || !otherUser) return;
 
     const cUser = await prisma.user.findFirst({
         where: {name: currentUser},
-        include: {friends: true}
+        select: {id: true}
     });
     const oUser = await prisma.user.findFirst({
         where: {name: otherUser},
-        include: {friends: true}
+        select: {id: true}
     });
     if (!cUser || !oUser) return;
 
-    for (const friend of cUser.friends)
-    {
-        if (friend.friendId == oUser.id)
-        {
-            await prisma.friends.delete({
-                where: { userId_friendId: { userId: cUser.id, friendId: oUser.id } }
-            });
-        }
-    }
-    for (const friend of oUser.friends)
-    {
-        if (friend.friendId == cUser.id)
-        {
-            await prisma.friends.delete({
-                where: { userId_friendId: { userId: oUser.id, friendId: cUser.id } }
-            });
-        }
-    }
-}
+    await prisma.friends.delete({
+         where: { userId_friendId: { userId: cUser.id, friendId: oUser.id } }
+		});
+    await prisma.friends.delete({
+         where: { userId_friendId: { userId: oUser.id, friendId: cUser.id } }
+    });
 }
 
 //adds the other user to the blocked list and remove from each their friend relation
@@ -475,11 +434,11 @@ export async function blockFriend(currentUser: string, otherUser: string)
 
     const cUser = await prisma.user.findFirst({
         where: {name: currentUser},
-        include: {friends: true}
+        select: {id: true}
     });
     const oUser = await prisma.user.findFirst({
         where: {name: otherUser},
-        include: {friends: true}
+        select: {id: true}
     });
     if (!cUser || !oUser) return;
 
@@ -508,11 +467,11 @@ export async function blockUser(currentUser: string, otherUser: string)
 
     const cUser = await prisma.user.findFirst({
         where: {name: currentUser},
-        include: {friends: true}
+        select: {id: true}
     });
     const oUser = await prisma.user.findFirst({
         where: {name: otherUser},
-        include: {friends: true}
+        select: {id: true}
     });
     if (!cUser || !oUser) return;
 
@@ -533,14 +492,13 @@ export async function unblockUser(currentUser: string, otherUser: string)
 
     const cUser = await prisma.user.findFirst({
         where: {name: currentUser},
-        include: {friends: true}
+        select: {id: true, blockedUsers: true}
     });
     const oUser = await prisma.user.findFirst({
         where: {name: otherUser},
-        include: {friends: true}
+        select: {id: true}
     });
     if (!cUser || !oUser) return;
-
 
     await prisma.user.update({
         where: {id: cUser.id},

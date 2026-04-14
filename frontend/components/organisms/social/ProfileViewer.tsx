@@ -9,67 +9,17 @@ import { socket } from "../../../socket"
 import { contact }  from "../../../app/social/index"
 import NotificationToast from "@/components/organisms/home/NotificationToast";
 import Validate from "../Validate";
-import { denyFriendRequest } from "@/app/social/contact";
-
-type Friends = {
-  friendId:     string;
-  userId:       string;
-  request_sent: boolean;
-  created_at:   Date;
-}
-
-type Messages = {
-  id:         string;
-  user_id:    string;
-  inbox_id:   string;
-  message:    string | null;
-  createdAt:  Date;
-}
-
-type Inbox_users = {
-	id:								string;
-	inbox_id:					string;
-	user_id:					string;
-	unread_messages:	number | null;
-};
-
-type Inbox = {
-  id: 								string;
-  last_message: 			string | null;
-  last_sent_user_id:  string | null;
-  createdAt:  				Date;
-  inboxUser:  				Inbox_users[];
-	messages:					  Messages[];
-};
 
 type Avatar = {
   url:					string;
-  id:						string;
-  name:					string;
-  type:					string;
-  accent: 			string;
-  accentHover:	string;
-	users?:				any;
 };
 
 type User = {
   id:            			string;
   name:          			string;
-  email:         			string;
-  emailVerified:			Boolean;
   badges:             string[];
   blockedUsers:       string[];
-  image:        			string | null;
-  profileBackground:	string | null;
-  profileBanner: 			string | null;
-  createdAt:    			Date;
-  updatedAt:    			Date;
-  avatarId:      			string | null;
   avatar:        			Avatar | null;
-  friends:       	    Friends[];
-  inboxUser:     			Inbox_users[];
-  messages:      	    Messages[];
-  inbox:         			Inbox[];
 };
 
 type ProfileViewerModalProps = {
@@ -318,7 +268,7 @@ export default function ProfileViewerModal({
   const displayedUser = inputUser;
 
   const displayedPseudo = displayedUser?.name ?? pseudo;
-  const displayedAvatarUrl = displayedUser?.avatar?.url ?? displayedUser?.image ?? avatarUrl;
+  const displayedAvatarUrl = displayedUser?.avatar?.url ?? avatarUrl;
   const displayedBadges = displayedUser?.badges ?? badges;
 
   if (!open) {

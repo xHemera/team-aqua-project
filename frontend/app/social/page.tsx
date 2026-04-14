@@ -56,16 +56,8 @@ type Avatar = {
 type User = {
   id:            			string;
   name:          			string;
-  email:         			string;
-  emailVerified:			Boolean;
   badges:             string[];
   blockedUsers:       string[];
-  image:        			string | null;
-  profileBackground:	string | null;
-  profileBanner: 			string | null;
-  createdAt:    			Date;
-  updatedAt:    			Date;
-  avatarId:      			string | null;
   avatar:        			Avatar | null;
   friends:       	    Friends[];
   inboxUser:     			Inbox_users[];
@@ -108,6 +100,7 @@ const buildAttachmentFromFile = (file: File): Attachment => ({
 });
 
 export default function SocialPage() {
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
 
@@ -157,7 +150,7 @@ export default function SocialPage() {
         setUserPseudo(data.user.name);
     };
     getUserData();
-  });
+  }, []);
 
   //fetch users and their inboxes
   useEffect(() => {
@@ -643,42 +636,49 @@ export default function SocialPage() {
                 {
                   users.map((user) => {
                   const isActive = selectedUser === user.name;
+                  if (user.name === userPseudo)
+                    return null;
+                  const hasConversation = inboxes.some(inbox => {
+                    const ids = inbox.inboxUser.map(iu => iu.user_id);
+                    return ids.includes(user.id) && ids.includes(currentUser.id);
+                  });
+                  if (!hasConversation) return null;
                   if (conversationUsers.length === 0 || user.name == currentUser.name) return null;
-                return (
-                  <button
-                    key={user.name}
-                    onClick={async () => {
-                      const next = await contact.selectUser(user.name);
-                      if (next)
-                        setSelectedUser(next)
+                  return (
+                    <button
+                      key={user.name}
+                      onClick={async () => {
+                        const next = await contact.selectUser(user.name);
+                        if (next)
+                          setSelectedUser(next)
+                        }
                       }
-                    }
-                    className={`relative flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 transition-colors ${
-                      isActive
-                        ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)] text-white"
-                        : "border-[#3c3650] bg-[#242033] text-gray-200 hover:bg-[#302a45]"
-                    }`}
-                  >
-                    <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-visible">
-                      <Image
-                        src={user.avatar?.url ?? DEFAULT_PROFILE_ICON.url}
-                        alt={user.name}
-                        width={32}
-                        height={32}
-                        className="h-8 w-8 rounded-lg border border-[#3c3650] object-cover"
-                        unoptimized
-                      />
-                    </div>
-                    <span className="shrink-0 whitespace-nowrap text-sm font-semibold">{user.name}</span>
-                    {
-                      unreadMap[user.id] > 0 && (
-                      <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
-                        {unreadMap[user.id]}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+                      className={`relative flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 transition-colors ${
+                        isActive
+                          ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)] text-white"
+                          : "border-[#3c3650] bg-[#242033] text-gray-200 hover:bg-[#302a45]"
+                      }`}
+                    >
+                      <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-visible">
+                        <Image
+                          src={user.avatar?.url ?? DEFAULT_PROFILE_ICON.url}
+                          alt={user.name}
+                          width={32}
+                          height={32}
+                          className="h-8 w-8 rounded-lg border border-[#3c3650] object-cover"
+                          unoptimized
+                        />
+                      </div>
+                      <span className="shrink-0 whitespace-nowrap text-sm font-semibold">{user.name}</span>
+                      {
+                        unreadMap[user.id] > 0 && (
+                        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
+                          {unreadMap[user.id]}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
