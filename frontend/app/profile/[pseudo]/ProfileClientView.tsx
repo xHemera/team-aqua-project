@@ -343,10 +343,10 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
               onClick={openCustomizationPanel}
               variant="ghost"
               className="inline-flex h-11 items-center gap-2 rounded-xl border border-[color:var(--accent-border)] bg-[#1f1b2d]/90 px-3 text-sm font-medium text-white shadow-lg transition-colors hover:bg-[#2b2540]"
-              aria-label="Personnaliser le profil"
+              aria-label="Customize Profile"
             >
               <i className="fa-solid fa-sliders"></i>
-              <span className="hidden sm:inline">Personnaliser</span>
+              <span className="hidden sm:inline">Customize Profile</span>
             </Button>
           )}
 
@@ -356,7 +356,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
               onClick={handleLogout}
               variant="ghost"
               className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-400/80 bg-red-500/90 text-white shadow-lg transition-colors hover:bg-red-500"
-              aria-label="Déconnexion"
+              aria-label="Logout"
             >
               <i className="fa-solid fa-right-from-bracket"></i>
             </IconButton>
@@ -406,11 +406,11 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
 
             <div className="flex min-h-0 flex-1 flex-col">
               <div className="mb-3 shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-[#312b42] pb-3">
-                <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-gray-300">Historique de partie</h2>
+                <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-gray-300">Match History</h2>
                 <div className="text-sm text-gray-400">
                   <span>Total : {totalMatches}</span>
-                  <span className="ml-4">Victoires : {totalWins}</span>
-                  <span className="ml-4 hidden sm:inline">Défaites : {totalLosses}</span>
+                  <span className="ml-4">Wins : {totalWins}</span>
+                  <span className="ml-4 hidden sm:inline">Losses : {totalLosses}</span>
                 </div>
               </div>
 
@@ -485,7 +485,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white">Personnalisation du profil</h3>
+              <h3 className="text-lg font-semibold text-white">Customize Profile</h3>
               <IconButton
                 type="button"
                 onClick={() => setShowCustomizationPanel(false)}
@@ -499,7 +499,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
 
             <div className="space-y-4">
               <div>
-                <p className="mb-2 text-sm font-medium text-gray-200">Photo de profil</p>
+                <p className="mb-2 text-sm font-medium text-gray-200">Profile Picture</p>
                 <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
                   {avatars.map((av) => (
                     <Button
@@ -528,7 +528,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-200">Fond d&apos;écran du site</label>
+                <label className="mb-1 block text-sm font-medium text-gray-200">Site Background</label>
                 <div className="flex gap-2">
                   <Input
                     type="url"
@@ -555,13 +555,13 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                     className="h-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-200 whitespace-nowrap"
                   >
                     <i className="fa-solid fa-upload text-xs" />
-                    Fichier
+                    File
                   </Button>
                 </div>
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-200">Bannière de profil</label>
+                <label className="mb-1 block text-sm font-medium text-gray-200">Profile Banner</label>
                 <div className="flex gap-2">
                   <Input
                     type="url"
@@ -588,7 +588,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                     className="h-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-200 whitespace-nowrap"
                   >
                     <i className="fa-solid fa-upload text-xs" />
-                    Fichier
+                    File
                   </Button>
                 </div>
               </div>
@@ -600,14 +600,14 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                   variant="ghost"
                   className="h-auto rounded-lg px-4 py-2 text-sm text-gray-200"
                 >
-                  Annuler
+                  Cancel
                 </Button>
                 <Button
                   type="button"
                   onClick={handleSaveCustomization}
                   className="h-auto rounded-lg px-4 py-2 text-sm font-semibold text-white"
                 >
-                  Enregistrer
+                  Save
                 </Button>
               </div>
             </div>

@@ -403,8 +403,8 @@ export default function ProfileViewerModal({
               type="button"
               variant="secondary"
               size="lg"
-              title="Envoyer un message"
-              aria-label="Envoyer un message"
+              title="Send message"
+              aria-label="Send message"
               onClick={onClose}
             >
               <i className="fa-regular fa-paper-plane text-lg" />
@@ -413,8 +413,8 @@ export default function ProfileViewerModal({
             {!isBlocked && <IconButton
               type="button"
               size="lg"
-              title={friend ? "Deja ami" : "Ajouter en ami"}
-              aria-label={friend ? "Deja ami" : "Ajouter en ami"}
+              title={friend ? "Already friends" : "Add friend"}
+              aria-label={friend ? "Already friends" : "Add friend"}
               className={friend ? "border-emerald-500/70 bg-emerald-900/20 text-emerald-200" : undefined}
               onClick={() => !friend ? setOpenRequest(true) : setOpenRemove(true)}
             >
