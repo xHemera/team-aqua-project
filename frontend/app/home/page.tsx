@@ -24,7 +24,7 @@ type DeckData = {
 // Page principale: navigation rapide, lancement de partie et sélection de deck
 export default function Home() {
   const router = useRouter();
-  const [showPopup, setShowPopup] = useState(false);
+  const [showMatchmaking, setShowMatchmaking] = useState(false);
   const [showNotification, setShowNotification] = useState(true);
   const [notification, setNotification] = useState<string | null>(null);
   const [notifSender, setNotifSender] = useState<string | null>(null);
@@ -96,7 +96,6 @@ export default function Home() {
     void getUserData();
   }, []);
 
-  
   //reconnect socket in case of a page refresh
   useEffect(() => {
       if (!userPseudo || socket.connected) return;
@@ -120,7 +119,7 @@ export default function Home() {
   useEffect(() => {
     const handleEscapeModal = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      setShowPopup(false);
+      setShowMatchmaking(false);
     };
 
     document.addEventListener("keydown", handleEscapeModal);
@@ -146,8 +145,10 @@ export default function Home() {
         <div className="grid w-full max-w-[88rem] grid-cols-1 items-center gap-8 px-2 lg:grid-cols-[1fr_auto_1fr]">
           <div className="hidden lg:block" />
 
+          {/* Lancement de partie + Selecteur de deck */}
           <div className="relative z-20 flex flex-col items-center justify-center gap-6">
-            <PlayCta onPlay={() => setShowPopup(true)} />
+            <PlayCta onPlay={() => setShowMatchmaking(true)} />
+            
             {availableDecks.length > 0 && (
               <DeckSelector
                 selectedDeck={selectedDeck}
@@ -156,9 +157,9 @@ export default function Home() {
                 onSelectDeck={setSelectedDeck}
               />
             )}
-
           </div>
 
+          {/* Profile info section */}
           <div className="relative z-20 flex flex-col items-center justify-center gap-4">
             <Image
               src={avatar}
@@ -169,19 +170,18 @@ export default function Home() {
               priority
               unoptimized
             />
-            {/* Usage atomique: Button remplace le CTA profil local pour mutualiser hover/focus/disabled. */}
             <Button
               type="button"
               onClick={handleProfileClick}
               className="h-auto rounded-lg border-2 px-8 py-3 text-lg font-bold shadow-lg transition-transform hover:scale-105"
             >
-              {userPseudo || "Pseudo"}
+              {userPseudo || "undefined"}
             </Button>
           </div>
         </div>
       </div>
 
-      <MatchmakingModal open={showPopup} onClose={() => setShowPopup(false)} />
+      <MatchmakingModal open={showMatchmaking} onClose={() => setShowMatchmaking(false)} />
     </AppPageShell>
   );
 }

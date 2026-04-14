@@ -9,10 +9,8 @@ import AppPageShell from "@/components/AppPageShell";
 import { DEFAULT_PROFILE_ICON, PROFILE_ICONS } from "@/lib/profile-icons";
 import { contact }  from "./index"
 import NotificationToast from "@/components/organisms/home/NotificationToast";
-
-const esper = PROFILE_ICONS.find((icon) => icon.type === "esper")?.url ?? DEFAULT_PROFILE_ICON.url;
-const dragon = PROFILE_ICONS.find((icon) => icon.type === "dragon")?.url ?? DEFAULT_PROFILE_ICON.url;
-const mizu = PROFILE_ICONS.find((icon) => icon.type === "mizu")?.url ?? DEFAULT_PROFILE_ICON.url;
+import ProfileViewerModal from "@/components/organisms/social/ProfileViewer";
+import Validate from "@/components/organisms/Validate";
 
 type Friends = {
   friendId:     string;
@@ -129,13 +127,27 @@ export default function SocialPage() {
   const [showNotification, setShowNotification] = useState(true);
   const [notification, setNotification] = useState<string | null>(null);
   const [notifSender, setNotifSender] = useState<string | null>(null);
+  const [showProfileViewer, setShowProfileViewer] = useState(false);
+  const [profileViewerUser, setProfileViewerUser] = useState<User | null>(null);
   const [request, setRequest] = useState(false);
   const [waiting, setWaiting] = useState(false);
   const [friend, setFriend] = useState(false);
-  const [isblocked, setIsBlocked] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
   const [hasBlocked, setHasBlocked] = useState(false);
 
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
+  const conversationUsers = useMemo(() => {
+    if (!currentUser) return [];
+
+    return users.filter((user) => {
+      if (user.name === userPseudo) return false;
+
+      return inboxes.some((inbox) => {
+        const ids = inbox.inboxUser.map((iu) => iu.user_id);
+        return ids.includes(user.id) && ids.includes(currentUser.id);
+      });
+    });
+  }, [users, inboxes, currentUser, userPseudo]);
 
   //fetch the current user pseudo
   useEffect(() => {
@@ -212,6 +224,7 @@ export default function SocialPage() {
       if (user == selectedUser)
       {
         setWaiting(false);
+        setRequest(false)
         setFriend(true);
       }
     });
@@ -219,13 +232,17 @@ export default function SocialPage() {
     //resets status live
     socket.on("refusing", async ({user, oUser}) => {
       if (user == selectedUser)
+      {
         setWaiting(false);
+        setFriend(false);
+      }
     });
 
     //sets blocked live
     socket.on("blocking", async ({user, oUser}) => {
       if (user == selectedUser)
         setIsBlocked(true);
+        setFriend(false);
     });
 
     //resets status live
@@ -270,20 +287,21 @@ export default function SocialPage() {
       return;
     }
     isWaiting();
-  }, [currentUser])
+  }, [currentUser, selectedUser])
 
   //sets friend status
   useEffect(() => {
     async function isFriend()
     {
       if (!currentUser) return;
-      const friend = await contact.getFriendFromOther(currentUser.name, selectedUser);
-      if (!friend) return;
-      if (friend.request_sent == false) setFriend(true);
+      const myFriend = await contact.getFriend(currentUser.name, selectedUser);
+      const theirFriend = await contact.getFriendFromOther(currentUser.name, selectedUser);
+      if (!myFriend || !theirFriend) return;
+      if (myFriend.request_sent == false && theirFriend.request_sent == false) setFriend(true);
       return;
     }
     isFriend();
-  }, [currentUser])
+  }, [currentUser, selectedUser])
 
   //sets request status
   useEffect(() => {
@@ -292,11 +310,15 @@ export default function SocialPage() {
       if (!currentUser) return;
       const friend = await contact.getFriend(currentUser.name, selectedUser);
       if (!friend) return;
-      if (friend.request_sent == true) setRequest(true);
+      if (friend.request_sent == true) 
+      {
+        console.log("here");
+        setRequest(true);
+      }
       return;
     }
     isRequesting();
-  }, [currentUser])
+  }, [currentUser, selectedUser])
 
   //sets blocked status
   useEffect(() => {
@@ -314,7 +336,7 @@ export default function SocialPage() {
       return;
     }
     isBlockedByMe();
-  }, [currentUser])
+  }, [currentUser, selectedUser])
 
   //sets blocked status from user
   useEffect(() => {
@@ -332,7 +354,7 @@ export default function SocialPage() {
       return;
     }
     amIBlocked();
-  }, [currentUser])
+  }, [currentUser, selectedUser])
 
 	useEffect(() => {
 		return () => {
@@ -353,9 +375,7 @@ export default function SocialPage() {
 
 	//Loading screen while currentUser is not set
 	if (!currentUser)
-	{
 		return <div>Loading...</div>;
-	}
 
   //fetch the number of unreaded messages (BROKEN)
   async function fetchUnread()
@@ -468,7 +488,6 @@ export default function SocialPage() {
     }
   };
 
-  //
   async function sendFriendRequest()
   {
     if (!currentUser || !selectedUser) return;
@@ -501,32 +520,6 @@ export default function SocialPage() {
       oUser: selectedUser
     });
     setRequest(false);
-  }
-
-  async function blockUser()
-  {
-    if (!currentUser || !selectedUser) return;
-    const oUser = await contact.getFriend(currentUser.name, selectedUser);
-    if (oUser)
-      contact.blockFriend(currentUser.name, selectedUser);
-    else
-      contact.blockUser(currentUser.name, selectedUser);
-    socket.emit("friend_or_user_blocked", {
-      user: currentUser.name,
-      oUser: selectedUser
-    });
-    setHasBlocked(true);
-  }
-
-  async function unblockUser()
-  {
-    if (!currentUser || !selectedUser) return;
-    contact.unblockUser(currentUser.name, selectedUser);
-    socket.emit("user_unblocked", {
-      user: currentUser.name,
-      oUser: selectedUser
-    });
-    setHasBlocked(false);
   }
 
   const handlePickAttachments = () => {
@@ -576,24 +569,16 @@ export default function SocialPage() {
   };
 
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
+    if (!isBlocked && !hasBlocked && event.key === "Enter") {
       event.preventDefault();
       sendMessage();
     }
   };
 
-  //bouton pour defier un ami (a completer avec la vrai fonctionnalite corentin)
-  const sendChallenge = async () => {
-    if (!selectedUser || !currentUser) return;
-
-    try {
-      socket.emit("challenge_sent", {
-        sender: currentUser.name,
-        receiver: selectedUser,
-      });
-    } catch (error) {
-      console.error("Erreur lors de l'envoi du défi:", error);
-    }
+  const openProfileViewerForUserName = async (name: string) => {
+    const targetUser = await contact.getUser(name) ?? null;
+    setProfileViewerUser(targetUser);
+    setShowProfileViewer(true);
   };
 
   return (
@@ -658,13 +643,7 @@ export default function SocialPage() {
                 {
                   users.map((user) => {
                   const isActive = selectedUser === user.name;
-                  if (user.name === userPseudo)
-                    return null;
-                  const hasConversation = inboxes.some(inbox => {
-                    const ids = inbox.inboxUser.map(iu => iu.user_id);
-                    return ids.includes(user.id) && ids.includes(currentUser.id);
-                  });
-                  if (!hasConversation) return null;
+                  if (conversationUsers.length === 0 || user.name == currentUser.name) return null;
                 return (
                   <button
                     key={user.name}
@@ -705,19 +684,6 @@ export default function SocialPage() {
 
             {/* Boutons à droite */}
             <div className="flex items-center gap-2">
-              {selectedUser && (
-                <button
-                  onClick={() => {
-                    // TODO: implémenter la logique de blocage
-                    console.log(`Blocage de ${selectedUser}`);
-                  }}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-red-500/50 bg-red-500/10 text-red-400 transition-colors hover:bg-red-500/20"
-                  aria-label="Bloquer l'utilisateur"
-                  title="Bloquer l'utilisateur"
-                >
-                  <i className="fa-solid fa-ban"></i>
-                </button>
-              )}
               <button
                 onClick={openAddContactModal}
                 disabled={isInviting}
@@ -731,9 +697,22 @@ export default function SocialPage() {
           <section className="flex h-full min-h-0 flex-col">
 
             <div ref={messageListRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
-              {currentMessages.map((msg) => (
+              {conversationUsers.length === 0 ? (
+                <div className="flex h-full min-h-[16rem] items-center justify-center text-base font-semibold text-gray-400">
+                  Aucune conversation
+                </div>
+              ) : (
+                currentMessages.map((msg) => (
                 <div key={msg.id} className={`flex flex-col ${msg.user_id === currentUser.id ? "items-end" : "items-start"}`}>
-                  <div className="mb-1 flex items-center gap-2 text-xs text-gray-400">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (msg.user_id !== currentUser.id) {
+                        openProfileViewerForUserName(selectedUser);
+                      }
+                    }}
+                    className="mb-1 flex items-center gap-2 text-xs text-gray-400"
+                  >
                     <Image
                       src={
                         msg.user_id === currentUser.id
@@ -750,7 +729,7 @@ export default function SocialPage() {
                       {msg.user_id === currentUser.id ? currentUser?.name : selectedUser}
                     </span>
                     <span className="opacity-75">{formatTime(msg.createdAt)}</span>
-                  </div>
+                  </button>
                   <article
                     className={`max-w-[44rem] rounded-2xl px-5 py-3 ${
                       msg.user_id === currentUser.id
@@ -797,10 +776,12 @@ export default function SocialPage() {
                     )} */}
                   </article>
                 </div>
-              ))}
+                ))
+              )}
             </div>
 
-            <footer className="bottom-0 sticky border-t border-[#3c3650] bg-[#15131d] p-4">
+
+            <footer className="sticky bottom-0 border-t border-[#3c3650] bg-[#15131d] p-4">
               {selectedUser && (<div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2 rounded-full border border-[#3c3650] bg-[#242033] px-2 py-2">
                   <input
@@ -812,15 +793,7 @@ export default function SocialPage() {
                     accept="image/*,.pdf,.txt,.doc,.docx"
                   />
 
-                  <button
-                    onClick={sendChallenge}
-                    className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)]"
-                    aria-label="Défier l'ami"
-                  >
-                    <i className="fa-solid fa-bolt" />
-                  </button>
-
-                  <button
+                <button
                     onClick={handlePickAttachments}
                     className="flex h-9 w-9 items-center justify-center rounded-full bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
                     aria-label="Ajouter des pièces jointes"
@@ -830,15 +803,19 @@ export default function SocialPage() {
 
                   <input
                     type="text"
-                    placeholder={`Envoyez un message à @${selectedUser}`}
+                    placeholder={isBlocked ? "You are blocked by this user" : `Send a message to @${selectedUser}`}
                     value={message}
                     onChange={(event) => setMessage(event.target.value)}
                     onKeyDown={handleInputKeyDown}
-                    className="flex-1 bg-transparent px-1 text-sm text-gray-200 outline-none placeholder:text-gray-500"
+                    className={`flex-1 bg-transparent px-1 text-sm outline-none ${
+                        isBlocked
+                          ? "text-gray-500 placeholder:text-gray-600 cursor-not-allowed"
+                          : "text-gray-200 placeholder:text-gray-500"
+                      }`}
                   />
 
                   <button
-                    onClick={sendMessage}
+                    onClick={() => !isBlocked && !hasBlocked && sendMessage}
                     disabled={!hasDraft}
                     className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
                     aria-label="Envoyer"
@@ -873,6 +850,13 @@ export default function SocialPage() {
           </section>
         </section>
       </div>
+
+      <ProfileViewerModal
+        open={showProfileViewer}
+        onClose={() => setShowProfileViewer(false)}
+        user={profileViewerUser}
+        currentUser={currentUser}
+      />
     </AppPageShell>
   );
 }

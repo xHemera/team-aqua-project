@@ -8,11 +8,12 @@ datasource db {
 }
 
 model Friends {
-  friendId      String      @id
+  friendId      String
   userId        String
   request_sent  Boolean
   created_at    DateTime    @default(now())
   user          User        @relation(fields: [userId], references: [id])
+  @@id([userId, friendId])
 }
 
 model Decks {

@@ -79,6 +79,10 @@ io.on("connect", (socket) => {
         friend
       });
     }
+    io.to(socket.id).emit("adding", {
+      user,
+      friend
+    });
   })
 
   socket.on("friend_denied", async ({user, friend}) => {

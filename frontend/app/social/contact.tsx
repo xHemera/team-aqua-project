@@ -355,22 +355,43 @@ export async function addFriend(currentUser: string, otherUser: string)
     });
     if (!cUser || !oUser) return;
 
-    const cFriend = await prisma.friends.create({
-        data: {
-            friendId: oUser.id,
+    const existing1 = await prisma.friends.findUnique({
+        where: {
+            userId_friendId: {
             userId: cUser.id,
-            request_sent: false
-        }
-    })
-    const oFriend = await prisma.friends.create({
-        data: {
-            friendId: cUser.id,
-            userId: oUser.id,
-            request_sent: true
-        }
+            friendId: oUser.id,
+            },
+        },
     });
-    cUser.friends.push(cFriend);
-    oUser.friends.push(oFriend);
+
+    const existing2 = await prisma.friends.findUnique({
+        where: {
+            userId_friendId: {
+            userId: oUser.id,
+            friendId: cUser.id,
+            },
+        },
+    });
+
+    if (!existing1) {
+        await prisma.friends.create({
+            data: {
+            userId: cUser.id,
+            friendId: oUser.id,
+            request_sent: false
+            },
+        });
+    }
+    if (!existing2)
+    {
+        await prisma.friends.create({
+            data: {
+                friendId: cUser.id,
+                userId: oUser.id,
+                request_sent: true
+            }
+        });
+    }
 }
 
 //change both requests to false, making them friends
@@ -393,7 +414,7 @@ export async function acceptFriendRequest(currentUser: string, otherUser: string
         if (friend.friendId == oUser.id)
         {
             const newFriend = await prisma.friends.update({
-                where: {friendId: oUser.id, userId: cUser.id},
+                where: { userId_friendId: { userId: cUser.id, friendId: oUser.id } },
                 data: { request_sent: false}
             });
         }
@@ -403,7 +424,7 @@ export async function acceptFriendRequest(currentUser: string, otherUser: string
         if (friend.friendId == cUser.id)
         {
             const newFriend = await prisma.friends.update({
-                where: {friendId: cUser.id, userId: oUser.id},
+                where: { userId_friendId: { userId: cUser.id, friendId: oUser.id } },
                 data: { request_sent: false}
             });
         }
@@ -430,8 +451,8 @@ export async function denyFriendRequest(currentUser: string, otherUser: string)
     {
         if (friend.friendId == oUser.id)
         {
-            const refused = await prisma.friends.delete({
-                where: {userId: cUser.id, friendId: oUser.id}
+            await prisma.friends.delete({
+                where: { userId_friendId: { userId: cUser.id, friendId: oUser.id } }
             });
         }
     }
@@ -439,8 +460,8 @@ export async function denyFriendRequest(currentUser: string, otherUser: string)
     {
         if (friend.friendId == cUser.id)
         {
-            const refused = await prisma.friends.delete({
-                where: {userId: oUser.id, friendId: cUser.id}
+            await prisma.friends.delete({
+                where: { userId_friendId: { userId: oUser.id, friendId: cUser.id } }
             });
         }
     }
@@ -462,25 +483,22 @@ export async function blockFriend(currentUser: string, otherUser: string)
     });
     if (!cUser || !oUser) return;
 
-    for (const friend of cUser.friends)
-    {
-        if (friend.friendId == oUser.id)
-        {
-            const blockUser = await prisma.friends.delete({
-                where: {userId: cUser.id, friendId: oUser.id}
-            });
+    await prisma.friends.deleteMany({
+        where: {
+            OR: [
+                { userId: cUser.id, friendId: oUser.id },
+                { userId: oUser.id, friendId: cUser.id },
+            ]
         }
-    }
-    for (const friend of oUser.friends)
-    {
-        if (friend.friendId == cUser.id)
-        {
-            const blockUser = await prisma.friends.delete({
-                where: {userId: oUser.id, friendId: cUser.id}
-            });
+    })
+    await prisma.user.update({
+        where: {id: cUser.id},
+        data: {
+            blockedUsers: {
+                push: oUser.id
+            }
         }
-    }
-    cUser.blockedUsers.push(oUser.id);
+    })
 }
 
 //adds the other user to the blocked list
@@ -498,7 +516,14 @@ export async function blockUser(currentUser: string, otherUser: string)
     });
     if (!cUser || !oUser) return;
 
-    cUser.blockedUsers.push(oUser.id);
+    await prisma.user.update({
+        where: {id: cUser.id},
+        data: {
+            blockedUsers: {
+                push: oUser.id
+            }
+        }
+    })
 }
 
 //remove the other user from the blocked list
@@ -516,8 +541,13 @@ export async function unblockUser(currentUser: string, otherUser: string)
     });
     if (!cUser || !oUser) return;
 
-    const index = cUser.blockedUsers.indexOf(oUser.id)
 
-    if (index !== -1)
-        cUser.blockedUsers.splice(index, 1);
+    await prisma.user.update({
+        where: {id: cUser.id},
+        data: {
+            blockedUsers: {
+                set: cUser.blockedUsers.filter(id => id !== oUser.id),
+            }
+        }
+    })
 }
