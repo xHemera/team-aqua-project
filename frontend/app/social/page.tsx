@@ -780,7 +780,6 @@ export default function SocialPage() {
               )}
             </div>
 
-
             <footer className="sticky bottom-0 border-t border-[#3c3650] bg-[#15131d] p-4">
               {selectedUser && (<div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2 rounded-full border border-[#3c3650] bg-[#242033] px-2 py-2">
