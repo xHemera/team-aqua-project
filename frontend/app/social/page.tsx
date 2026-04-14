@@ -18,6 +18,7 @@ type Messages = {
   inbox_id:   string;
   message:    string | null;
   createdAt:  Date;
+  images?:    Array<{ id: string; name: string; data: string }>;
 }
 
 type Avatar = {
@@ -89,11 +90,13 @@ export default function SocialPage() {
   const [showProfileViewer, setShowProfileViewer] = useState(false);
   const [profileViewerUser, setProfileViewerUser] = useState<User | null>(null);
   const [request, setRequest] = useState(false);
+  const [friendRequestSender, setFriendRequestSender] = useState<string | null>(null);
   const [waiting, setWaiting] = useState(false);
   const [friend, setFriend] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [hasBlocked, setHasBlocked] = useState(false);
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
+  const [messageImages, setMessageImages] = useState<Record<string, Array<{ id: string; name: string; data: string }>>>({});
 
   const MAX_MESSAGE_LENGTH = 500;
   const MAX_DISPLAY_LENGTH = 200;
@@ -155,12 +158,21 @@ export default function SocialPage() {
   //render messages sent by other users
   useEffect(() => {
     if (!userPseudo) return;
-    const handler = async ({ sender, receiver, msg }) => {
+    const handler = async ({ sender, receiver, msg, images, messageId }) => {
+
       if (selectedUser === sender)
       {
         const newMessages = await contact.getMsg(userPseudo, sender);
         if (!newMessages) return;
         setCurrentMessages(newMessages);
+        
+        // Store images for this message ID
+        if (images && images.length > 0 && messageId) {
+          setMessageImages((prev) => ({
+            ...prev,
+            [messageId]: images,
+          }));
+        }
       }
       else //set variables to send a notification
       {
@@ -174,8 +186,10 @@ export default function SocialPage() {
 
     //adds the request live
     socket.on("request", async ({user, oUser}) => {
-      if (user == selectedUser)
+      if (user == selectedUser) {
         setRequest(true);
+        setFriendRequestSender(user);
+      }
     });
 
     //adds match button live
@@ -241,8 +255,14 @@ export default function SocialPage() {
     {
       if (!currentUser) return;
       const friend = await contact.getFriendFromOther(currentUser.name, selectedUser);
-      if (!friend) return;
+      if (!friend) {
+        setWaiting(false);
+        setRequest(false);
+        setFriendRequestSender(null);
+        return;
+      }
       if (friend.request_sent == true) setWaiting(true);
+      else setWaiting(false);
       return;
     }
     isWaiting();
@@ -255,7 +275,10 @@ export default function SocialPage() {
       if (!currentUser) return;
       const myFriend = await contact.getFriend(currentUser.name, selectedUser);
       const theirFriend = await contact.getFriendFromOther(currentUser.name, selectedUser);
-      if (!myFriend || !theirFriend) return;
+      if (!myFriend || !theirFriend) {
+        setFriend(false);
+        return;
+      }
       if (myFriend.request_sent == false && theirFriend.request_sent == false) setFriend(true);
       return;
     }
@@ -268,11 +291,17 @@ export default function SocialPage() {
     {
       if (!currentUser) return;
       const friend = await contact.getFriend(currentUser.name, selectedUser);
-      if (!friend) return;
+      if (!friend) {
+        setRequest(false);
+        setFriendRequestSender(null);
+        return;
+      }
       if (friend.request_sent == true) 
       {
-        console.log("here");
         setRequest(true);
+      } else {
+        setRequest(false);
+        setFriendRequestSender(null);
       }
       return;
     }
@@ -447,7 +476,7 @@ export default function SocialPage() {
 
   async function sendFriendRequest()
   {
-    if (!currentUser || !selectedUser) return;
+    if (!currentUser || !selectedUser || hasBlocked) return;
     contact.addFriend(currentUser.name, selectedUser);
     socket.emit("friend_request", {
       user: currentUser.name,
@@ -464,8 +493,7 @@ export default function SocialPage() {
       user: currentUser.name,
       oUser: selectedUser
     });
-    setFriend(true);
-    setRequest(false);
+    setFriendRequestSender(null);
   }
 
   async function refuseFriendship()
@@ -477,6 +505,7 @@ export default function SocialPage() {
       oUser: selectedUser
     });
     setRequest(false);
+    setFriendRequestSender(null);
   }
 
   const handlePickAttachments = () => {
@@ -507,18 +536,58 @@ export default function SocialPage() {
   const sendMessage = async () => {
     const cleanMessage = message.trim();
     if (!cleanMessage && draftAttachments.length === 0) return;
+    if (isBlocked || hasBlocked) return;
 
     contact.addMsg(cleanMessage, currentUser.name, selectedUser);
 
     //fetch messages between users
 		const newMessages = await contact.getMsg(currentUser.name, selectedUser);
 		if (!newMessages) return;
+
+    // Prepare images from attachments
+    const images = await Promise.all(
+      draftAttachments
+        .filter(att => att.type.startsWith("image/"))
+        .map((attachment) => 
+          new Promise<{ id: string; name: string; data: string }>((resolve) => {
+            fetch(attachment.previewUrl)
+              .then(res => res.blob())
+              .then(blob => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                  resolve({
+                    id: attachment.id,
+                    name: attachment.name,
+                    data: reader.result as string,
+                  });
+                };
+                reader.readAsDataURL(blob);
+              })
+              .catch(() => resolve({ id: attachment.id, name: attachment.name, data: "" }));
+          })
+        )
+    );
+
+    // Get the last message ID
+    const lastMessageId = newMessages.length > 0 ? newMessages[newMessages.length - 1].id : null;
+
+    // Store images locally for the sent message
+    if (images.length > 0 && lastMessageId) {
+      setMessageImages((prev) => ({
+        ...prev,
+        [lastMessageId]: images,
+      }));
+    }
+
     setCurrentMessages(newMessages);
+
     //sends a signal to the other user's socket
     socket.emit("msg_sent", {
       sender: currentUser.name,
       receiver: selectedUser,
-      msg: cleanMessage
+      msg: cleanMessage,
+      images: images.length > 0 ? images : undefined,
+      messageId: lastMessageId,
     });
 
     setMessage("");
@@ -660,6 +729,35 @@ export default function SocialPage() {
           </header>
           <section className="flex h-full min-h-0 flex-col">
 
+            {request && friendRequestSender && (
+              <div className="border-b border-[#3c3650] bg-[#1b1826] p-4">
+                <div className="rounded-lg border border-[var(--accent-color)] bg-[#242033] p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-300">
+                        <span className="text-[var(--accent-color)]">{friendRequestSender}</span> wants to be your friend
+                      </p>
+                      <p className="mt-1 text-xs text-gray-400">Do you want to accept this request?</p>
+                    </div>
+                    <div className="ml-4 flex gap-2">
+                      <button
+                        onClick={addFriend}
+                        className="rounded-lg bg-emerald-500/90 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-600"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        onClick={refuseFriendship}
+                        className="rounded-lg bg-red-500/90 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-600"
+                      >
+                        Refuse
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div ref={messageListRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
               {!selectedUser ? (
                 <div className="flex h-full min-h-[16rem] items-center justify-center text-base font-semibold text-gray-400">
@@ -789,7 +887,7 @@ export default function SocialPage() {
 
                   <input
                     type="text"
-                    placeholder={isBlocked ? "You are blocked by this user" : `Send a message to @${selectedUser}`}
+                    placeholder={hasBlocked ? "You have blocked this user" : isBlocked ? "You are blocked by this user" : `Send a message to @${selectedUser}`}
                     value={message}
                     onChange={(event) => {
                       const newValue = event.target.value.slice(0, MAX_MESSAGE_LENGTH);
@@ -798,7 +896,7 @@ export default function SocialPage() {
                     onKeyDown={handleInputKeyDown}
                     maxLength={MAX_MESSAGE_LENGTH}
                     className={`flex-1 bg-transparent px-1 text-sm outline-none ${
-                        isBlocked
+                        isBlocked || hasBlocked
                           ? "text-gray-500 placeholder:text-gray-600 cursor-not-allowed"
                           : "text-gray-200 placeholder:text-gray-500"
                       }`}
