@@ -5,30 +5,14 @@ import prisma from "@/lib/prisma";
 export async function getUsers()
 {
     return await prisma.user.findMany({
-        include: {
-            friends: true,
-            inbox: {
-            include: {
-                messages: true,
-                inboxUser: true,
-            },
-            },
-            messages: true,
-            inboxUser: true,
-            avatar: true,
-        },
-        });
-}
-
-//get all inboxes and its relations
-export async function getInboxes()
-{
-    return await prisma.inbox.findMany({
-        include: {
-            inboxUser: true,
-            messages: true,
-         }
-    })
+        select: {
+			id: true,
+			name: true,
+			badges: true,
+			blockedUsers: true,
+			avatar: true
+		}
+    });
 }
 
 //get the current user and their relations
@@ -36,18 +20,13 @@ export async function getCurrentUser(current: string)
 {
     const user = await prisma.user.findFirst({
         where: { name: current },
-        include: {
-            inbox: {
-            include: {
-                messages: true,
-                inboxUser: true,
-            },
-            },
-            friends: true,
-            messages: true,
-            inboxUser: true,
-            avatar: true,
-        },
+        select: {
+			id: true,
+			name: true,
+			badges: true,
+			blockedUsers: true,
+			avatar: true
+		}
     });
     if (!user)
         throw new Error("User not found");
@@ -59,18 +38,13 @@ export async function getUser(name: string)
 {
     const user = await prisma.user.findFirst({
         where: { name: name },
-        include: {
-            inbox: {
-            include: {
-                messages: true,
-                inboxUser: true,
-            },
-            },
-            friends: true,
-            messages: true,
-            inboxUser: true,
-            avatar: true,
-        },
+        select: {
+			id: true,
+			name: true,
+			badges: true,
+			blockedUsers: true,
+			avatar: true
+		}
     });
     if (!user)
         throw new Error("User not found");
@@ -91,7 +65,7 @@ export async function addContact(currentUser: string, addUser: string)
 	if (!user1 || !user2) return;
 
     const inbox = await prisma.inbox.create({
-        data: {user: { connect: { id: user1.id } }}
+        data: { user: { connect: { id: user1.id } } }
     })
     await prisma.inbox_users.create({
         data: {

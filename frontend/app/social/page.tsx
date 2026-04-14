@@ -12,13 +12,6 @@ import NotificationToast from "@/components/organisms/home/NotificationToast";
 import ProfileViewerModal from "@/components/organisms/social/ProfileViewer";
 import Validate from "@/components/organisms/Validate";
 
-type Friends = {
-  friendId:     string;
-  userId:       string;
-  request_sent: boolean;
-  created_at:   Date;
-}
-
 type Messages = {
   id:         string;
   user_id:    string;
@@ -27,30 +20,8 @@ type Messages = {
   createdAt:  Date;
 }
 
-type Inbox_users = {
-	id:								string;
-	inbox_id:					string;
-	user_id:					string;
-	unread_messages:	number | null;
-};
-
-type Inbox = {
-  id: 								string;
-  last_message: 			string | null;
-  last_sent_user_id:  string | null;
-  createdAt:  				Date;
-  inboxUser:  				Inbox_users[];
-	messages:					  Messages[];
-};
-
 type Avatar = {
   url:					string;
-  id:						string;
-  name:					string;
-  type:					string;
-  accent: 			string;
-  accentHover:	string;
-	users?:				any;
 };
 
 type User = {
@@ -59,10 +30,6 @@ type User = {
   badges:             string[];
   blockedUsers:       string[];
   avatar:        			Avatar | null;
-  friends:       	    Friends[];
-  inboxUser:     			Inbox_users[];
-  messages:      	    Messages[];
-  inbox:         			Inbox[];
 };
 
 type Attachment = {
@@ -115,7 +82,6 @@ export default function SocialPage() {
   const [currentMessages, setCurrentMessages] = useState<Messages[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [inboxes, setInboxes] = useState<Inbox[]>([]);
 	const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
   const [showNotification, setShowNotification] = useState(true);
   const [notification, setNotification] = useState<string | null>(null);
@@ -145,19 +111,7 @@ export default function SocialPage() {
       return next;
     });
   };
-  const conversationUsers = useMemo(() => {
-    if (!currentUser) return [];
-
-    return users.filter((user) => {
-      if (user.name === userPseudo) return false;
-
-      return inboxes.some((inbox) => {
-        const ids = inbox.inboxUser.map((iu) => iu.user_id);
-        return ids.includes(user.id) && ids.includes(currentUser.id);
-      });
-    });
-  }, [users, inboxes, currentUser, userPseudo]);
-
+  
   //fetch the current user pseudo
   useEffect(() => {
     const getUserData = async () => {
@@ -172,12 +126,12 @@ export default function SocialPage() {
   useEffect(() => {
     async function fetchUsers() {
     if (!userPseudo) return;
-      const u = await contact.getUsers();
-      const cU = await contact.getCurrentUser(userPseudo);
-      const i = await contact.getInboxes();
-      setUsers(u);
-      setCurrentUser(cU);
-      setInboxes(i);
+      const [u, cU] = await Promise.all([
+      contact.getUsers(),
+      contact.getCurrentUser(userPseudo),
+    ]);
+    setCurrentUser(cU);
+    setUsers(u);
     }
     fetchUsers();
   }, [userPseudo]);
@@ -201,7 +155,7 @@ export default function SocialPage() {
   //render messages sent by other users
   useEffect(() => {
     if (!userPseudo) return;
-    socket.on("received", async ({sender, receiver, msg}) => {
+    const handler = async ({ sender, receiver, msg }) => {
       if (selectedUser === sender)
       {
         const newMessages = await contact.getMsg(userPseudo, sender);
@@ -214,13 +168,9 @@ export default function SocialPage() {
         setNotification(msg);
         await fetchUnread();
       }
-    });
-
-    //refresh the inboxes to display new conversations
-    socket.on("add_conv", async () => {
-      const i = await contact.getInboxes();
-      setInboxes(i);
-    });
+    }
+    socket.on("received", handler);
+    socket.off("received", handler);
 
     //adds the request live
     socket.on("request", async ({user, oUser}) => {
@@ -464,8 +414,6 @@ export default function SocialPage() {
       }
       //makes a new inbox for both users and updates it
       contact.addContact(currentUser.name, inviteUsername);
-      const i = await contact.getInboxes();
-      setInboxes(i);
       socket.emit("new_conv", {
         sender: currentUser.name,
         receiver: inviteUsername,
@@ -654,12 +602,12 @@ export default function SocialPage() {
                   const isActive = selectedUser === user.name;
                   if (user.name === userPseudo)
                     return null;
-                  const hasConversation = inboxes.some(inbox => {
-                    const ids = inbox.inboxUser.map(iu => iu.user_id);
-                    return ids.includes(user.id) && ids.includes(currentUser.id);
-                  });
+                  const hasConversation = async () => {
+                    const flag = await contact.alreadyAdded(currentUser.name, user.name);
+                    return flag;
+                  };
                   if (!hasConversation) return null;
-                  if (conversationUsers.length === 0 || user.name == currentUser.name) return null;
+                  if (user.name == currentUser.name) return null;
                   return (
                     <button
                       key={user.name}
@@ -716,12 +664,13 @@ export default function SocialPage() {
               {!selectedUser ? (
                 <div className="flex h-full min-h-[16rem] items-center justify-center text-base font-semibold text-gray-400">
                   No conversation selected
-                </div>
-              ) : conversationUsers.length === 0 ? (
-                <div className="flex h-full min-h-[16rem] items-center justify-center text-base font-semibold text-gray-400">
-                  No conversations
-                </div>
-              ) : (
+                </div> ) :
+                // conversationUsers.length === 0 ? (
+                // <div className="flex h-full min-h-[16rem] items-center justify-center text-base font-semibold text-gray-400">
+                //   No conversations
+                // </div>
+              // ) : 
+              (
                 currentMessages.map((msg) => (
                 <div key={msg.id} className={`flex flex-col ${msg.user_id === currentUser.id ? "items-end" : "items-start"}`}>
                   <button
