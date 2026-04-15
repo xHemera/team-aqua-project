@@ -307,7 +307,7 @@ export default function SocialPage() {
   useEffect(() => {
     async function isWaiting()
     {
-      if (!currentUser) return;
+      if (!currentUser || !selectedUser) return;
       const friend = await contact.getFriendFromOther(currentUser.name, selectedUser);
       if (!friend) {
         setWaiting(false);
@@ -326,7 +326,7 @@ export default function SocialPage() {
   useEffect(() => {
     async function isFriend()
     {
-      if (!currentUser) return;
+      if (!currentUser || !selectedUser) return;
       const myFriend = await contact.getFriend(currentUser.name, selectedUser);
       const theirFriend = await contact.getFriendFromOther(currentUser.name, selectedUser);
       if (!myFriend || !theirFriend) {
@@ -343,7 +343,7 @@ export default function SocialPage() {
   useEffect(() => {
     async function isRequesting()
     {
-      if (!currentUser) return;
+      if (!currentUser || !selectedUser) return;
       const friend = await contact.getFriend(currentUser.name, selectedUser);
       if (!friend) {
         setRequest(false);

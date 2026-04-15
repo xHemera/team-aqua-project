@@ -78,7 +78,6 @@ export async function getInboxes(username: string)
 //creation of a new inbox with a inbox_user for each user
 export async function addContact(currentUser: string, addUser: string)
 {
-    if (!currentUser || !addUser) return;
     const user1 = await prisma.user.findFirst({
         where: { name: currentUser }
     })
@@ -86,7 +85,7 @@ export async function addContact(currentUser: string, addUser: string)
         where: { name: addUser }
     })
 
-	if (!user1 || !user2) return;
+	if (!user1 || !user2) throw new Error("Users not found");
 
     await prisma.inbox.create({
         data: {
@@ -106,8 +105,6 @@ export async function addContact(currentUser: string, addUser: string)
 //check if a user already has a conversation with someone
 export async function alreadyAdded(currentUser: string, addUser: string)
 {
-	if (!currentUser || !addUser)
-		return true
     const user1 = await prisma.user.findFirst({
         where: { name: currentUser }
     })
@@ -157,13 +154,13 @@ export async function getAvatar (userName: string)
             avatar: true
         }
     })
-    return user?.avatar?.name;
+    if (!user || !user.avatar) throw new Error("User not found");
+    return user.avatar.name;
 }
 
 //adds a message written by the first user
 export async function addMsg(msg: string, sender: string, receiver: string)
 {
-    if (!sender || !receiver) return;
     const user1 = await prisma.user.findFirst({
         where: { name: sender },
 		select: {id: true}
@@ -173,7 +170,7 @@ export async function addMsg(msg: string, sender: string, receiver: string)
 		select: {id: true}
     })
 
-    if (!user1 || !user2) return;
+    if (!user1 || !user2) throw new Error("User not found");
 
 	const inbox = await prisma.inbox.findFirst({
 		where: {
@@ -189,7 +186,7 @@ export async function addMsg(msg: string, sender: string, receiver: string)
 	})
 
 	if (!inbox)
-		throw Error("Not discussion found or created");
+		throw Error("No discussion found or created prior");
 
 	const messages = await prisma.messages.create({
 		data: {
@@ -209,7 +206,6 @@ export async function addMsg(msg: string, sender: string, receiver: string)
 //return all messages from a conversation
 export async function getMsg(user: string, otherUser: string)
 {
-	if (!user || !otherUser) return;
     const user1 = await prisma.user.findFirst({
         where: { name: user },
     })
@@ -217,7 +213,7 @@ export async function getMsg(user: string, otherUser: string)
         where: { name: otherUser },
     })
 
-    if (!user1 || !user2) return;
+    if (!user1 || !user2) throw new Error("Users not found");
 
     const msgs = await prisma.inbox.findFirst({
 		where: {
@@ -232,15 +228,13 @@ export async function getMsg(user: string, otherUser: string)
 		},
 		select: {messages: true}
 	})
-	if (!msgs) return;
+	if (!msgs) throw new Error("Could not fetch messages");
 	return msgs.messages;
 }
 
 //mais c'est quoi cette fonction de merde
 export async function getUnread(currentUser: string)
 {
-	if (!currentUser) return;
-
 	const cUser = await prisma.user.findFirst({
 		where: { name: currentUser },
         select: {
@@ -250,26 +244,14 @@ export async function getUnread(currentUser: string)
         },
     });
 
-	if (!cUser) return;
+	if (!cUser) throw new Error("User not found");
 	
 	return cUser.inbox;
-}
-
-//return badges array
-export async function getBadge(user: string)
-{
-    if (!user) return;
-    const dbUser = await prisma.user.findFirst({
-        where: {name: user}
-    });
-    if (dbUser) return dbUser.badges;
 }
 
 //return the other user friend type
 export async function getFriend(currentUser: string, otherUser: string)
 {
-    if (!currentUser || !otherUser) return;
-
     const cUser = await prisma.user.findFirst({
         where: {name: currentUser},
         select: {id: true}
@@ -278,7 +260,7 @@ export async function getFriend(currentUser: string, otherUser: string)
         where: {name: otherUser},
         select: {id: true}
     });
-    if (!cUser || !oUser) return;
+    if (!cUser || !oUser) throw new Error("Users not found");;
 
     const friend = await prisma.friends.findUnique({
 		where: {
@@ -295,8 +277,6 @@ export async function getFriend(currentUser: string, otherUser: string)
 //return your friend type from the other user side
 export async function getFriendFromOther(currentUser: string, otherUser: string)
 {
-    if (!currentUser || !otherUser) return;
-
     const cUser = await prisma.user.findFirst({
         where: {name: currentUser},
         select: {id: true}
@@ -305,7 +285,7 @@ export async function getFriendFromOther(currentUser: string, otherUser: string)
         where: {name: otherUser},
         select: {id: true}
     });
-    if (!cUser || !oUser) return;
+    if (!cUser || !oUser) throw new Error("Users not found");
 
     const friend = await prisma.friends.findUnique({
 		where: {
@@ -322,8 +302,6 @@ export async function getFriendFromOther(currentUser: string, otherUser: string)
 //adds a friend relation for each user
 export async function addFriend(currentUser: string, otherUser: string)
 {
-    if (!currentUser || !otherUser) return;
-
     const cUser = await prisma.user.findFirst({
         where: {name: currentUser},
         select: {id: true}
@@ -332,7 +310,7 @@ export async function addFriend(currentUser: string, otherUser: string)
         where: {name: otherUser},
         select: {id: true}
     });
-    if (!cUser || !oUser) return;
+    if (!cUser || !oUser) throw new Error("Users not found");
 
     const existing1 = await prisma.friends.findUnique({
         where: {
@@ -376,8 +354,6 @@ export async function addFriend(currentUser: string, otherUser: string)
 //change both requests to false, making them friends
 export async function acceptFriendRequest(currentUser: string, otherUser: string)
 {
-    if (!currentUser || !otherUser) return;
-
     const cUser = await prisma.user.findFirst({
         where: {name: currentUser},
         select: {id: true}
@@ -386,7 +362,7 @@ export async function acceptFriendRequest(currentUser: string, otherUser: string
         where: {name: otherUser},
         select: {id: true}
     });
-    if (!cUser || !oUser) return;
+    if (!cUser || !oUser) throw new Error("Users not found");
 
     
 	await prisma.friends.update({
@@ -402,8 +378,6 @@ export async function acceptFriendRequest(currentUser: string, otherUser: string
 //refuse and deletes each other friend relation
 export async function denyFriendRequest(currentUser: string, otherUser: string)
 {
-    if (!currentUser || !otherUser) return;
-
     const cUser = await prisma.user.findFirst({
         where: {name: currentUser},
         select: {id: true}
@@ -412,7 +386,7 @@ export async function denyFriendRequest(currentUser: string, otherUser: string)
         where: {name: otherUser},
         select: {id: true}
     });
-    if (!cUser || !oUser) return;
+    if (!cUser || !oUser) throw new Error("Users not found");
 
     await prisma.friends.delete({
          where: { userId_friendId: { userId: cUser.id, friendId: oUser.id } }
@@ -425,8 +399,6 @@ export async function denyFriendRequest(currentUser: string, otherUser: string)
 //adds the other user to the blocked list and remove from each their friend relation
 export async function blockFriend(currentUser: string, otherUser: string)
 {
-    if (!currentUser || !otherUser) return;
-
     const cUser = await prisma.user.findFirst({
         where: {name: currentUser},
         select: {id: true}
@@ -435,7 +407,7 @@ export async function blockFriend(currentUser: string, otherUser: string)
         where: {name: otherUser},
         select: {id: true}
     });
-    if (!cUser || !oUser) return;
+    if (!cUser || !oUser) throw new Error("User not found");
 
     await prisma.friends.deleteMany({
         where: {
@@ -458,8 +430,6 @@ export async function blockFriend(currentUser: string, otherUser: string)
 //adds the other user to the blocked list
 export async function blockUser(currentUser: string, otherUser: string)
 {
-    if (!currentUser || !otherUser) return;
-
     const cUser = await prisma.user.findFirst({
         where: {name: currentUser},
         select: {id: true}
@@ -468,7 +438,7 @@ export async function blockUser(currentUser: string, otherUser: string)
         where: {name: otherUser},
         select: {id: true}
     });
-    if (!cUser || !oUser) return;
+    if (!cUser || !oUser) throw new Error("User not found");
 
     await prisma.user.update({
         where: {id: cUser.id},
@@ -483,8 +453,6 @@ export async function blockUser(currentUser: string, otherUser: string)
 //remove the other user from the blocked list
 export async function unblockUser(currentUser: string, otherUser: string)
 {
-    if (!currentUser || !otherUser) return;
-
     const cUser = await prisma.user.findFirst({
         where: {name: currentUser},
         select: {id: true, blockedUsers: true}
@@ -493,7 +461,7 @@ export async function unblockUser(currentUser: string, otherUser: string)
         where: {name: otherUser},
         select: {id: true}
     });
-    if (!cUser || !oUser) return;
+    if (!cUser || !oUser) throw new Error("Users not found");
 
     await prisma.user.update({
         where: {id: cUser.id},
