@@ -172,9 +172,8 @@ export default function SocialPage() {
 		};
 	}, [userPseudo]);
 
-  //render messages sent by other users
   useEffect(() => {
-    if (!userPseudo) return;
+    if (!userPseudo || !selectedUser) return;
     const handler = async ({ sender, receiver, msg, images, messageId }) => {
 
       if (selectedUser === sender)
@@ -182,6 +181,7 @@ export default function SocialPage() {
         const newMessages = await contact.getMsg(userPseudo, sender);
         if (!newMessages) return;
         setCurrentMessages(newMessages);
+        contact.resetUnread(userPseudo, selectedUser);
         
         //Store images for this message ID
         if (images && images.length > 0 && messageId) {
@@ -195,18 +195,30 @@ export default function SocialPage() {
       {
         setNotifSender(sender);
         setNotification(msg);
-        await fetchUnread();
       }
     }
     socket.on("received", handler);
+    return () => {
+      socket.off("received", handler);
+    }
+  });
 
-
+  useEffect(() => {
+    if (!userPseudo || !selectedUser) return;
     const convHandler = async () => {
       const i = await contact.getInboxes(userPseudo);
       setInboxes(i);
     }
     //adds a new conversation dynamically
     socket.on("add_conv", convHandler);
+    return () => {
+      socket.off("add_conv", convHandler);
+    }
+  });
+
+  //render messages sent by other users
+  useEffect(() => {
+    if (!userPseudo || !selectedUser) return;
 
     //adds the request dynamically
     socket.on("request", async ({user, oUser}) => {
@@ -283,10 +295,11 @@ export default function SocialPage() {
 	useEffect(() => {
 		async function fetchmessages()
 		{
-			if (!currentUser) return;
+			if (!currentUser || !selectedUser) return;
 			const newMessages = await contact.getMsg(currentUser.name, selectedUser);
 			if (!newMessages) return;
     	setCurrentMessages(newMessages);
+      contact.resetUnread(currentUser.name, selectedUser)
 		}
 		fetchmessages();
 		messageListRef.current?.scrollTo({
@@ -635,6 +648,7 @@ export default function SocialPage() {
     }
 
     setCurrentMessages(newMessages);
+    contact.resetUnread(currentUser.name, selectedUser);
 
     //sends a signal to the other user's socket
     socket.emit("msg_sent", {

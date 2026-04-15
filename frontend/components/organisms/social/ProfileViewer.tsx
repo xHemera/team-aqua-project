@@ -60,7 +60,6 @@ export default function ProfileViewerModal({
       {
         setNotifSender(sender);
         setNotification(msg);
-        //await fetchUnread();
       }
     });
 
