@@ -100,11 +100,15 @@ io.on("connect", (socket) => {
     const receiverSock = await redis.hGet("online_users", oUser);
     if (receiverSock)
     {
-      io.to(receiverSock).emit("blocking", {
+      io.to(receiverSock).emit("blocked", {
         user,
         oUser
       });
     }
+  })
+
+  socket.on("blocking_friend_or_user", async () => {
+    io.to(socket.id).emit("blocking");
   })
 
   socket.on("user_unblocked", async ({user, oUser}) => {
@@ -116,6 +120,10 @@ io.on("connect", (socket) => {
         oUser
       });
     }
+    io.to(socket.id).emit("unblocking", {
+      user,
+      oUser
+    })
   })
 
   //delete the user's socket if he's disconnected

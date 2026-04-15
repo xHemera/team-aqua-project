@@ -233,17 +233,24 @@ export default function SocialPage() {
       }
     });
 
-    //sets blocked dynamically
-    socket.on("blocking", async ({user, oUser}) => {
+    //sets blocked status dynamically
+    socket.on("blocked", async ({user, oUser}) => {
       if (user == selectedUser)
         setIsBlocked(true);
         setFriend(false);
     });
 
+    socket.on("blocking", async () => {
+      setHasBlocked(true);
+      setFriend(false);
+    })
+
     //resets status dynamically
     socket.on("unblocking", async ({user, oUser}) => {
-      if (user == selectedUser)
+      if (oUser == selectedUser)
         setIsBlocked(false);
+      if (user == userPseudo)
+        setHasBlocked(false);
     });
   }, [userPseudo, selectedUser]);
 
@@ -334,8 +341,7 @@ export default function SocialPage() {
   useEffect(() => {
     async function isBlockedByMe()
     {
-      if (!currentUser) return;
-      if (!friend) return;
+      if (!currentUser || !selectedUser) return;
       const blockedUser = await contact.getUser(selectedUser);
       if (!blockedUser) return;
       for (const id of currentUser.blockedUsers)
@@ -352,8 +358,7 @@ export default function SocialPage() {
   useEffect(() => {
     async function amIBlocked()
     {
-      if (!currentUser) return;
-      if (!friend) return;
+      if (!currentUser || !selectedUser) return;
       const blockingUser = await contact.getUser(selectedUser);
       if (!blockingUser) return;
       for (const id of blockingUser.blockedUsers)
@@ -797,7 +802,7 @@ export default function SocialPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      if (msg.user_id !== currentUser.id) {
+                      if (msg.user_id !== currentUser.id && selectedUser) {
                         openProfileViewerForUserName(selectedUser);
                       }
                     }}

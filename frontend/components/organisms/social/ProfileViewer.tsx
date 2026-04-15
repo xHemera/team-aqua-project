@@ -89,17 +89,24 @@ export default function ProfileViewerModal({
     });
 
     //sets blocked live
-    socket.on("blocking", async ({user, oUser}) => {
+    socket.on("blocked", async ({user, oUser}) => {
       if (user == inputUser.name)
         setIsBlocked(true);
         setFriend(false);
     });
 
+    socket.on("blocking", async () => {
+          setHasBlocked(true);
+          setFriend(false);
+    })
+
     //resets status live
     socket.on("unblocking", async ({user, oUser}) => {
-      if (user == inputUser.name)
+      if (oUser == inputUser.name)
         setIsBlocked(false);
-    });
+      if (user == currentUser.name)
+        setHasBlocked(false);
+      });
   }, [currentUser, inputUser]);
 
   //sets waiting status
@@ -192,19 +199,6 @@ export default function ProfileViewerModal({
     onClose();
   }
 
-  async function addFriend()
-  {
-    if (!currentUser || !inputUser) return;
-    contact.acceptFriendRequest(currentUser.name, inputUser.name);
-    socket.emit("friend_added", {
-      user: currentUser.name,
-      oUser: inputUser.name
-    });
-    setFriend(true);
-    setRequest(false);
-    onClose();
-  }
-
   async function refuseFriendship()
   {
     if (!currentUser || !inputUser) return;
@@ -233,6 +227,7 @@ export default function ProfileViewerModal({
         user: currentUser.name,
         oUser: inputUser.name
       });
+      socket.emit("blocking_friend_or_user");
       setHasBlocked(true);
       setFriend(false);
     }
@@ -329,7 +324,7 @@ export default function ProfileViewerModal({
 
           {/* Actions: message, ajouter en ami, bloquer */}
           <div className="flex items-center justify-center gap-4">
-            {!isBlocked && <IconButton
+            {!isBlocked && !hasBlocked && <IconButton
               type="button"
               variant="secondary"
               size="lg"
