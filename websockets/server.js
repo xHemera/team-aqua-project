@@ -126,6 +126,21 @@ io.on("connect", (socket) => {
     })
   })
 
+  socket.on("challenge_sent", async ({sender, receiver}) => {
+    const receiverSock = await redis.hGet("online_users", receiver);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("challenge", {
+        sender,
+        receiver
+      });
+    }
+    io.to(socket.id).emit("challenge", {
+      sender,
+      receiver
+    });
+  })
+
   //delete the user's socket if he's disconnected
   socket.on("disconnect", async () => {
     const onlineUsers = await redis.hGetAll("online_users");

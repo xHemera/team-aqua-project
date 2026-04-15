@@ -110,6 +110,8 @@ export default function SocialPage() {
   const [hasBlocked, setHasBlocked] = useState(false);
   const [messageImages, setMessageImages] = useState<Record<string, Array<{ id: string; name: string; data: string }>>>({});
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
+  const [challenge, setChallenge] = useState(false);
+  const [opponent, setOpponent] = useState<string | null>(null);
 
   const MAX_MESSAGE_LENGTH = 500;
   const MAX_DISPLAY_LENGTH = 200;
@@ -181,13 +183,13 @@ export default function SocialPage() {
         if (!newMessages) return;
         setCurrentMessages(newMessages);
         
-        // Store images for this message ID
-        // if (images && images.length > 0 && messageId) {
-        //   setMessageImages((prev) => ({
-        //     ...prev,
-        //     [messageId]: images,
-        //   }));
-        // }
+        //Store images for this message ID
+        if (images && images.length > 0 && messageId) {
+          setMessageImages((prev) => ({
+            ...prev,
+            [messageId]: images,
+          }));
+        }
       }
       else //set variables to send a notification
       {
@@ -252,6 +254,16 @@ export default function SocialPage() {
       if (user == userPseudo)
         setHasBlocked(false);
     });
+
+    socket.on("challenge", async({sender, receiver}) => {
+      if (receiver == userPseudo)
+      {
+        setChallenge(true);
+        setOpponent(sender);
+      }
+      if (sender == userPseudo)
+        setWaiting(true);
+    })
   }, [userPseudo, selectedUser]);
 
 	//fetch the conversation
@@ -637,8 +649,15 @@ export default function SocialPage() {
     setShowProfileViewer(true);
   };
 
+  //waiting screen when waiting for duel
+  //(oui je sais c'est pas un waiting screen je vous laisse le faire)
+  const isWaiting = () => {
+    return <div>Waiting for your opponent</div>
+  }
+
   return (
     <AppPageShell showSidebar containerClassName="min-h-0 flex-1 flex-col">
+      {waiting && isWaiting()}
       {showNotification && notification && notifSender && (notifSender !== selectedUser) && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       {inviteNotification && (
         <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
