@@ -81,7 +81,7 @@ export default function ProfileViewerModal({
 
     //resets status live
     socket.on("refusing", async ({user, oUser}) => {
-      if (user == inputUser.name)
+      if (oUser == inputUser.name)
       {
         setWaiting(false);
         setFriend(false);
@@ -129,7 +129,7 @@ export default function ProfileViewerModal({
       if (!currentUser || !inputUser) return;
       const myFriend = await contact.getFriend(currentUser.name, inputUser.name);
       const theirFriend = await contact.getFriendFromOther(currentUser.name, inputUser.name);
-      if (!myFriend || !theirFriend) return;
+      if (!myFriend || !theirFriend) {setFriend(false); return;}
       if (myFriend.request_sent == false && theirFriend.request_sent == false) setFriend(true);
       return;
     }
