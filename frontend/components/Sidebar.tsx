@@ -131,7 +131,7 @@ export default function Sidebar() {
             }`}
           >
             <i className={`${icon} text-2xl`} />
-            {isSocial && socialUnread > 0 && (
+            {isSocial && socialUnread > 0 && pathname !== "/social" &&(
               <span className="absolute -right-1 -top-1 flex min-w-5 h-5 items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
                 {socialUnread > 99 ? "99+" : socialUnread}
               </span>
