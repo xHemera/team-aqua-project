@@ -141,6 +141,28 @@ io.on("connect", (socket) => {
     });
   })
 
+  socket.on("duel_accepted", async ({user, oUser}) => {
+    const receiverSock = await redis.hGet("online_users", oUser);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("accept", {
+        user,
+        oUser
+      });
+    }
+  })
+
+  socket.on("duel_refused", async ({user, oUser}) => {
+    const receiverSock = await redis.hGet("online_users", oUser);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("refuse", {
+        user,
+        oUser
+      });
+    }
+  })
+
   //delete the user's socket if he's disconnected
   socket.on("disconnect", async () => {
     const onlineUsers = await redis.hGetAll("online_users");

@@ -264,6 +264,19 @@ export default function SocialPage() {
       if (sender == userPseudo)
         setWaiting(true);
     })
+
+    socket.on("accept", async ({user, oUser}) => {
+      if (oUser == userPseudo)
+      {
+        setWaiting(false);
+        router.push("game");
+      }
+    })
+
+    socket.on("refuse", async ({user, oUser}) => {
+      if (oUser == userPseudo)
+        setWaiting(false);
+    })
   }, [userPseudo, selectedUser]);
 
 	//fetch the conversation
@@ -655,6 +668,22 @@ export default function SocialPage() {
     return <div>Waiting for your opponent</div>
   }
 
+  const acceptDuel = async () => {
+    socket.emit("duel_accepted", {
+      user: currentUser.name,
+      oUser: selectedUser,
+    })
+    return router.push("game");
+  }
+
+  const refuseDuel = async () => {
+    setChallenge(false);
+    socket.emit("duel_refused", {
+      user: currentUser.name,
+      oUser: selectedUser,
+    })
+  }
+
   return (
     <AppPageShell showSidebar containerClassName="min-h-0 flex-1 flex-col">
       {waiting && isWaiting()}
@@ -776,6 +805,7 @@ export default function SocialPage() {
           </header>
           <section className="flex h-full min-h-0 flex-col">
 
+            {/*Friend request*/}
             {request && friendRequestSender && (
               <div className="border-b border-[#3c3650] bg-[#1b1826] p-4">
                 <div className="rounded-lg border border-[var(--accent-color)] bg-[#242033] p-4">
@@ -804,17 +834,41 @@ export default function SocialPage() {
                 </div>
               </div>
             )}
+            {/*Duel request*/}
+            {challenge && (
+              <div className="border-b border-[#3c3650] bg-[#1b1826] p-4">
+                <div className="rounded-lg border border-[var(--accent-color)] bg-[#242033] p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-300">
+                        <span className="text-[var(--accent-color)]">{friendRequestSender}</span> wants to du-du-du-du-du-du-duel !
+                      </p>
+                      <p className="mt-1 text-xs text-gray-400">Do you want to accept this request?</p>
+                    </div>
+                    <div className="ml-4 flex gap-2">
+                      <button
+                        onClick={() => acceptDuel()}
+                        className="rounded-lg bg-emerald-500/90 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-600"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        onClick={() => refuseDuel()}
+                        className="rounded-lg bg-red-500/90 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-600"
+                      >
+                        Refuse
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div ref={messageListRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
               {!selectedUser ? (
                 <div className="flex h-full min-h-[16rem] items-center justify-center text-base font-semibold text-gray-400">
                   No conversation selected
                 </div> ) :
-                // conversationUsers.length === 0 ? (
-                // <div className="flex h-full min-h-[16rem] items-center justify-center text-base font-semibold text-gray-400">
-                //   No conversations
-                // </div>
-              // ) : 
               (
                 currentMessages.map((msg) => (
                 <div key={msg.id} className={`flex flex-col ${msg.user_id === currentUser.id ? "items-end" : "items-start"}`}>
