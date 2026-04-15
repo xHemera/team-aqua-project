@@ -51,6 +51,30 @@ export async function getUser(name: string)
     return user;
 }
 
+export async function getInboxes(username: string)
+{
+    const user = await prisma.user.findFirst({
+        where: { name: username }
+    })
+
+    if (!user)
+        throw Error("User not found")
+
+    const inboxes = await prisma.inbox.findMany({
+        where: {
+            inboxUser: {
+                some: {user_id: user.id}
+            }
+        },
+        select: {
+            id: true,
+            inboxUser: true,
+        }
+    })
+    
+    return inboxes;
+}
+
 //creation of a new inbox with a inbox_user for each user
 export async function addContact(currentUser: string, addUser: string)
 {
@@ -64,21 +88,17 @@ export async function addContact(currentUser: string, addUser: string)
 
 	if (!user1 || !user2) return;
 
-    const inbox = await prisma.inbox.create({
-        data: { user: { connect: { id: user1.id } } }
-    })
-    await prisma.inbox_users.create({
+    await prisma.inbox.create({
         data: {
-            user_id: user1.id,
-            inbox_id: inbox.id,
-            unread_messages: 0
-        }
-    })
-    await prisma.inbox_users.create({
-        data: {
-            user_id: user2.id,
-            inbox_id: inbox.id,
-            unread_messages: 0
+            user: { connect:
+                { id: user1.id }
+            },
+            inboxUser: {
+                create: [
+                    {user_id: user1.id},
+                    {user_id: user2.id}
+                ]
+            }
         }
     })
 }

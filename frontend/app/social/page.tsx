@@ -21,6 +21,18 @@ type Messages = {
   images?:    Array<{ id: string; name: string; data: string }>;
 }
 
+type Inbox_users = {
+	id:								string;
+	inbox_id:					string;
+	user_id:					string;
+	unread_messages:	number | null;
+};
+
+type Inbox = {
+  id: 								string;
+  inboxUser:  				Inbox_users[];
+};
+
 type Avatar = {
   url:					string;
 };
@@ -82,6 +94,7 @@ export default function SocialPage() {
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
   const [currentMessages, setCurrentMessages] = useState<Messages[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [inboxes, setInboxes] = useState<Inbox[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 	const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
   const [showNotification, setShowNotification] = useState(true);
@@ -95,8 +108,8 @@ export default function SocialPage() {
   const [friend, setFriend] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [hasBlocked, setHasBlocked] = useState(false);
-  const [conversationMap, setConversationMap] = useState<Record<string, boolean>>({});  const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [messageImages, setMessageImages] = useState<Record<string, Array<{ id: string; name: string; data: string }>>>({});
+  const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
 
   const MAX_MESSAGE_LENGTH = 500;
   const MAX_DISPLAY_LENGTH = 200;
@@ -129,12 +142,14 @@ export default function SocialPage() {
   useEffect(() => {
     async function fetchUsers() {
     if (!userPseudo) return;
-      const [u, cU] = await Promise.all([
+      const [u, cU, i] = await Promise.all([
       contact.getUsers(),
       contact.getCurrentUser(userPseudo),
+      contact.getInboxes(userPseudo),
     ]);
     setCurrentUser(cU);
     setUsers(u);
+    setInboxes(i);
     }
     fetchUsers();
   }, [userPseudo]);
@@ -167,12 +182,12 @@ export default function SocialPage() {
         setCurrentMessages(newMessages);
         
         // Store images for this message ID
-        if (images && images.length > 0 && messageId) {
-          setMessageImages((prev) => ({
-            ...prev,
-            [messageId]: images,
-          }));
-        }
+        // if (images && images.length > 0 && messageId) {
+        //   setMessageImages((prev) => ({
+        //     ...prev,
+        //     [messageId]: images,
+        //   }));
+        // }
       }
       else //set variables to send a notification
       {
@@ -182,9 +197,16 @@ export default function SocialPage() {
       }
     }
     socket.on("received", handler);
-    socket.off("received", handler);
 
-    //adds the request live
+
+    const convHandler = async () => {
+      const i = await contact.getInboxes(userPseudo);
+      setInboxes(i);
+    }
+    //adds a new conversation dynamically
+    socket.on("add_conv", convHandler);
+
+    //adds the request dynamically
     socket.on("request", async ({user, oUser}) => {
       if (user == selectedUser) {
         setRequest(true);
@@ -192,7 +214,7 @@ export default function SocialPage() {
       }
     });
 
-    //adds match button live
+    //adds match button dynamically
     socket.on("adding", async ({user, oUser}) => {
       if (user == selectedUser)
       {
@@ -202,7 +224,7 @@ export default function SocialPage() {
       }
     });
 
-    //resets status live
+    //resets status dynamically
     socket.on("refusing", async ({user, oUser}) => {
       if (user == selectedUser)
       {
@@ -211,14 +233,14 @@ export default function SocialPage() {
       }
     });
 
-    //sets blocked live
+    //sets blocked dynamically
     socket.on("blocking", async ({user, oUser}) => {
       if (user == selectedUser)
         setIsBlocked(true);
         setFriend(false);
     });
 
-    //resets status live
+    //resets status dynamically
     socket.on("unblocking", async ({user, oUser}) => {
       if (user == selectedUser)
         setIsBlocked(false);
@@ -361,23 +383,6 @@ export default function SocialPage() {
 		return () => clearTimeout(timeoutId);
 	}, [inviteNotification]);
 
-  useEffect(() => {
-    const checkAll = async () => {
-      if (!currentUser || !users) return;
-
-      const results: Record<string, boolean> = {};
-
-      for (const user of users) {
-        const exists = await contact.alreadyAdded(currentUser.name, user.name);
-        results[user.name] = exists;
-      }
-
-      setConversationMap(results);
-    };
-
-    checkAll();
-  }, [currentUser, users]);
-
 	//Loading screen while currentUser is not set
 	if (!currentUser)
 		return <div>Loading...</div>;
@@ -464,6 +469,9 @@ export default function SocialPage() {
         sender: currentUser.name,
         receiver: inviteUsername,
       });
+      const i = await contact.getInboxes(currentUser.name);
+      setInboxes(i);
+      
       //return if user does not exist
       if (!response.ok || !payload.user) {
         setInviteNotification({
@@ -686,11 +694,12 @@ export default function SocialPage() {
                 {
                   users.map((user) => {
                   const isActive = selectedUser === user.name;
-                  if (user.name === userPseudo)
-                    return null;
-                  if (conversationMap[user.name]) return null;
-                  
-                  if (user.name == currentUser.name) return null;
+                  if (user.name === currentUser.name) return null;
+                  const hasConversation = inboxes.some(inbox => {
+                    const ids = inbox.inboxUser.map(iu => iu.user_id);
+                    return ids.includes(user.id);
+                  });
+                  if (user.name == currentUser.name || !hasConversation) return null;
                   return (
                     <button
                       key={user.name}
