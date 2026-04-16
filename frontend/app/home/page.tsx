@@ -33,16 +33,6 @@ export default function Home() {
   const [selectedDeck, setSelectedDeck] = useState<string>("");
   const avatar = useAvatarPreference(DEFAULT_PROFILE_ICON.url);
 
-  const deckIcons = useMemo(() => {
-    return decks.reduce(
-      (acc, deck) => {
-        acc[deck.title] = deck.image || "/decks/flygon-icon.png";
-        return acc;
-      },
-      {} as Record<string, string>
-    );
-  }, [decks]);
-
   const availableDecks = useMemo(() => decks.map((d) => d.title), [decks]);
 
   // Fetch decks from API
@@ -153,7 +143,6 @@ export default function Home() {
               <DeckSelector
                 selectedDeck={selectedDeck}
                 availableDecks={availableDecks}
-                deckIcons={deckIcons}
                 onSelectDeck={setSelectedDeck}
               />
             )}

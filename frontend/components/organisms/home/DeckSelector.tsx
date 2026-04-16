@@ -8,7 +8,6 @@ import DeckOptionItem from "@/components/molecules/home/DeckOptionItem";
 type DeckSelectorProps = {
   selectedDeck: string;
   availableDecks: string[];
-  deckIcons: Record<string, string>;
   onSelectDeck: (deck: string) => void;
 };
 
@@ -16,7 +15,6 @@ type DeckSelectorProps = {
 export default function DeckSelector({
   selectedDeck,
   availableDecks,
-  deckIcons,
   onSelectDeck,
 }: DeckSelectorProps) {
   const [showDeckDropdown, setShowDeckDropdown] = useState(false);
@@ -136,7 +134,7 @@ export default function DeckSelector({
   };
 
   const selectedDeckIcon =
-    deckIcons[safeSelectedDeck] ?? deckIcons[normalizedAvailableDecks[0] ?? ""] ?? "/decks/flygon-icon.png";
+    normalizedAvailableDecks[0] ?? "";
 
   return (
     <div ref={deckMenuRef} className="relative w-full max-w-[22rem]">
@@ -154,20 +152,6 @@ export default function DeckSelector({
         aria-controls="home-deck-selector-listbox"
         disabled={!hasDecks}
       >
-        <div className="flex h-12 w-12 items-center justify-center">
-          <Image
-            src={selectedDeckIcon}
-            alt={safeSelectedDeck || "Deck"}
-            width={52}
-            height={52}
-            className="h-12 w-12 object-contain transition-all"
-            style={{
-              imageRendering: "pixelated",
-              filter: "brightness(1) contrast(1.5) saturate(1)",
-            }}
-            priority
-          />
-        </div>
         <div className="flex min-w-0 flex-1 flex-col items-start leading-tight">
           <span className="text-xs uppercase tracking-[0.14em] text-gray-400">Selected deck</span>
           <span className="w-full truncate text-lg font-bold text-white">
@@ -201,7 +185,6 @@ export default function DeckSelector({
               deck={deck}
               selected={safeSelectedDeck === deck}
               highlighted={highlightedIndex === index}
-              icon={deckIcons[deck] || "/decks/flygon-icon.png"}
               onSelect={() => {
                 onSelectDeck(deck);
                 setShowDeckDropdown(false);

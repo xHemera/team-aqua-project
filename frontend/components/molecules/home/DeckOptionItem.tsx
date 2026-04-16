@@ -1,11 +1,9 @@
-import Image from "next/image";
 import Button from "@/components/atoms/Button";
 
 type DeckOptionItemProps = {
   deck: string;
   selected: boolean;
   highlighted?: boolean;
-  icon: string;
   onSelect: () => void;
 };
 
@@ -14,7 +12,6 @@ export default function DeckOptionItem({
   deck,
   selected,
   highlighted = false,
-  icon,
   onSelect,
 }: DeckOptionItemProps) {
   return (
@@ -32,16 +29,6 @@ export default function DeckOptionItem({
             : "text-gray-200 hover:bg-[#555]"
       }`}
     >
-      <div className="flex h-10 w-10 items-center justify-center">
-        <Image
-          src={icon}
-          alt={deck}
-          width={40}
-          height={40}
-          className="h-10 w-10 object-contain"
-          style={{ imageRendering: "pixelated" }}
-        />
-      </div>
       <span className="flex-1 truncate text-base font-semibold">{deck}</span>
       {selected && <i className="fa-solid fa-check text-[var(--accent-color)]"></i>}
     </Button>

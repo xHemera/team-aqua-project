@@ -10,12 +10,7 @@ import { socket } from "../../socket"
 import { authClient } from "@/lib/auth-client";
 import NotificationToast from "@/components/organisms/home/NotificationToast";
 
-const deckImages: Record<string, string> = {
-  Flygon: "/decks/flygon-icon.png",
-  Ceruledge: "/decks/ceruledge-icon.png",
-  Toxtricity: "/decks/toxtricity-icon.png",
-  Zacian: "/decks/zacian-icon.png",
-};
+
 
 const cardFileBases = [
   "absol",
@@ -129,8 +124,6 @@ export default function DecksPage() {
   const [notification, setNotification] = useState<string | null>(null);
   const [notifSender, setNotifSender] = useState<string | null>(null);
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
-  const [isEditingDeckIcon, setIsEditingDeckIcon] = useState(false);
-  const [selectedIconOption, setSelectedIconOption] = useState<string | null>(null);
 
   const selectedDeck = useMemo(
     () => decks.find((deck) => deck.id === selectedDeckId) ?? null,
@@ -403,6 +396,8 @@ export default function DecksPage() {
     setCardError("");
   };
 
+  const isDefaultDeck = (deckTitle: string) => DEFAULT_DECK_NAMES.includes(deckTitle as any);
+
   const renameSelectedDeck = async () => {
     if (!selectedDeck) return;
 
@@ -535,16 +530,6 @@ export default function DecksPage() {
                   onClick={() => openDeckPopup(deck)}
                   className="group relative overflow-hidden rounded-2xl border border-[#3c3650] bg-[#242033] p-6 transition-all hover:border-[color:var(--accent-border)] hover:bg-[#302a45]"
                 >
-                  <div className="mb-4 flex items-center justify-center">
-                    <Image
-                      src={deck.image || deckImages[deck.title] || deckImages.Flygon}
-                      alt={deck.title}
-                      width={90}
-                      height={90}
-                      className="h-24 w-24 object-contain transition-transform group-hover:scale-110"
-                      style={{ imageRendering: "pixelated" }}
-                    />
-                  </div>
                   <p className="text-center text-lg font-semibold text-white group-hover:text-[var(--accent-color)]">
                     {deck.title}
                   </p>
@@ -614,37 +599,30 @@ export default function DecksPage() {
                 ) : (
                   <>
                     <h3 className="truncate text-2xl font-bold text-white">{selectedDeck.title}</h3>
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        setIsRenamingDeck(true);
-                        setDeckNameDraft(selectedDeck.title);
-                        setDeckNameError("");
-                      }}
-                      variant="ghost"
-                      className="h-9 w-9 rounded-lg bg-[#242033] p-0"
-                      aria-label="Rename deck"
-                    >
-                      <i className="fa-solid fa-pen" />
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={() => setIsEditingDeckIcon(true)}
-                      variant="ghost"
-                      className="h-9 w-9 rounded-lg bg-[#242033] p-0"
-                      aria-label="Edit deck icon"
-                    >
-                      <i className="fa-solid fa-image" />
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={deleteSelectedDeck}
-                      variant="ghost"
-                      className="h-9 w-9 rounded-lg border-red-400/70 bg-red-500/20 p-0 text-red-300 hover:bg-red-500/35"
-                      aria-label="Delete deck"
-                    >
-                      <i className="fa-solid fa-trash" />
-                    </Button>
+                    <>
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          setIsRenamingDeck(true);
+                          setDeckNameDraft(selectedDeck.title);
+                          setDeckNameError("");
+                        }}
+                        variant="ghost"
+                        className="h-9 w-9 rounded-lg bg-[#242033] p-0"
+                        aria-label="Rename deck"
+                      >
+                        <i className="fa-solid fa-pen" />
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={deleteSelectedDeck}
+                        variant="ghost"
+                        className="h-9 w-9 rounded-lg border-red-400/70 bg-red-500/20 p-0 text-red-300 hover:bg-red-500/35"
+                        aria-label="Delete deck"
+                      >
+                        <i className="fa-solid fa-trash" />
+                      </Button>
+                    </>
                   </>
                 )}
               </div>
@@ -712,19 +690,19 @@ export default function DecksPage() {
                                 <Button
                                   type="button"
                                   onClick={() => removeCard(selectedDeck.id, card.id)}
-                                  className="h-8 w-8 rounded-md border-red-400/70 bg-red-500/90 p-0 text-xl font-black leading-none hover:bg-red-600"
+                                  className="h-10 w-10 rounded-md border-gray-400/70 bg-gray-600/90 p-0 text-xs font-black leading-none hover:bg-gray-700"
                                   aria-label={`Remove one copy of ${card.name}`}
                                 >
                                   −
                                 </Button>
-                                <span className="rounded-md bg-black/55 px-2 py-1 text-sm font-bold text-white">
+                                <span className="rounded-md bg-black/55 px-2 py-1 text-2xl font-bold text-white">
                                   {card.count}
                                 </span>
                                 <Button
                                   type="button"
                                   onClick={() => incrementCard(selectedDeck.id, card.id)}
                                   disabled={getTotalCards(selectedDeck.id) >= 60 || isAtCopyLimit}
-                                  className="h-8 w-8 rounded-md border-emerald-400/70 bg-emerald-500/90 p-0 text-xl font-black leading-none hover:bg-emerald-600"
+                                  className="h-10 w-10 rounded-md border-gray-400/70 bg-gray-600/90 p-0 text-xs font-black leading-none hover:bg-gray-700 disabled:bg-gray-500/60 disabled:hover:bg-gray-500/60"
                                   aria-label={`Add one copy of ${card.name}`}
                                 >
                                   +
@@ -740,35 +718,6 @@ export default function DecksPage() {
                       <p className="text-gray-400">No cards in this deck</p>
                     </div>
                   )}
-                </div>
-
-                <div className="border-t border-[#3c3650] p-4">
-                  <div className="mb-2 flex gap-2">
-                    <Input
-                      type="text"
-                      value={newCardName}
-                      onChange={(e) => {
-                        setNewCardName(e.target.value);
-                        if (cardError) setCardError("");
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          void addCard(selectedDeck.id);
-                        }
-                      }}
-                      placeholder="card name..."
-                      className="rounded-lg py-2"
-                    />
-                    <Button
-                      onClick={() => void addCard(selectedDeck.id)}
-                      disabled={getTotalCards(selectedDeck.id) >= 60}
-                      className="h-10 rounded-lg px-4 py-2 text-sm"
-                    >
-                      <i className="fa-solid fa-plus" />
-                      Add
-                    </Button>
-                  </div>
-                  {cardError && <p className="mt-1 text-xs text-red-500">{cardError}</p>}
                 </div>
               </section>
 
@@ -824,7 +773,6 @@ export default function DecksPage() {
                           </div>
                           <div className="p-1.5">
                             <p className="truncate text-[11px] font-semibold text-white">{displayName}</p>
-                            <p className="text-[10px] text-gray-400">Dans le deck: {countInDeck}</p>
                           </div>
                         </Button>
                       );
@@ -853,50 +801,6 @@ export default function DecksPage() {
         </div>
       )}
 
-      {isEditingDeckIcon && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-          onClick={() => setIsEditingDeckIcon(false)}
-        >
-          <Card className="w-full max-w-md rounded-2xl bg-[#15131d]" onClick={(e) => e.stopPropagation()}>
-            <div className="border-b border-[#3c3650] px-6 py-4">
-              <h3 className="text-lg font-bold text-white">Change deck icon</h3>
-            </div>
-            <div className="flex flex-col gap-3 p-6">
-              {Object.entries(deckImages).map(([iconName, iconPath]) => (
-                <button
-                  key={iconName}
-                  onClick={() => updateDeckIcon(iconName)}
-                  className={`flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors ${
-                    selectedDeck?.image === iconPath || selectedIconOption === iconName
-                      ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)]"
-                      : "border-[#3c3650] bg-[#242033] hover:bg-[#302a45]"
-                  }`}
-                >
-                  <Image
-                    src={iconPath}
-                    alt={iconName}
-                    width={48}
-                    height={48}
-                    className="h-12 w-12 object-contain"
-                    style={{ imageRendering: "pixelated" }}
-                  />
-                  <span className="font-semibold text-white">{iconName}</span>
-                </button>
-              ))}
-            </div>
-            <div className="border-t border-[#3c3650] px-6 py-3 flex justify-end">
-              <Button
-                onClick={() => setIsEditingDeckIcon(false)}
-                variant="ghost"
-                className="rounded-lg"
-              >
-                Fermer
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
     </AppPageShell>
   );
 }
