@@ -47,7 +47,7 @@ export default function LoginPage() {
           try {
             await authClient.signUp.email({
               name: "Xoco",
-              email: "co.fleuret@gmail.com",
+              email: "Xoco@gmail.com",
               password: "12345678",
             });
             await authClient.signUp.email({

@@ -89,28 +89,28 @@ export async function POST()
       {
         opponent: "Hemera",
         opponentDeck: "Lanssorien",
-        playedDeck: "Mega-Lucario-EX",
+        playedDeck: "Mega-Lucario",
         result: "win",
         user_id: admin1.id
       },
       {
         opponent: "Xoco",
         playedDeck: "Lanssorien",
-        opponentDeck: "Mega-Lucario-EX",
+        opponentDeck: "Mega-Lucario",
         result: "lose",
         user_id: admin2.id
       },
       {
         opponent: "Hemera",
         opponentDeck: "Lanssorien",
-        playedDeck: "Mega-Lucario-EX",
+        playedDeck: "Mega-Lucario",
         result: "lose",
         user_id: admin1.id
       },
       {
         opponent: "Xoco",
         playedDeck: "Lanssorien",
-        opponentDeck: "Mega-Lucario-EX",
+        opponentDeck: "Mega-Lucario",
         result: "win",
         user_id: admin2.id
       }
