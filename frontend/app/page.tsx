@@ -44,21 +44,29 @@ export default function LoginPage() {
       const users = data as User[];
       if (users.length === 0)
       {
-          const { error } = await authClient.signUp.email({
-            name: "Xoco",
-            email: "co.fleuret@gmail.com",
-            password: "12345678",
-          });
+          try {
+            await authClient.signUp.email({
+              name: "Xoco",
+              email: "co.fleuret@gmail.com",
+              password: "12345678",
+            });
+            await authClient.signUp.email({
+              name: "Hemera",
+              email: "hemera@gmail.com",
+              password: "12345678",
+            });
+        }
 
-        if (error) {
-          setMessage(error.message ?? "Registration error");
+        catch {
+          setMessage("Registration error");
+          return;
         }
-        else {
-          setMessage("Account created successfully! You can now sign in.");
-          setIsRegisterMode(false);
-          setPassword("");
-          setName("");
-        }
+        setIsRegisterMode(false);
+        setPassword("");
+        setName("");
+        await fetch("/api/users", {
+          method: "POST",
+        })
       }
     }
     fetchUsers();
