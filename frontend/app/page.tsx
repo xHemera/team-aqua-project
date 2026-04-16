@@ -58,7 +58,6 @@ export default function LoginPage() {
     event.preventDefault();
     setLoading(true);
     setMessage("");
-
     if (isRegisterMode) {
       // Inscription d'un nouvel utilisateur
       const { error } = await authClient.signUp.email({
