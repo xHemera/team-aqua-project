@@ -305,10 +305,12 @@ wait_any_key() {
 run_prisma_migrations() {
     print_info "Application des migrations Prisma..."
 
+    export $(grep -v '^#' .env | xargs)
+
     local attempts=0
     local max_attempts=12
 
-    docker compose -f docker-compose.yml exec frontend bunx prisma migrate dev --name init --url "postgresql://postgres:postgres@db:5432/aqua_temp";
+    docker compose -f docker-compose.yml exec frontend bunx prisma migrate dev --name init --url "$DATABASE_URL";
     docker compose -f docker-compose.yml exec frontend bunx prisma migrate deploy --config prisma/prisma.config.ts;
         
 

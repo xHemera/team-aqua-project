@@ -1,12 +1,14 @@
 services:
   db:
+    env_file: 
+      - .env
     image: postgres:16-alpine
     container_name: aqua-db-temp
     restart: unless-stopped
     environment:
-      POSTGRES_DB: aqua_temp
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: $POSTGRES_DB
+      POSTGRES_USER: $POSTGRES_USER
+      POSTGRES_PASSWORD: POSTGRES_PASSWORD
     ports:
       - "5432:5432"
     volumes:
@@ -30,6 +32,8 @@ services:
       start_period: 3s
 
   frontend:
+    env_file: 
+      - .env
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -52,8 +56,8 @@ services:
       NODE_ENV: development
       BETTER_AUTH_URL: http://localhost:3000
       BETTER_AUTH_SECRET: dev-secret-change-me-please-at-least-32-characters
-      BETTER_AUTH_DATABASE_URL: postgres://postgres:postgres@db:5432/aqua_temp
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/aqua_temp
+      BETTER_AUTH_DATABASE_URL: $DATABASE_URL
+      DATABASE_URL: $DATABASE_URL
     depends_on:
       db:
         condition: service_healthy
@@ -61,6 +65,8 @@ services:
         condition: service_started
 
   websockets:
+    env_file: 
+      - .env
     build:
       context: ./websockets
       dockerfile: Dockerfile
@@ -81,7 +87,7 @@ services:
       - backend_bun_cache:/home/bun/.bun/install/cache
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/aqua_temp
+      DATABASE_URL: $DATABASE_URL
       PORT: 4001
     depends_on:
       db:
