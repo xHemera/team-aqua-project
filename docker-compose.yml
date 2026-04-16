@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: $POSTGRES_DB
       POSTGRES_USER: $POSTGRES_USER
-      POSTGRES_PASSWORD: POSTGRES_PASSWORD
+      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
     ports:
       - "5432:5432"
     volumes:
@@ -56,7 +56,7 @@ services:
       NODE_ENV: development
       BETTER_AUTH_URL: http://localhost:3000
       BETTER_AUTH_SECRET: dev-secret-change-me-please-at-least-32-characters
-      BETTER_AUTH_DATABASE_URL: $DATABASE_URL
+      BETTER_AUTH_DATABASE_URL: $BETTER_AUTH_DATABASE_URL
       DATABASE_URL: $DATABASE_URL
     depends_on:
       db:
