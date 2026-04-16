@@ -173,12 +173,12 @@ export default function SocialPage() {
 	}, [userPseudo]);
 
   useEffect(() => {
-    if (!userPseudo || !selectedUser) return;
+    if (!userPseudo) return;
     const handler = async ({ sender, receiver, msg, images, messageId }) => {
 
-      if (selectedUser === sender)
+      if (selectedUser && selectedUser === sender)
       {
-        const newMessages = await contact.getMsg(userPseudo, sender);
+        const newMessages = await contact.getMsg(userPseudo, selectedUser);
         if (!newMessages) return;
         setCurrentMessages(newMessages);
         contact.resetUnread(userPseudo, selectedUser);
@@ -195,6 +195,7 @@ export default function SocialPage() {
       {
         setNotifSender(sender);
         setNotification(msg);
+        fetchUnread();
       }
     }
     socket.on("received", handler);
@@ -300,6 +301,7 @@ export default function SocialPage() {
 			if (!newMessages) return;
     	setCurrentMessages(newMessages);
       contact.resetUnread(currentUser.name, selectedUser)
+      fetchUnread();
 		}
 		fetchmessages();
 		messageListRef.current?.scrollTo({
@@ -426,36 +428,21 @@ export default function SocialPage() {
 		return () => clearTimeout(timeoutId);
 	}, [inviteNotification]);
 
-	//Loading screen while currentUser is not set
-	if (!currentUser)
-		return <div>Loading...</div>;
+  //fetch the number of unreaded messages
+  useEffect(() => {
+    fetchUnread();
+  }, [userPseudo])
 
-  //fetch the number of unreaded messages (BROKEN)
   async function fetchUnread()
   {
     if (!userPseudo) return;
-    const cU = await contact.getCurrentUser(userPseudo);
-    const inbox = await contact.getUnread(cU.name);
-    if (!inbox) return;
-    const results: Record<string, number> = {};
-    for (const iU of inbox) {
-      let otherUserId: string | null = null;
-      let unread = 0;
-
-      for (const user of iU.inboxUser) {
-        if (user.user_id !== cU.id) {
-          otherUserId = user.user_id;
-        } else {
-          unread = user.unread_messages ?? 0;
-        }
-      }
-
-      if (otherUserId) {
-        results[otherUserId] = unread;
-      }
-    }
+    const results = await contact.getUnread(userPseudo);
     setUnreadMap(results);
   }
+
+	//Loading screen while currentUser is not set
+	if (!currentUser)
+		return <div>Loading...</div>;
 
   //open a add contact modal
   const openAddContactModal = () => {
@@ -541,17 +528,6 @@ export default function SocialPage() {
       setIsInviting(false);
     }
   };
-
-  async function sendFriendRequest()
-  {
-    if (!currentUser || !selectedUser || hasBlocked) return;
-    contact.addFriend(currentUser.name, selectedUser);
-    socket.emit("friend_request", {
-      user: currentUser.name,
-      oUser: selectedUser
-    });
-    setWaiting(true);
-  }
 
   async function addFriend()
   {
@@ -767,7 +743,7 @@ export default function SocialPage() {
                     return ids.includes(user.id);
                   });
                   if (user.name == currentUser.name || !hasConversation) return null;
-                  return (
+                  return(
                     <button
                       key={user.name}
                       onClick={async () => {
@@ -794,9 +770,9 @@ export default function SocialPage() {
                       </div>
                       <span className="shrink-0 whitespace-nowrap text-sm font-semibold">{user.name}</span>
                       {
-                        unreadMap[user.id] > 0 && (
+                        unreadMap[user.name] > 0 && (
                         <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
-                          {unreadMap[user.id]}
+                          {unreadMap[user.name]}
                         </span>
                       )}
                     </button>
