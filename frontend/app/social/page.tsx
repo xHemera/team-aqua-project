@@ -174,7 +174,16 @@ export default function SocialPage() {
 
   useEffect(() => {
     if (!userPseudo) return;
-    const handler = async ({ sender, receiver, msg, images, messageId }) => {
+    const handler = async ({ sender,
+      receiver,
+      msg,
+      images,
+      messageId }: {
+      sender: string,
+      receiver: string,
+      msg: string,
+      images: string,
+      messageId: string }) => {
 
       if (selectedUser && selectedUser === sender)
       {
@@ -184,12 +193,12 @@ export default function SocialPage() {
         contact.resetUnread(userPseudo, selectedUser);
         
         //Store images for this message ID
-        if (images && images.length > 0 && messageId) {
-          setMessageImages((prev) => ({
-            ...prev,
-            [messageId]: images,
-          }));
-        }
+        // if (images && images.length > 0 && messageId) {
+        //   setMessageImages((prev) => ({
+        //     ...prev,
+        //     [messageId]: images,
+        //   }));
+        // }
       }
       else //set variables to send a notification
       {
