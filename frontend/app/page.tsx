@@ -137,8 +137,19 @@ export default function LoginPage() {
       }
       else {
         setMessage("Signed in successfully!");
-        setPseudo(data?.user?.name || "user");
-        setTimeout(() => router.push(`/profile/${data?.user?.name}`), 500);
+        setPseudo(data.user.name || "user");
+        const response = await fetch("/api/user", {
+          method: "PUT"
+        })
+        const user: unknown = await response.json();
+        if (!response.ok) {
+        const errorMessage =
+          typeof user === "object" && user !== null && "error" in user
+            ? String((user as { error: string }).error ?? "Impossible de charger l'utilisateur")
+            : "Impossible de charger l'utilisateur";
+          throw new Error(errorMessage);
+        }
+        setTimeout(() => router.push(`/profile/${data.user.name}`), 500);
       }
     }
     setLoading(false);

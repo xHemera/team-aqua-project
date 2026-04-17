@@ -322,6 +322,17 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
   };
 
   const handleLogout = async () => {
+    const response = await fetch("/api/profile", {
+        method: "PUT",
+      })
+      const user: unknown = await response.json();
+      if (!response.ok) {
+        const errorMessage =
+        typeof user === "object" && user !== null && "error" in user
+          ? String((user as { error: string }).error ?? "Impossible de charger l'utilisateur")
+          : "Impossible de charger l'utilisateur";
+        throw new Error(errorMessage);
+      }
     socket.disconnect();
     await authClient.signOut();
     router.push("/");
