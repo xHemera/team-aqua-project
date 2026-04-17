@@ -211,7 +211,7 @@ export default function SocialPage() {
     return () => {
       socket.off("received", handler);
     }
-  }, [userPseudo, selectedUser]);
+  });
 
   useEffect(() => {
     if (!userPseudo) return;

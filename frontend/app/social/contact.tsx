@@ -51,6 +51,7 @@ export async function getUser(name: string)
     return user;
 }
 
+//fetch the user inboxes
 export async function getInboxes(username: string)
 {
     const user = await prisma.user.findFirst({
@@ -95,8 +96,8 @@ export async function addContact(currentUser: string, addUser: string)
             },
             inboxUser: {
                 create: [
-                    {user_id: user1.id},
-                    {user_id: user2.id}
+                    {user_id: user1.id, unread_messages: 0},
+                    {user_id: user2.id, unread_messages: 0},
                 ]
             }
         }
