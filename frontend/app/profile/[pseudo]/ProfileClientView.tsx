@@ -398,20 +398,14 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                 <div className="pb-3">
                   <div className="mb-2 flex flex-wrap items-center gap-3">
                     <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{profileName}</h1>
-                    <i className="fa-solid fa-circle-check text-[var(--accent-color)] text-xl"></i>
-                    <i className="fa-brands fa-telegram text-blue-400 text-xl"></i>
                   </div>
-                  <p className="text-sm text-gray-300">#1 MIMIKYU ENJOYER</p>
                 </div>
               </div>
-
               <div className="flex items-center gap-2 pb-3">
                 {profileBadges.map((badge, index) => (
                   <span key={badge} className="rounded-md border border-yellow-500/50 bg-yellow-600/90 px-3 py-1 text-xs font-bold">{badge}</span>
                 )
                 )}
-                {/* <span className="rounded-md border border-yellow-500/50 bg-yellow-600/90 px-3 py-1 text-xs font-bold">OWNER</span>
-                <span className="rounded-md border border-[color:var(--accent-border)] bg-[var(--accent-color)] px-3 py-1 text-xs font-bold">GIGACHAD</span> */}
               </div>
             </div>
 

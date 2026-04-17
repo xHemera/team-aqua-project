@@ -141,6 +141,28 @@ io.on("connect", (socket) => {
     });
   })
 
+  socket.on("typing", async ({sender, receiver}) => {
+    const receiverSock = await redis.hGet("online_users", receiver);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("isTyping", {
+        sender,
+        receiver
+      });
+    }
+  })
+
+  socket.on("notTyping", async ({sender, receiver}) => {
+    const receiverSock = await redis.hGet("online_users", receiver);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("isNotTyping", {
+        sender,
+        receiver
+      });
+    }
+  })
+
   socket.on("duel_accepted", async ({user, oUser}) => {
     const receiverSock = await redis.hGet("online_users", oUser);
     if (receiverSock)

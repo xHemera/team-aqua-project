@@ -133,20 +133,6 @@ export async function alreadyAdded(currentUser: string, addUser: string)
 	return true;
 }
 
-//returns the selected user name and resets the unread messages (BROKEN)
-export async function selectUser(userName: string)
-{
-	const user = await prisma.user.findFirst({
-        where: { name: userName }
-    });
-    if (!user) return userName;
-    const inbox = await prisma.inbox_users.updateMany({
-        where: { user_id: user.id },
-        data: { unread_messages: 0}
-    });
-	return userName;
-};
-
 //return the avatar name
 export async function getAvatar (userName: string)
 {
@@ -263,9 +249,11 @@ export async function getMsg(user: string, otherUser: string)
 {
     const user1 = await prisma.user.findFirst({
         where: { name: user },
+        select: { id: true }
     })
     const user2 = await prisma.user.findFirst({
         where: { name: otherUser },
+        select: { id: true }
     })
 
     if (!user1 || !user2) throw new Error("Users not found");
@@ -287,7 +275,7 @@ export async function getMsg(user: string, otherUser: string)
 	return msgs.messages;
 }
 
-//fetch the unread number
+//fetch the unread number per user
 export async function getUnread(currentUser: string)
 {
     const results: Record<string, number> = {};
@@ -343,7 +331,33 @@ export async function getUnread(currentUser: string)
     return results;
 }
 
+export async function getSelectedUnread(currentUser: string, selectedUser: string)
+{
+    const user1 = await prisma.user.findFirst({
+        where: { name: currentUser },
+        select: { id: true }
+    })
+    const user2 = await prisma.user.findFirst({
+        where: { name: selectedUser },
+        select: { id: true }
+    })
 
+    if (!user1 || !user2) throw Error("Users not found");
+    const unread = await prisma.inbox_users.findFirst({
+        where: {
+            inbox: {
+                inboxUser: { some: { user_id: user1.id } },
+                AND: { inboxUser: { some: { user_id: user2.id } } }
+            },
+            user_id: user2.id
+        },
+        select: {
+            unread_messages: true
+        }
+    });
+    if (!unread) return 0;
+    return unread.unread_messages;
+}
 
 //return the other user friend type
 export async function getFriend(currentUser: string, otherUser: string)

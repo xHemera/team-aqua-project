@@ -112,10 +112,13 @@ export default function SocialPage() {
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [challenge, setChallenge] = useState(false);
   const [opponent, setOpponent] = useState<string | null>(null);
+  const [typer, setTyper] = useState<string | null>(null);
+  const [typing, setTyping] = useState(false);
 
   const MAX_MESSAGE_LENGTH = 500;
   const MAX_DISPLAY_LENGTH = 200;
 
+  let timeout: NodeJS.Timeout;
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
 
   const toggleMessageExpanded = (messageId: string) => {
@@ -224,6 +227,26 @@ export default function SocialPage() {
   //render messages sent by other users
   useEffect(() => {
     if (!userPseudo || !selectedUser) return;
+
+
+    //show if the selected user is writing
+    socket.on("isTyping", async ({sender, receiver}) => {
+      if (sender == selectedUser)
+      {
+        setTyper(sender);
+        setTyping(true);
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          setTyping(false);
+        }, 2000);
+      }
+    });
+
+    //show if the selected user is writing
+    socket.on("isNotTyping", async ({sender, receiver}) => {
+      if (sender == selectedUser)
+        setTyping(false);
+    });
 
     //adds the request dynamically
     socket.on("request", async ({user, oUser}) => {
@@ -628,6 +651,10 @@ export default function SocialPage() {
     }
 
     setCurrentMessages(newMessages);
+    socket.emit("notTyping", {
+      sender : currentUser.name,
+      receiver: selectedUser,
+    });
     contact.resetUnread(currentUser.name, selectedUser);
 
     //sends a signal to the other user's socket
@@ -676,6 +703,22 @@ export default function SocialPage() {
       user: currentUser.name,
       oUser: selectedUser,
     })
+  }
+
+  const isTyping = async () => {
+    if (!selectedUser || !currentUser)
+      return ;
+    if (message.length === 0)
+    {
+      socket.emit("notTyping", {
+        sender : currentUser.name,
+        receiver: selectedUser,
+      });
+    }
+    socket.emit("typing", {
+      sender : currentUser.name,
+      receiver: selectedUser,
+    });
   }
 
   return (
@@ -734,7 +777,7 @@ export default function SocialPage() {
       <div className="flex w-full justify-center px-4">
         <section className="flex h-[calc(100vh-2rem)] w-[calc(100%-14rem)] flex-col overflow-hidden rounded-3xl border border-[#3c3650] bg-[#15131d]/85 shadow-2xl backdrop-blur-md">
           {/* Header avec contacts et boutons */}
-          <header className="flex items-center border-b border-[#3c3650] px-5 py-3"> 
+          <header className="flex items-center border-b border-[#3c3650] px-5 py-3">
             {/* Contacts scroll horizontalement */}
             <div className="flex-1 overflow-x-auto px-4">
               <div className="flex gap-2">
@@ -750,10 +793,8 @@ export default function SocialPage() {
                   return(
                     <button
                       key={user.name}
-                      onClick={async () => {
-                        const next = await contact.selectUser(user.name);
-                        if (next)
-                          setSelectedUser(next)
+                      onClick={() => {
+                        setSelectedUser(user.name);
                         }
                       }
                       className={`relative flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 transition-colors ${
@@ -986,7 +1027,8 @@ export default function SocialPage() {
                     value={message}
                     onChange={(event) => {
                       const newValue = event.target.value.slice(0, MAX_MESSAGE_LENGTH);
-                      setMessage(newValue);
+                      setMessage(newValue)
+                      isTyping();
                     }}
                     onKeyDown={handleInputKeyDown}
                     maxLength={MAX_MESSAGE_LENGTH}
@@ -1033,6 +1075,7 @@ export default function SocialPage() {
                     ))}
                   </div>
                 )}
+                {typer && typing && <div>{typer} is typing</div>}
               </div>)}
             </footer>
           </section>
