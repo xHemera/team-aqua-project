@@ -211,20 +211,15 @@ export default function SocialPage() {
     return () => {
       socket.off("received", handler);
     }
-  });
+  }, [userPseudo, selectedUser]);
 
   useEffect(() => {
-    if (!userPseudo || !selectedUser) return;
-    const convHandler = async () => {
+    if (!userPseudo) return;
+    socket.on("add_conv", async () => {
       const i = await contact.getInboxes(userPseudo);
       setInboxes(i);
-    }
-    //adds a new conversation dynamically
-    socket.on("add_conv", convHandler);
-    return () => {
-      socket.off("add_conv", convHandler);
-    }
-  });
+    });
+  }, [userPseudo]);
 
   //render messages sent by other users
   useEffect(() => {
@@ -504,12 +499,12 @@ export default function SocialPage() {
       }
       //makes a new inbox for both users and updates it
       contact.addContact(currentUser.name, inviteUsername);
+      const i = await contact.getInboxes(currentUser.name);
+      setInboxes(i);
       socket.emit("new_conv", {
         sender: currentUser.name,
         receiver: inviteUsername,
       });
-      const i = await contact.getInboxes(currentUser.name);
-      setInboxes(i);
       
       //return if user does not exist
       if (!response.ok || !payload.user) {
@@ -751,7 +746,7 @@ export default function SocialPage() {
                     const ids = inbox.inboxUser.map(iu => iu.user_id);
                     return ids.includes(user.id);
                   });
-                  if (user.name == currentUser.name || !hasConversation) return null;
+                  if (!hasConversation) return null;
                   return(
                     <button
                       key={user.name}

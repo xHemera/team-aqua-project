@@ -16,33 +16,6 @@ model Friends {
   @@id([userId, friendId])
 }
 
-model Decks {
-  id        String    @id @default(cuid())
-  title     String
-  image     String?
-  body      String?
-  cards     Cards[]
-  createdAt DateTime @default(now())
-  userId    String?
-  user      User?   @relation(fields: [userId], references: [id])
-}
-
-model Cards {
-  id       String		@id @default(cuid())
-  type     String
-  element  String?
-  hp       Int?
-  name     String
-  cap1     String?
-  cap2     String?
-  prize    Int?
-  retreat  Int?
-  weakness String?
-  resist   String?
-  deckId   String?
-  deck     Decks?		@relation(fields: [deckId], references: [id])
-}
-
 model Messages {
   id        String    @id @default(cuid())
   user_id   String
@@ -109,7 +82,6 @@ model User {
   avatar            Avatar?   @relation(fields: [avatarId], references: [id])
   sessions          Session[]
   accounts          Account[]
-  decks             Decks[]
   friends           Friends[]
   inboxUser         Inbox_users[]
   messages          Messages[]

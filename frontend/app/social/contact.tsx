@@ -54,7 +54,8 @@ export async function getUser(name: string)
 export async function getInboxes(username: string)
 {
     const user = await prisma.user.findFirst({
-        where: { name: username }
+        where: { name: username },
+        select: { id: true }
     })
 
     if (!user)
