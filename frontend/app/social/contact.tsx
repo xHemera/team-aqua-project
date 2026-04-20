@@ -248,6 +248,7 @@ export async function getUnread(currentUser: string)
         },
         select: {
             id: true,
+            name: true,
         }
     });
     if (!users) return results;
@@ -274,7 +275,7 @@ export async function getUnread(currentUser: string)
             let unread = 0;
             if (!iU || !iU.unread_messages) { unread = 0; }
             else { unread = iU.unread_messages; }
-            results[user.id] = unread;
+            results[user.name] = unread;
         })
     );
     return results;
