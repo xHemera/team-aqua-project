@@ -195,6 +195,7 @@ export default function SocialPage() {
         const newMessages = await contact.getMsg(userPseudo, selectedUser);
         if (!newMessages) return;
         setCurrentMessages(newMessages);
+        contact.resetUnread(userPseudo, selectedUser);
         
         //Store images for this message ID
         // if (images && images.length > 0 && messageId) {
@@ -212,6 +213,10 @@ export default function SocialPage() {
       }
     }
     socket.on("received", handler);
+    return () => {
+      socket.off("received", handler);
+    }
+  });
 
   useEffect(() => {
     if (!userPseudo) return;
@@ -318,12 +323,12 @@ export default function SocialPage() {
 	useEffect(() => {
 		async function fetchmessages()
 		{
-			if (!currentUser) return;
+			if (!currentUser || !selectedUser) return;
 			const newMessages = await contact.getMsg(currentUser.name, selectedUser);
 			if (!newMessages) return;
     	setCurrentMessages(newMessages);
       contact.resetUnread(currentUser.name, selectedUser)
-      fetchUnread();rontend
+      fetchUnread();
 		}
 		fetchmessages();
 		messageListRef.current?.scrollTo({

@@ -173,7 +173,8 @@ export async function addMsg(msg: string, sender: string, receiver: string)
 					some: { user_id: user2.id }
 				}
 			}
-		}
+		},
+        select: { id: true }
 	})
 
 	if (!inbox)
@@ -190,6 +191,17 @@ export async function addMsg(msg: string, sender: string, receiver: string)
 			}
 		}
 	});
+
+    await prisma.inbox_users.updateMany({
+        where: {
+            inbox_id: inbox.id,
+            user_id: user2.id
+		},
+        data: {
+            unread_messages: {increment: 1}
+        }
+    })
+
 	if (!messages)
 		throw Error("Could not create the message");
 }
@@ -408,6 +420,47 @@ export async function addFriend(currentUser: string, otherUser: string)
             }
         });
     }
+}
+
+export async function resetUnread(sender: string, receiver: string)
+{
+    const user1 = await prisma.user.findFirst({
+        where: { name: sender },
+		select: {id: true}
+    })
+    const user2 = await prisma.user.findFirst({
+        where: { name: receiver },
+		select: {id: true}
+    })
+
+    if (!user1 || !user2) throw new Error("User not found");
+
+	const inbox = await prisma.inbox.findFirst({
+		where: {
+			inboxUser: {
+				some: { user_id: user1.id }
+			},
+			AND: { 
+				inboxUser: {
+					some: { user_id: user2.id }
+				}
+			}
+		},
+        select: { id: true }
+	})
+
+	if (!inbox)
+		throw Error("No discussion found or created prior");
+
+    await prisma.inbox_users.updateMany({
+        where: {
+            inbox_id: inbox.id,
+            user_id: user1.id
+		},
+        data: {
+            unread_messages: 0
+        }
+    })
 }
 
 //change both requests to false, making them friends
