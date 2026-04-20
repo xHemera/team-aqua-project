@@ -172,6 +172,7 @@ export default function SocialPage() {
 		};
 	}, [userPseudo]);
 
+  //render messages sent by other users
   useEffect(() => {
     if (!userPseudo) return;
     const handler = async ({ sender,
@@ -190,7 +191,6 @@ export default function SocialPage() {
         const newMessages = await contact.getMsg(userPseudo, selectedUser);
         if (!newMessages) return;
         setCurrentMessages(newMessages);
-        contact.resetUnread(userPseudo, selectedUser);
         
         //Store images for this message ID
         // if (images && images.length > 0 && messageId) {
@@ -208,27 +208,14 @@ export default function SocialPage() {
       }
     }
     socket.on("received", handler);
-    return () => {
-      socket.off("received", handler);
-    }
-  });
 
-  useEffect(() => {
-    if (!userPseudo || !selectedUser) return;
+
     const convHandler = async () => {
       const i = await contact.getInboxes(userPseudo);
       setInboxes(i);
     }
     //adds a new conversation dynamically
     socket.on("add_conv", convHandler);
-    return () => {
-      socket.off("add_conv", convHandler);
-    }
-  });
-
-  //render messages sent by other users
-  useEffect(() => {
-    if (!userPseudo || !selectedUser) return;
 
     //adds the request dynamically
     socket.on("request", async ({user, oUser}) => {
@@ -305,12 +292,12 @@ export default function SocialPage() {
 	useEffect(() => {
 		async function fetchmessages()
 		{
-			if (!currentUser || !selectedUser) return;
+			if (!currentUser) return;
 			const newMessages = await contact.getMsg(currentUser.name, selectedUser);
 			if (!newMessages) return;
     	setCurrentMessages(newMessages);
       contact.resetUnread(currentUser.name, selectedUser)
-      fetchUnread();
+      fetchUnread();rontend
 		}
 		fetchmessages();
 		messageListRef.current?.scrollTo({
@@ -633,7 +620,6 @@ export default function SocialPage() {
     }
 
     setCurrentMessages(newMessages);
-    contact.resetUnread(currentUser.name, selectedUser);
 
     //sends a signal to the other user's socket
     socket.emit("msg_sent", {
@@ -661,12 +647,6 @@ export default function SocialPage() {
     setShowProfileViewer(true);
   };
 
-  //waiting screen when waiting for duel
-  //(oui je sais c'est pas un waiting screen je vous laisse le faire)
-  const isWaiting = () => {
-    return <div>Waiting for your opponent</div>
-  }
-
   const acceptDuel = async () => {
     socket.emit("duel_accepted", {
       user: currentUser.name,
@@ -685,7 +665,6 @@ export default function SocialPage() {
 
   return (
     <AppPageShell showSidebar containerClassName="min-h-0 flex-1 flex-col">
-      {waiting && isWaiting()}
       {showNotification && notification && notifSender && (notifSender !== selectedUser) && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       {inviteNotification && (
         <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
