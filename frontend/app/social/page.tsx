@@ -176,6 +176,7 @@ export default function SocialPage() {
 		};
 	}, [userPseudo]);
 
+  //render messages sent by other users
   useEffect(() => {
     if (!userPseudo) return;
     const handler = async ({ sender,
@@ -194,7 +195,6 @@ export default function SocialPage() {
         const newMessages = await contact.getMsg(userPseudo, selectedUser);
         if (!newMessages) return;
         setCurrentMessages(newMessages);
-        contact.resetUnread(userPseudo, selectedUser);
         
         //Store images for this message ID
         // if (images && images.length > 0 && messageId) {
@@ -212,10 +212,6 @@ export default function SocialPage() {
       }
     }
     socket.on("received", handler);
-    return () => {
-      socket.off("received", handler);
-    }
-  });
 
   useEffect(() => {
     if (!userPseudo) return;
@@ -228,8 +224,6 @@ export default function SocialPage() {
   //render messages sent by other users
   useEffect(() => {
     if (!userPseudo || !selectedUser) return;
-
-
     //show if the selected user is writing
     socket.on("isTyping", async ({sender, receiver}) => {
       if (sender == selectedUser)
@@ -324,12 +318,12 @@ export default function SocialPage() {
 	useEffect(() => {
 		async function fetchmessages()
 		{
-			if (!currentUser || !selectedUser) return;
+			if (!currentUser) return;
 			const newMessages = await contact.getMsg(currentUser.name, selectedUser);
 			if (!newMessages) return;
     	setCurrentMessages(newMessages);
       contact.resetUnread(currentUser.name, selectedUser)
-      fetchUnread();
+      fetchUnread();rontend
 		}
 		fetchmessages();
 		messageListRef.current?.scrollTo({
@@ -652,6 +646,7 @@ export default function SocialPage() {
     }
 
     setCurrentMessages(newMessages);
+
     socket.emit("notTyping", {
       sender : currentUser.name,
       receiver: selectedUser,
@@ -683,12 +678,6 @@ export default function SocialPage() {
     setProfileViewerUser(targetUser);
     setShowProfileViewer(true);
   };
-
-  //waiting screen when waiting for duel
-  //(oui je sais c'est pas un waiting screen je vous laisse le faire)
-  const isWaiting = () => {
-    return <div>Waiting for your opponent</div>
-  }
 
   const acceptDuel = async () => {
     socket.emit("duel_accepted", {
@@ -724,7 +713,6 @@ export default function SocialPage() {
 
   return (
     <AppPageShell showSidebar containerClassName="min-h-0 flex-1 flex-col">
-      {waiting && isWaiting()}
       {showNotification && notification && notifSender && (notifSender !== selectedUser) && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       {inviteNotification && (
         <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">

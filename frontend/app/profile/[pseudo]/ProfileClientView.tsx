@@ -142,6 +142,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
   const [profileBackground, setProfileBackground] = useState(defaultBackground);
   const [profileBanner, setProfileBanner] = useState(defaultBanner);
   const [showCustomizationPanel, setShowCustomizationPanel] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
   const [showNotification, setShowNotification] = useState(true);
   const [notification, setNotification] = useState<string | null>(null);
@@ -338,6 +339,10 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
     router.push("/");
   };
 
+  const handleDeleteProfile = () => {
+    setShowDeleteConfirmation(true);
+  };
+
   const bannerStyle = buildBackgroundStyle(profileBanner, defaultBanner);
   const totalMatches = matchHistory.length;
   const totalWins = matchHistory.filter((match) => match.result.toLowerCase() === "win").length;
@@ -362,15 +367,27 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
           )}
 
           {isOwnProfile && (
-            <IconButton
-              type="button"
-              onClick={handleLogout}
-              variant="ghost"
-              className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-400/80 bg-red-500/90 text-white shadow-lg transition-colors hover:bg-red-500"
-              aria-label="Logout"
-            >
-              <i className="fa-solid fa-right-from-bracket"></i>
-            </IconButton>
+            <>
+              <IconButton
+                type="button"
+                onClick={handleDeleteProfile}
+                variant="ghost"
+                className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-600/80 bg-red-600/90 text-white shadow-lg transition-colors hover:bg-red-700"
+                aria-label="Delete Profile"
+                title="Delete Profile"
+              >
+                <i className="fa-solid fa-trash"></i>
+              </IconButton>
+              <IconButton
+                type="button"
+                onClick={handleLogout}
+                variant="ghost"
+                className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-400/80 bg-red-500/90 text-white shadow-lg transition-colors hover:bg-red-500"
+                aria-label="Logout"
+              >
+                <i className="fa-solid fa-right-from-bracket"></i>
+              </IconButton>
+            </>
           )}
         </header>
 
@@ -615,6 +632,43 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                   Save
                 </Button>
               </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {showDeleteConfirmation && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowDeleteConfirmation(false)}
+        >
+          <Card
+            className="w-[min(420px,calc(100vw-2rem))] rounded-2xl bg-[#15131d] p-6"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-white mb-2">Delete Profile</h3>
+              <p className="text-sm text-gray-300">
+                Are you sure you want to delete your profile? This action cannot be undone. All your data including decks, match history, and messages will be permanently deleted.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3">
+              <Button
+                type="button"
+                onClick={() => setShowDeleteConfirmation(false)}
+                variant="ghost"
+                className="h-auto rounded-lg px-4 py-2 text-sm text-gray-200 hover:bg-[#242033]"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={() => setShowDeleteConfirmation(false)}
+                className="h-auto rounded-lg px-4 py-2 text-sm font-semibold text-white bg-red-600/90 hover:bg-red-700 border border-red-500/50"
+              >
+                Delete Profile
+              </Button>
             </div>
           </Card>
         </div>
