@@ -8,6 +8,13 @@ import AuthPageLayout from "@/components/AuthPageLayout";
 import Button from "@/components/atoms/Button";
 import IconField from "@/components/molecules/IconField";
 
+type User = {
+  id:            			string;
+  name:          			string;
+  badges:             string[];
+  blockedUsers:       string[];
+};
+
 // Page d'entrée: connexion + création de compte (mode toggle)
 export default function LoginPage() {
   // États de formulaire
@@ -20,6 +27,50 @@ export default function LoginPage() {
   const [pseudo, setPseudo] = useState<string | null>(null);
   const router = useRouter();
 
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const response = await fetch("/api/users", {
+        method: "GET"
+      })
+      const data: unknown = await response.json();
+      if (!response.ok) {
+      const errorMessage =
+        typeof data === "object" && data !== null && "error" in data
+          ? String((data as { error?: string }).error ?? "Impossible de charger les utilisateurs")
+          : "Impossible de charger les utilisateurs";
+        throw new Error(errorMessage);
+      }
+      const users = data as User[];
+      if (users.length === 0)
+      {
+          try {
+            await authClient.signUp.email({
+              name: "Xoco",
+              email: "Xoco@gmail.com",
+              password: "12345678",
+            });
+            await authClient.signUp.email({
+              name: "Hemera",
+              email: "hemera@gmail.com",
+              password: "12345678",
+            });
+        }
+
+        catch {
+          setMessage("Registration error");
+          return;
+        }
+        setIsRegisterMode(false);
+        setPassword("");
+        setName("");
+        await fetch("/api/users", {
+          method: "POST",
+        })
+      }
+    }
+    fetchUsers();
+  }, [])
 
   //Vérifier si l'utilisateur est déjà connecté
   useEffect(() => {
@@ -58,7 +109,6 @@ export default function LoginPage() {
     event.preventDefault();
     setLoading(true);
     setMessage("");
-
     if (isRegisterMode) {
       // Inscription d'un nouvel utilisateur
       const { error } = await authClient.signUp.email({

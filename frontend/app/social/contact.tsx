@@ -232,22 +232,63 @@ export async function getMsg(user: string, otherUser: string)
 	return msgs.messages;
 }
 
-//mais c'est quoi cette fonction de merde
+//fetch the unread number
 export async function getUnread(currentUser: string)
 {
-	const cUser = await prisma.user.findFirst({
-		where: { name: currentUser },
-        select: {
-            inbox: {
-				select: { inboxUser: true }
-			},
-        },
+    const results: Record<string, number> = {};
+    const cUser = await prisma.user.findFirst({
+        where: { name: currentUser },
+        select: {id: true}
     });
-
-	if (!cUser) throw new Error("User not found");
-	
-	return cUser.inbox;
+    if (!cUser) throw Error("User not found");
+    const users = await prisma.user.findMany({
+        where: {
+            inbox: {
+                some: {
+                    inboxUser: {
+                        some: {
+                            user_id: cUser.id
+                        }
+                    }
+                }
+            }
+        },
+        select: {
+            id: true,
+            name: true
+        }
+    });
+    if (!users) return results;
+    await Promise.all(
+        users.map(async (user) => {
+            const iU = await prisma.inbox_users.findFirst({
+                where: {
+                    inbox: {
+                        inboxUser: {
+                            some: { user_id: cUser.id }
+                        },
+                        AND: {
+                            inboxUser: {
+                                some: { user_id: user.id }
+                            }
+                        }
+                    },
+                    user_id: cUser.id
+                },
+                select: {
+                    unread_messages: true
+                }
+            });
+            let unread = 0;
+            if (!iU || !iU.unread_messages) { unread = 0; }
+            else { unread = iU.unread_messages; }
+            results[user.name] = unread;
+        })
+    );
+    return results;
 }
+
+
 
 //return the other user friend type
 export async function getFriend(currentUser: string, otherUser: string)

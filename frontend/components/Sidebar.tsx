@@ -12,8 +12,8 @@ import { socket } from "../socket";
 
 const NAV_ITEMS = [
   { href: "/home", icon: "fa-solid fa-house", label: "Home" },
-  { href: "/decks", icon: "fa-regular fa-clone", label: "Decks" },
   { href: "/social", icon: "fa-regular fa-comment-dots", label: "Social" },
+  { href: "/admin", icon: "fa-solid fa-shield-halved", label: "Admin" },
 ] as const;
 
 export default function Sidebar() {
@@ -21,6 +21,7 @@ export default function Sidebar() {
   const router = useRouter();
   const avatar = useAvatarPreference(DEFAULT_PROFILE_ICON.url);
   const [pseudo, setPseudo] = useState<string | null>(null);
+  const [badges, setBadges] = useState<string[]>([]);
   const [socialUnread, setSocialUnread] = useState<number>(0);
   const unreadRequestSeqRef = useRef(0);
 
@@ -43,11 +44,12 @@ export default function Sidebar() {
 
     const hydrateIdentity = async () => {
       const [session, profileResponse] = await Promise.all([authClient.getSession(), fetch("/api/profile/")]);
-      const profile = (await profileResponse.json()) as { pseudo?: string; name?: string };
+      const profile = (await profileResponse.json()) as { pseudo?: string; name?: string; badges?: string[] };
       const identity = profile.pseudo || profile.name || session.data?.user?.name || null;
 
       if (!isCancelled) {
         setPseudo(identity);
+        setBadges(profile.badges ?? []);
       }
     };
 
@@ -117,6 +119,11 @@ export default function Sidebar() {
   return (
     <aside className="flex h-full w-20 shrink-0 flex-col items-center gap-3 rounded-2xl border border-[#3c3650] bg-[#15131d]/85 px-3 py-4 shadow-2xl backdrop-blur-md">
       {NAV_ITEMS.map(({ href, icon, label }) => {
+        // Ne pas afficher l'onglet Admin si l'utilisateur n'a pas le badge ADMIN
+        if (href === "/admin" && !badges.includes("ADMIN")) {
+          return null;
+        }
+
         const isActive = pathname === href;
         const isSocial = href === "/social";
         return (
@@ -131,7 +138,7 @@ export default function Sidebar() {
             }`}
           >
             <i className={`${icon} text-2xl`} />
-            {isSocial && socialUnread > 0 && (
+            {isSocial && socialUnread > 0 && pathname !== "/social" &&(
               <span className="absolute -right-1 -top-1 flex min-w-5 h-5 items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
                 {socialUnread > 99 ? "99+" : socialUnread}
               </span>
@@ -142,8 +149,7 @@ export default function Sidebar() {
 
       <div className="flex-1" />
 
-      {/* Avatar / Profil */}
-      {/* Usage atomique: Button offre un comportement uniforme pour l'action profil. */}
+      {/* Bouton profil*/}
       <Button
         type="button"
         onClick={handleProfileClick}
