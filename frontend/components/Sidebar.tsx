@@ -107,7 +107,7 @@ export default function Sidebar() {
   const handleProfileClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     const { data } = await authClient.getSession();
-    if (data?.user?.name) {
+    if (data && data.user.name) {
       router.push(`/profile/${data.user.name}`);
     } else {
       router.push("/not-connected");
