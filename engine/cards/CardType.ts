@@ -1,7 +1,0 @@
-export enum CardType{
-	POKEMON = "POKEMON",
-	ENERGY = "ENERGY",
-	TRAINER = "SUPPORTER",
-	STADUM = "STADIUM",
-	TOOL = "TOOL"
-}
