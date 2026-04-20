@@ -38,6 +38,11 @@ type Avatar = {
 };
 
 type User = {
+  id:            			string;
+  name:          			string;
+  badges:             string[];
+  blockedUsers:       string[];
+  avatar:        			Avatar | null;
   id:           string;
   name:         string;
   badges:       string[];
@@ -115,8 +120,6 @@ export default function SocialPage() {
   const [opponent, setOpponent] = useState<string | null>(null);
   const [typer, setTyper] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
-  const [unread, setUnread] = useState(false);
-
 
   const MAX_MESSAGE_LENGTH = 500;
   const MAX_DISPLAY_LENGTH = 200;
@@ -178,7 +181,6 @@ export default function SocialPage() {
 		};
 	}, [userPseudo]);
 
-  //render messages sent by other users
   useEffect(() => {
     if (!userPseudo) return;
     const handler = async ({ sender,
@@ -197,6 +199,7 @@ export default function SocialPage() {
         const newMessages = await contact.getMsg(userPseudo, selectedUser);
         if (!newMessages) return;
         setCurrentMessages(newMessages);
+        contact.resetUnread(userPseudo, selectedUser);
         
         //Store images for this message ID
         // if (images && images.length > 0 && messageId) {
@@ -214,6 +217,10 @@ export default function SocialPage() {
       }
     }
     socket.on("received", handler);
+    return () => {
+      socket.off("received", handler);
+    }
+  });
 
   useEffect(() => {
     if (!userPseudo) return;
@@ -316,16 +323,6 @@ export default function SocialPage() {
       if (oUser == userPseudo)
         setWaiting(false);
     })
-
-    // Handle read status from other user
-    socket.on("messages_read", ({ sender, receiver, messageIds }: { sender: string; receiver: string; messageIds: string[] }) => {
-      if (receiver === userPseudo && sender === selectedUser) {
-        setReadMessageIds((prev) => [
-          ...prev,
-          ...messageIds.filter((id) => !prev.includes(id)),
-        ]);
-      }
-    });
   }, [userPseudo, selectedUser]);
 
 	//fetch the conversation
@@ -333,51 +330,10 @@ export default function SocialPage() {
 		async function fetchmessages()
 		{
 			if (!currentUser || !selectedUser) return;
-			
-			// Reset read messages for new conversation
-			setReadMessageIds([]);
-			
 			const newMessages = await contact.getMsg(currentUser.name, selectedUser);
 			if (!newMessages) return;
     	setCurrentMessages(newMessages);
-			
-			// Get the inbox and other user data to mark messages as read
-			const selectedUserData = users.find(u => u.name === selectedUser);
-			if (selectedUserData && inboxes.length > 0) {
-				const inbox = inboxes.find(i => 
-					i.inboxUser.some(iu => iu.user_id === selectedUserData.id)
-				);
-				if (inbox) {
-					// Call API to mark messages from other user as read
-					try {
-						await fetch("/api/social/messages/read", {
-							method: "POST",
-							headers: { "Content-Type": "application/json" },
-							body: JSON.stringify({
-								inbox_id: inbox.id,
-								other_user_id: selectedUserData.id,
-							}),
-						});
-						
-						// Get list of our messages that are read
-						const readRes = await fetch(`/api/social/messages/read?inbox_id=${inbox.id}`);
-						const { readMessageIds } = await readRes.json();
-						setReadMessageIds(readMessageIds);
-						
-						// Notify sender
-						socket.emit("messages_read", {
-							sender: currentUser.name,
-							receiver: selectedUser,
-							messageIds: newMessages
-								.filter(msg => msg.user_id === currentUser.id)
-								.map(msg => msg.id),
-						});
-					} catch (error) {
-						console.error("Error marking messages as read:", error);
-					}
-				}
-			}
-      
+      contact.resetUnread(currentUser.name, selectedUser)
       fetchUnread();
 		}
 		fetchmessages();
@@ -385,7 +341,7 @@ export default function SocialPage() {
 			top: messageListRef.current.scrollHeight,
 			behavior: "smooth",
 		});
-	}, [selectedUser, currentUser, users, inboxes]);
+	}, [selectedUser]);
 
   //scroll the conversation to last message
   useEffect(() => {
@@ -513,20 +469,7 @@ export default function SocialPage() {
   async function fetchUnread()
   {
     if (!userPseudo) return;
-    const inboxes = await contact.getInboxes(userPseudo);
-    const results: Record<string, number> = {};
-    
-    // Transform inboxes to unread count map
-    for (const inbox of inboxes) {
-      for (const inboxUser of inbox.inboxUser) {
-        // Find the user name for this user_id
-        const user = users.find(u => u.id === inboxUser.user_id);
-        if (user) {
-          results[user.name] = inboxUser.unread_messages ?? 0;
-        }
-      }
-    }
-    
+    const results = await contact.getUnread(userPseudo);
     setUnreadMap(results);
   }
 
@@ -676,7 +619,6 @@ export default function SocialPage() {
 
     //fetch messages between users
 		const newMessages = await contact.getMsg(currentUser.name, selectedUser);
-    contact.getUnread(currentUser.name);
 		if (!newMessages) return;
 
     // Prepare images from attachments
@@ -747,6 +689,12 @@ export default function SocialPage() {
     setShowProfileViewer(true);
   };
 
+  //waiting screen when waiting for duel
+  //(oui je sais c'est pas un waiting screen je vous laisse le faire)
+  const isWaiting = () => {
+    return <div>Waiting for your opponent</div>
+  }
+
   const acceptDuel = async () => {
     socket.emit("duel_accepted", {
       user: currentUser.name,
@@ -781,6 +729,7 @@ export default function SocialPage() {
 
   return (
     <AppPageShell showSidebar containerClassName="min-h-0 flex-1 flex-col">
+      {waiting && isWaiting()}
       {showNotification && notification && notifSender && (notifSender !== selectedUser) && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       {inviteNotification && (
         <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
@@ -873,9 +822,11 @@ export default function SocialPage() {
                       {user.online ? <div>ONLINE</div> : <div>OFFLINE</div>}
                       <span className="shrink-0 whitespace-nowrap text-sm font-semibold">{user.name}</span>
                       {
-                        (unreadMap[user.name] ?? 0) > 0 && (
+                        unreadMap[user.name] > 0 && (
+                        (unreadMap[user.id] ?? 0) > 0 && (
                         <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
-                          {unreadMap[user.name] ?? 0}
+                          {unreadMap[user.name]}
+                          {unreadMap[user.id] ?? 0}
                         </span>
                       )}
                     </button>
@@ -977,28 +928,16 @@ export default function SocialPage() {
                     <Image
                       src={
                         msg.user_id === currentUser.id
+                          ? currentUser?.avatar?.url ?? DEFAULT_PROFILE_ICON.url
                           ? currentUser.avatar?.url ?? DEFAULT_PROFILE_ICON.url
                           : users.find(u => u.name === selectedUser)?.avatar?.url ?? DEFAULT_PROFILE_ICON.url
                       }
-                      alt="Avatar"
-                      width={20}
-                      height={20}
-                      className="h-4 w-4 rounded border border-[#3c3650]"
-                      unoptimized
                     />
                     <span className="font-semibold">
+                      {msg.user_id === currentUser.id ? currentUser?.name : selectedUser}
                       {msg.user_id === currentUser.id ? currentUser.name : selectedUser}
                     </span>
                     <span className="opacity-75">{formatTime(msg.createdAt)}</span>
-                    {msg.user_id === currentUser.id && (
-                      <span className="ml-1 text-xs" title={readMessageIds.includes(msg.id) ? "vu" : "envoyé"}>
-                        {readMessageIds.includes(msg.id) ? (
-                          <i className="fa-solid fa-check-double text-blue-400"></i>
-                        ) : (
-                          <i className="fa-solid fa-check text-gray-500"></i>
-                        )}
-                      </span>
-                    )}
                   </button>
                   <article
                     className={`max-w-[44rem] rounded-2xl px-5 py-3 ${
@@ -1067,21 +1006,12 @@ export default function SocialPage() {
                 ))
               )}
             </div>
+
             <footer className="sticky bottom-0 border-t border-[#3c3650] bg-[#15131d] p-4">
               {selectedUser && (<div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2 rounded-full border border-[#3c3650] bg-[#242033] px-2 py-2">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    className="hidden"
-                    multiple
-                    onChange={handleFilesChange}
-                    accept="image/*,.pdf,.txt,.doc,.docx"
-                  />
 
-                <button
-                    onClick={handlePickAttachments}
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
+@@ -1019,76 +1020,75 @@
                     aria-label="Ajouter des pièces jointes"
                   >
                     <i className="fa-solid fa-paperclip" />
@@ -1105,6 +1035,7 @@ export default function SocialPage() {
                       }`}
                   />
                   <span className="text-xs text-gray-500">{message.length}/{MAX_MESSAGE_LENGTH}</span>
+
                   <button
                     onClick={() => {
                       if (!isBlocked && !hasBlocked) {
@@ -1117,7 +1048,6 @@ export default function SocialPage() {
                   >
                     <i className="fa-solid fa-paper-plane" />
                   </button>
-                  {unreadMap[selectedUser] > 0 ? <div>Unread</div> : <div>Read</div>}
                 </div>
 
                 {draftAttachments.length > 0 && (
