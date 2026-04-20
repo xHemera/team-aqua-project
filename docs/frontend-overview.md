@@ -106,7 +106,7 @@ export function useMyHook() {
 
 1. **Atoms**: `Button`, `Input`, `Card` - basic UI elements
 2. **Molecules**: `IconField` - atom combinations
-3. **Organisms**: `DeckSelector` - complex sections
+3. **Organisms**: Complex sections like MatchmakingModal
 4. **Pages**: Routes that orchestrate everything
 
 ### Data Fetching

@@ -158,30 +158,6 @@ export function Avatar() {
 }
 ```
 
-### useDeckPreferences
-
-Manage deck selection with localStorage persistence.
-
-**Location**: `hooks/useDeckPreferences.ts`
-
-```tsx
-'use client';
-
-import { useDeckPreferences } from '@/hooks/useDeckPreferences';
-
-export function DeckSelect() {
-  const { selectedDeck, availableDecks, setSelectedDeck } = useDeckPreferences();
-  return (
-    <select
-      value={selectedDeck?.id || ''}
-      onChange={(e) => setSelectedDeck(e.target.value)}
-    >
-      {availableDecks.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-    </select>
-  );
-}
-```
-
 ## Common Patterns
 
 ### useHoveredItem

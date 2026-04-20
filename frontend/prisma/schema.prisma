@@ -58,6 +58,7 @@ model Messages {
   user_id   String
   inbox_id  String
   message   String?
+  read      Boolean   @default(false)
   createdAt DateTime	@default(now())
   user      User?			@relation(fields: [user_id], references: [id])
   inbox     Inbox?		@relation(fields: [inbox_id], references: [id])
