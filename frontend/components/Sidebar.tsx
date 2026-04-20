@@ -149,8 +149,7 @@ export default function Sidebar() {
 
       <div className="flex-1" />
 
-      {/* Avatar / Profil */}
-      {/* Usage atomique: Button offre un comportement uniforme pour l'action profil. */}
+      {/* Bouton profil*/}
       <Button
         type="button"
         onClick={handleProfileClick}
