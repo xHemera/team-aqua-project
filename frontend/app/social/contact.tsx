@@ -173,8 +173,7 @@ export async function addMsg(msg: string, sender: string, receiver: string)
 					some: { user_id: user2.id }
 				}
 			}
-		},
-        select: { id: true }
+		}
 	})
 
 	if (!inbox)
@@ -191,60 +190,8 @@ export async function addMsg(msg: string, sender: string, receiver: string)
 			}
 		}
 	});
-
-    await prisma.inbox_users.updateMany({
-        where: {
-            inbox_id: inbox.id,
-            user_id: user2.id
-		},
-        data: {
-            unread_messages: {increment: 1}
-        }
-    })
-
 	if (!messages)
 		throw Error("Could not create the message");
-}
-
-export async function resetUnread(sender: string, receiver: string)
-{
-    const user1 = await prisma.user.findFirst({
-        where: { name: sender },
-		select: {id: true}
-    })
-    const user2 = await prisma.user.findFirst({
-        where: { name: receiver },
-		select: {id: true}
-    })
-
-    if (!user1 || !user2) throw new Error("User not found");
-
-	const inbox = await prisma.inbox.findFirst({
-		where: {
-			inboxUser: {
-				some: { user_id: user1.id }
-			},
-			AND: { 
-				inboxUser: {
-					some: { user_id: user2.id }
-				}
-			}
-		},
-        select: { id: true }
-	})
-
-	if (!inbox)
-		throw Error("No discussion found or created prior");
-
-    await prisma.inbox_users.updateMany({
-        where: {
-            inbox_id: inbox.id,
-            user_id: user1.id
-		},
-        data: {
-            unread_messages: 0
-        }
-    })
 }
 
 //return all messages from a conversation
@@ -281,23 +228,12 @@ export async function getMsg(user: string, otherUser: string)
 //fetch the unread number per user
 export async function getUnread(currentUser: string)
 {
-    const results: Record<string, number> = {};
-    const cUser = await prisma.user.findFirst({
-        where: { name: currentUser },
-        select: {id: true}
-    });
-    if (!cUser) throw Error("User not found");
-    const users = await prisma.user.findMany({
-        where: {
+	const cUser = await prisma.user.findFirst({
+		where: { name: currentUser },
+        select: {
             inbox: {
-                some: {
-                    inboxUser: {
-                        some: {
-                            user_id: cUser.id
-                        }
-                    }
-                }
-            }
+				select: { inboxUser: true }
+			},
         },
         select: {
             id: true,

@@ -94,19 +94,7 @@ Input with leading icon.
 />
 ```
 
-### DeckOptionItem
-
-Displays deck options with icon, name, description.
-
-**Location**: `components/molecules/home/DeckOptionItem.tsx`
-
 ## Organisms
-
-### DeckSelector
-
-List and select available decks with localStorage persistence.
-
-**Location**: `components/organisms/home/DeckSelector.tsx`
 
 ### MatchmakingModal
 
