@@ -167,17 +167,6 @@ export async function DELETE() {
       await tx.inbox_users.deleteMany({ where: { user_id: userId } });
       await tx.friends.deleteMany({ where: { userId } });
 
-      const userDecks = await tx.decks.findMany({
-        where: { userId },
-        select: { id: true },
-      });
-      const deckIds = userDecks.map((deck) => deck.id);
-
-      if (deckIds.length > 0) {
-        await tx.cards.deleteMany({ where: { deckId: { in: deckIds } } });
-      }
-      await tx.decks.deleteMany({ where: { userId } });
-
       await tx.session.deleteMany({ where: { userId } });
       await tx.account.deleteMany({ where: { userId } });
 
