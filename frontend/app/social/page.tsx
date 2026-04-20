@@ -38,11 +38,12 @@ type Avatar = {
 };
 
 type User = {
-  id:            			string;
-  name:          			string;
-  badges:             string[];
-  blockedUsers:       string[];
-  avatar:        			Avatar | null;
+  id:           string;
+  name:         string;
+  badges:       string[];
+  blockedUsers: string[];
+  avatar:       Avatar | null;
+  online:       boolean;
 };
 
 type Attachment = {
@@ -813,11 +814,12 @@ export default function SocialPage() {
                           unoptimized
                         />
                       </div>
+                      {user.online ? <div>ONLINE</div> : <div>OFFLINE</div>}
                       <span className="shrink-0 whitespace-nowrap text-sm font-semibold">{user.name}</span>
                       {
-                        unreadMap[user.name] > 0 && (
+                        (unreadMap[user.id] ?? 0) > 0 && (
                         <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
-                          {unreadMap[user.name]}
+                          {unreadMap[user.id] ?? 0}
                         </span>
                       )}
                     </button>
@@ -919,7 +921,7 @@ export default function SocialPage() {
                     <Image
                       src={
                         msg.user_id === currentUser.id
-                          ? currentUser?.avatar?.url ?? DEFAULT_PROFILE_ICON.url
+                          ? currentUser.avatar?.url ?? DEFAULT_PROFILE_ICON.url
                           : users.find(u => u.name === selectedUser)?.avatar?.url ?? DEFAULT_PROFILE_ICON.url
                       }
                       alt="Avatar"
@@ -929,7 +931,7 @@ export default function SocialPage() {
                       unoptimized
                     />
                     <span className="font-semibold">
-                      {msg.user_id === currentUser.id ? currentUser?.name : selectedUser}
+                      {msg.user_id === currentUser.id ? currentUser.name : selectedUser}
                     </span>
                     <span className="opacity-75">{formatTime(msg.createdAt)}</span>
                   </button>
@@ -1000,7 +1002,6 @@ export default function SocialPage() {
                 ))
               )}
             </div>
-
             <footer className="sticky bottom-0 border-t border-[#3c3650] bg-[#15131d] p-4">
               {selectedUser && (<div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2 rounded-full border border-[#3c3650] bg-[#242033] px-2 py-2">
@@ -1039,7 +1040,6 @@ export default function SocialPage() {
                       }`}
                   />
                   <span className="text-xs text-gray-500">{message.length}/{MAX_MESSAGE_LENGTH}</span>
-
                   <button
                     onClick={() => {
                       if (!isBlocked && !hasBlocked) {

@@ -10,7 +10,8 @@ export async function getUsers()
 			name: true,
 			badges: true,
 			blockedUsers: true,
-			avatar: true
+			avatar: true,
+            online: true,
 		}
     });
 }
@@ -25,7 +26,8 @@ export async function getCurrentUser(current: string)
 			name: true,
 			badges: true,
 			blockedUsers: true,
-			avatar: true
+			avatar: true,
+            online: true,
 		}
     });
     if (!user)
@@ -43,7 +45,8 @@ export async function getUser(name: string)
 			name: true,
 			badges: true,
 			blockedUsers: true,
-			avatar: true
+			avatar: true,
+            online: true,
 		}
     });
     if (!user)
@@ -298,7 +301,6 @@ export async function getUnread(currentUser: string)
         },
         select: {
             id: true,
-            name: true
         }
     });
     if (!users) return results;
@@ -325,7 +327,7 @@ export async function getUnread(currentUser: string)
             let unread = 0;
             if (!iU || !iU.unread_messages) { unread = 0; }
             else { unread = iU.unread_messages; }
-            results[user.name] = unread;
+            results[user.id] = unread;
         })
     );
     return results;
