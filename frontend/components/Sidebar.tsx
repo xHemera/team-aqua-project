@@ -120,7 +120,7 @@ export default function Sidebar() {
     <aside className="flex h-full w-20 shrink-0 flex-col items-center gap-3 rounded-2xl border border-[#3c3650] bg-[#15131d]/85 px-3 py-4 shadow-2xl backdrop-blur-md">
       {NAV_ITEMS.map(({ href, icon, label }) => {
         // Ne pas afficher l'onglet Admin si l'utilisateur n'a pas le badge ADMIN
-        if (!badges.includes("ADMIN")) {
+        if (href === "/admin" && !badges.includes("ADMIN")) {
           return null;
         }
 
@@ -149,8 +149,7 @@ export default function Sidebar() {
 
       <div className="flex-1" />
 
-      {/* Avatar / Profil */}
-      {/* Usage atomique: Button offre un comportement uniforme pour l'action profil. */}
+      {/* Bouton profil*/}
       <Button
         type="button"
         onClick={handleProfileClick}
