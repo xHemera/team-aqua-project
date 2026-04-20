@@ -115,6 +115,7 @@ export default function SocialPage() {
   const [opponent, setOpponent] = useState<string | null>(null);
   const [typer, setTyper] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
+  const [unread, setUnread] = useState(false);
 
   const MAX_MESSAGE_LENGTH = 500;
   const MAX_DISPLAY_LENGTH = 200;
@@ -614,6 +615,7 @@ export default function SocialPage() {
 
     //fetch messages between users
 		const newMessages = await contact.getMsg(currentUser.name, selectedUser);
+    contact.getUnread(currentUser.name);
 		if (!newMessages) return;
 
     // Prepare images from attachments
@@ -817,9 +819,9 @@ export default function SocialPage() {
                       {user.online ? <div>ONLINE</div> : <div>OFFLINE</div>}
                       <span className="shrink-0 whitespace-nowrap text-sm font-semibold">{user.name}</span>
                       {
-                        (unreadMap[user.id] ?? 0) > 0 && (
+                        (unreadMap[user.name] ?? 0) > 0 && (
                         <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
-                          {unreadMap[user.id] ?? 0}
+                          {unreadMap[user.name] ?? 0}
                         </span>
                       )}
                     </button>
@@ -1052,6 +1054,7 @@ export default function SocialPage() {
                   >
                     <i className="fa-solid fa-paper-plane" />
                   </button>
+                  {unreadMap[selectedUser] > 0 ? <div>Unread</div> : <div>Read</div>}
                 </div>
 
                 {draftAttachments.length > 0 && (
