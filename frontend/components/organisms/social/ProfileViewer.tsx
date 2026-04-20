@@ -9,6 +9,7 @@ import { socket } from "../../../socket"
 import { contact }  from "../../../app/social/index"
 import NotificationToast from "@/components/organisms/home/NotificationToast";
 import Validate from "../Validate";
+import { useRouter } from "next/navigation";
 
 type Avatar = {
   url:					string;
@@ -44,6 +45,7 @@ export default function ProfileViewerModal({
   avatarUrl = null,
   badges = [],
 }: ProfileViewerModalProps) {
+  const router = useRouter();
   const [request, setRequest] = useState(false);
   const [waiting, setWaiting] = useState(false);
   const [friend, setFriend] = useState(false);
@@ -180,6 +182,15 @@ export default function ProfileViewerModal({
     amIBlocked();
   }, [inputUser, currentUser])
 
+
+  const handleProfileClick = async () => {
+      if (inputUser) {
+        router.push(`/profile/${inputUser.name}`);
+      } else {
+        router.push("/not-connected");
+      }
+    };
+
   async function sendFriendRequest()
   {
     if (!currentUser || !inputUser) return;
@@ -288,6 +299,7 @@ export default function ProfileViewerModal({
                     fill
                     className="object-cover"
                     unoptimized
+                    onClick={() =>handleProfileClick()}
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-lg font-black text-white">

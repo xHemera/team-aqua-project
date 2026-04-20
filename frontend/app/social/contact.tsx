@@ -10,7 +10,8 @@ export async function getUsers()
 			name: true,
 			badges: true,
 			blockedUsers: true,
-			avatar: true
+			avatar: true,
+            online: true,
 		}
     });
 }
@@ -25,7 +26,8 @@ export async function getCurrentUser(current: string)
 			name: true,
 			badges: true,
 			blockedUsers: true,
-			avatar: true
+			avatar: true,
+            online: true,
 		}
     });
     if (!user)
@@ -43,7 +45,8 @@ export async function getUser(name: string)
 			name: true,
 			badges: true,
 			blockedUsers: true,
-			avatar: true
+			avatar: true,
+            online: true,
 		}
     });
     if (!user)
@@ -51,10 +54,12 @@ export async function getUser(name: string)
     return user;
 }
 
+//fetch the user inboxes
 export async function getInboxes(username: string)
 {
     const user = await prisma.user.findFirst({
-        where: { name: username }
+        where: { name: username },
+        select: { id: true }
     })
 
     if (!user)
@@ -94,8 +99,8 @@ export async function addContact(currentUser: string, addUser: string)
             },
             inboxUser: {
                 create: [
-                    {user_id: user1.id},
-                    {user_id: user2.id}
+                    {user_id: user1.id, unread_messages: 0},
+                    {user_id: user2.id, unread_messages: 0},
                 ]
             }
         }
@@ -130,20 +135,6 @@ export async function alreadyAdded(currentUser: string, addUser: string)
 	if (inbox) return false;
 	return true;
 }
-
-//returns the selected user name and resets the unread messages (BROKEN)
-export async function selectUser(userName: string)
-{
-	const user = await prisma.user.findFirst({
-        where: { name: userName }
-    });
-    if (!user) return userName;
-    const inbox = await prisma.inbox_users.updateMany({
-        where: { user_id: user.id },
-        data: { unread_messages: 0}
-    });
-	return userName;
-};
 
 //return the avatar name
 export async function getAvatar (userName: string)
@@ -208,9 +199,11 @@ export async function getMsg(user: string, otherUser: string)
 {
     const user1 = await prisma.user.findFirst({
         where: { name: user },
+        select: { id: true }
     })
     const user2 = await prisma.user.findFirst({
         where: { name: otherUser },
+        select: { id: true }
     })
 
     if (!user1 || !user2) throw new Error("Users not found");
@@ -232,7 +225,7 @@ export async function getMsg(user: string, otherUser: string)
 	return msgs.messages;
 }
 
-//fetch the unread number
+//fetch the unread number per user
 export async function getUnread(currentUser: string)
 {
     const results: Record<string, number> = {};
@@ -255,7 +248,6 @@ export async function getUnread(currentUser: string)
         },
         select: {
             id: true,
-            name: true
         }
     });
     if (!users) return results;
@@ -282,13 +274,39 @@ export async function getUnread(currentUser: string)
             let unread = 0;
             if (!iU || !iU.unread_messages) { unread = 0; }
             else { unread = iU.unread_messages; }
-            results[user.name] = unread;
+            results[user.id] = unread;
         })
     );
     return results;
 }
 
+export async function getSelectedUnread(currentUser: string, selectedUser: string)
+{
+    const user1 = await prisma.user.findFirst({
+        where: { name: currentUser },
+        select: { id: true }
+    })
+    const user2 = await prisma.user.findFirst({
+        where: { name: selectedUser },
+        select: { id: true }
+    })
 
+    if (!user1 || !user2) throw Error("Users not found");
+    const unread = await prisma.inbox_users.findFirst({
+        where: {
+            inbox: {
+                inboxUser: { some: { user_id: user1.id } },
+                AND: { inboxUser: { some: { user_id: user2.id } } }
+            },
+            user_id: user2.id
+        },
+        select: {
+            unread_messages: true
+        }
+    });
+    if (!unread) return 0;
+    return unread.unread_messages;
+}
 
 //return the other user friend type
 export async function getFriend(currentUser: string, otherUser: string)

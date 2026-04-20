@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user) {
+    if (!session || !session.user) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 

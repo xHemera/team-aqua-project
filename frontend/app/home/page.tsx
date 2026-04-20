@@ -14,13 +14,6 @@ import Button from "@/components/atoms/Button";
 import { socket } from "../../socket"
 import { useAvatarPreference } from "@/hooks/useAvatarPreference";
 
-type DeckData = {
-  id: string;
-  title: string;
-  image?: string | null;
-  cards: Array<unknown>;
-};
-
 // Page principale: navigation rapide, lancement de partie et sélection de deck
 export default function Home() {
   const router = useRouter();
@@ -29,46 +22,8 @@ export default function Home() {
   const [notification, setNotification] = useState<string | null>(null);
   const [notifSender, setNotifSender] = useState<string | null>(null);
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
-  const [decks, setDecks] = useState<DeckData[]>([]);
   const [selectedDeck, setSelectedDeck] = useState<string>("");
   const avatar = useAvatarPreference(DEFAULT_PROFILE_ICON.url);
-
-  const availableDecks = useMemo(() => decks.map((d) => d.title), [decks]);
-
-  // Fetch decks from API
-  useEffect(() => {
-    const fetchDecks = async () => {
-      try {
-        const response = await fetch("/api/decks", {
-          method: "GET",
-          cache: "no-store",
-        });
-
-        if (!response.ok) {
-          console.error("Failed to fetch decks");
-          return;
-        }
-
-        const data = await response.json();
-        setDecks(data.decks || []);
-
-        // Set initial selected deck
-        if (data.decks && data.decks.length > 0) {
-          const savedSelectedDeck = localStorage.getItem("selectedDeck");
-          const deckTitles = data.decks.map((d: DeckData) => d.title);
-          if (savedSelectedDeck && deckTitles.includes(savedSelectedDeck)) {
-            setSelectedDeck(savedSelectedDeck);
-          } else {
-            setSelectedDeck(data.decks[0].title);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching decks:", error);
-      }
-    };
-
-    fetchDecks();
-  }, []);
 
   // Persist selected deck to localStorage
   useEffect(() => {
@@ -137,15 +92,7 @@ export default function Home() {
 
           {/* Lancement de partie + Selecteur de deck */}
           <div className="relative z-20 flex flex-col items-center justify-center gap-6">
-            <PlayCta onPlay={() => setShowMatchmaking(true)} />
-            
-            {availableDecks.length > 0 && (
-              <DeckSelector
-                selectedDeck={selectedDeck}
-                availableDecks={availableDecks}
-                onSelectDeck={setSelectedDeck}
-              />
-            )}
+            <PlayCta onPlay={() => setShowMatchmaking(true)}/>
           </div>
 
           {/* Profile info section */}
