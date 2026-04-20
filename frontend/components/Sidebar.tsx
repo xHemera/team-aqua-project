@@ -12,7 +12,6 @@ import { socket } from "../socket";
 
 const NAV_ITEMS = [
   { href: "/home", icon: "fa-solid fa-house", label: "Home" },
-  { href: "/decks", icon: "fa-regular fa-clone", label: "Decks" },
   { href: "/social", icon: "fa-regular fa-comment-dots", label: "Social" },
   { href: "/admin", icon: "fa-solid fa-shield-halved", label: "Admin" },
 ] as const;
