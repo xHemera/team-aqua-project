@@ -368,34 +368,48 @@ export default function Home() {
       </div>
 
       <main className="relative flex-1 overflow-hidden p-3 pl-0">
-        <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[#0c0a0f] via-[#12101a] to-[#0a0810]" />
+        <div className="absolute inset-0 rounded-3xl bg-[radial-gradient(circle_at_16%_20%,rgba(217,146,58,0.17),transparent_36%),radial-gradient(circle_at_82%_16%,rgba(106,76,148,0.26),transparent_41%),radial-gradient(circle_at_72%_82%,rgba(34,105,92,0.2),transparent_40%),linear-gradient(148deg,#0b090f_0%,#100d17_54%,#09070d_100%)]" />
         <div
-          className="absolute inset-0 rounded-3xl opacity-[0.03]"
+          className="home-nebula-grid absolute inset-0 rounded-3xl opacity-[0.16]"
           style={{
             backgroundImage:
-              "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c9a227' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+              "url(\"data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23e6c55a' fill-opacity='0.5'%3E%3Cpath d='M38 13l2 5 5 2-5 2-2 5-2-5-5-2 5-2zm20 36l1 3 3 1-3 1-1 3-1-3-3-1 3-1zm-42 8l1 3 3 1-3 1-1 3-1-3-3-1 3-1z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
           }}
         />
+        <div className="home-fog-orb home-fog-orb-left" aria-hidden="true" />
+        <div className="home-fog-orb home-fog-orb-right" aria-hidden="true" />
 
-        <div className="relative z-10 flex h-full min-h-0 flex-col gap-4 rounded-3xl border border-[#c9a227]/25 bg-black/15 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#c9a227]/30 bg-[#120f17]/85 px-4 py-3">
-            <div className="text-sm uppercase tracking-[0.12em] text-[#ead9aa]">
-              {pseudo}
+        <div className="relative z-10 flex h-full min-h-0 flex-col gap-4 rounded-3xl border border-[#c9a227]/30 bg-black/20 p-4 backdrop-blur-[2px] xl:p-5">
+          <header className="home-reveal-1 rounded-2xl border border-[#c9a227]/35 bg-[linear-gradient(130deg,rgba(23,18,30,0.92),rgba(15,12,21,0.8))] p-4 shadow-[0_18px_42px_rgba(0,0,0,0.45)]">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#c4af7f]">Citadel Command</p>
+                <h1
+                  className="text-2xl font-black uppercase tracking-[0.08em] text-[#f4e4bf] sm:text-3xl"
+                  style={{ fontFamily: "var(--font-display), serif" }}
+                >
+                  Home Bastion
+                </h1>
+                <p className="max-w-[560px] text-sm text-[#d8c8a1] sm:text-[15px]">
+                  Bienvenue, <span className="font-semibold text-[#f9e8b9]">{pseudo}</span>. Renforce ton escouade, lance des expéditions et prépare la prochaine bataille.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.1em] text-[#f7e8c5] sm:text-sm">
+                <span className="inline-flex items-center gap-2 rounded-lg border border-[#7a5f36] bg-[#251c11]/80 px-3 py-1.5 shadow-[0_8px_16px_rgba(0,0,0,0.35)]">
+                  <i className="fa-solid fa-gem text-[#d47b83]" aria-hidden="true" />
+                  {ruby}
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-lg border border-[#6f6239] bg-[#211a10]/80 px-3 py-1.5 shadow-[0_8px_16px_rgba(0,0,0,0.35)]">
+                  <i className="fa-solid fa-coins text-[#f2c658]" aria-hidden="true" />
+                  {gold}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-3 text-sm font-semibold text-[#f5e6c8]">
-              <span className="inline-flex items-center gap-2 rounded-lg border border-[#6a5b81] bg-[#1e1828] px-3 py-1.5">
-                <i className="fa-solid fa-gem text-[#cd5c5c]" aria-hidden="true" />
-                {ruby}
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-lg border border-[#6a5b81] bg-[#1e1828] px-3 py-1.5">
-                <i className="fa-solid fa-coins text-[#f2c658]" aria-hidden="true" />
-                {gold}
-              </span>
-            </div>
-          </div>
+          </header>
 
           {expeditionReward && (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#4b8f65]/70 bg-[#122019] px-4 py-3 text-[#dcffe9]">
+            <div className="home-reveal-2 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#55a36f]/70 bg-[linear-gradient(125deg,rgba(20,41,29,0.92),rgba(14,23,20,0.92))] px-4 py-3 text-[#dcffe9] shadow-[0_14px_28px_rgba(0,0,0,0.35)]">
               <div className="text-sm uppercase tracking-wider">
                 Expedition complete • +{expeditionReward.xp} XP • +{expeditionReward.gold} Gold
               </div>
@@ -405,85 +419,98 @@ export default function Home() {
             </div>
           )}
 
-          <div className="flex min-h-0 flex-1 flex-col gap-4">
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-              <button
-                type="button"
-                onClick={handleMine}
-                className="mine-clicker group relative flex min-h-[150px] w-full flex-col justify-between overflow-hidden rounded-2xl border border-[#c9a227]/30 bg-[#120f17]/90 p-4 text-left shadow-[0_20px_40px_rgba(0,0,0,0.45)] transition-transform duration-300 hover:scale-[1.01] hover:border-[#e6c55a]/60"
-              >
-                <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#2a2234]/0 via-[#7a3f2e]/35 to-[#c7662d]/35" />
-                </div>
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-12">
+            <section className="home-reveal-2 flex min-h-0 flex-col gap-4 xl:col-span-7">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <button
+                  type="button"
+                  onClick={handleMine}
+                  className="mine-clicker group relative flex min-h-[180px] w-full flex-col justify-between overflow-hidden rounded-2xl border border-[#c9a227]/35 bg-[linear-gradient(140deg,rgba(30,20,19,0.95),rgba(18,13,18,0.95))] p-4 text-left shadow-[0_20px_40px_rgba(0,0,0,0.45)] transition duration-300 hover:-translate-y-0.5 hover:border-[#f1cb6c]/70"
+                >
+                  <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#7f472e]/0 via-[#a15e2f]/35 to-[#e08f46]/45" />
+                  </div>
 
-                <div className="relative z-10 flex items-center justify-between">
-                  <span
-                    className="text-xl font-black uppercase tracking-[0.14em] text-[#f5e6c8]"
-                    style={{ fontFamily: "var(--font-display), serif" }}
-                  >
-                    Mine
-                  </span>
-                  <i className="fa-solid fa-hammer text-lg text-[#e6c55a]" aria-hidden="true" />
-                </div>
+                  <div className="relative z-10 flex items-center justify-between">
+                    <span className="text-xl font-black uppercase tracking-[0.16em] text-[#f8e8c6]" style={{ fontFamily: "var(--font-display), serif" }}>
+                      Mine
+                    </span>
+                    <i className="fa-solid fa-hammer text-lg text-[#ffd278]" aria-hidden="true" />
+                  </div>
 
-                <div className="relative z-10 mt-4 flex items-center justify-between">
-                  <div className="h-px flex-1 bg-gradient-to-r from-[#e6c55a]/60 to-transparent" />
-                  <span className="ml-3 text-xs font-semibold uppercase tracking-wider text-[#f0dfb1]">Click</span>
-                </div>
-              </button>
+                  <p className="relative z-10 max-w-[22ch] text-xs uppercase tracking-[0.12em] text-[#dfc18f]">Frappe la veine de mana et récolte des rubis.</p>
 
-              <FeatureActionTile
-                title="PvP"
-                icon="fa-swords"
-                accentClassName="bg-gradient-to-br from-[#241d30]/0 via-[#4d2f57]/35 to-[#b15b45]/35"
-                value="Queue"
-                onClick={handleStartPvp}
-              />
+                  <div className="relative z-10 mt-4 flex items-center justify-between">
+                    <div className="h-px flex-1 bg-gradient-to-r from-[#f5c96c]/60 to-transparent" />
+                    <span className="ml-3 text-xs font-semibold uppercase tracking-wider text-[#f0dfb1]">Harvest</span>
+                  </div>
+                </button>
 
-              <FeatureActionTile
-                title="Expedition"
-                icon="fa-compass"
-                accentClassName="bg-gradient-to-br from-[#1e2a32]/0 via-[#355366]/35 to-[#7a9162]/35"
-                value={expeditionLabel}
-                content={
-                  activeExpeditionCharacter ? (
-                    <div>
-                      <div className="expedition-walk-lane" style={{ "--expedition-progress": `${expeditionProgressPercent.toFixed(2)}%` } as CSSProperties}>
-                        <div className="expedition-node expedition-node-start" aria-hidden="true">
-                          <i className="fa-solid fa-campground" />
-                        </div>
-                        <div className="expedition-node expedition-node-end" aria-hidden="true">
-                          <i className="fa-solid fa-flag-checkered" />
-                        </div>
-                        <div
-                          className="expedition-walker"
-                          style={{ left: `clamp(18px, ${expeditionProgressPercent.toFixed(2)}%, calc(100% - 18px))` }}
-                        >
-                          <div className="relative h-9 w-9 overflow-hidden rounded-full border border-[#c9a227]/80 bg-[#1e1828]">
-                            <Image
-                              src={activeExpeditionCharacter.portrait}
-                              alt={activeExpeditionCharacter.name}
-                              fill
-                              className="object-cover"
-                              draggable={false}
-                            />
+                <FeatureActionTile
+                  title="PvP"
+                  icon="fa-swords"
+                  accentClassName="bg-gradient-to-br from-[#241d30]/0 via-[#623357]/35 to-[#cf6d4b]/45"
+                  value="Queue"
+                  onClick={handleStartPvp}
+                />
+
+                <FeatureActionTile
+                  title="Expedition"
+                  icon="fa-compass"
+                  accentClassName="bg-gradient-to-br from-[#1e2a32]/0 via-[#355366]/35 to-[#7a9162]/45"
+                  value={expeditionLabel}
+                  content={
+                    activeExpeditionCharacter ? (
+                      <div>
+                        <div className="expedition-walk-lane" style={{ "--expedition-progress": `${expeditionProgressPercent.toFixed(2)}%` } as CSSProperties}>
+                          <div className="expedition-node expedition-node-start" aria-hidden="true">
+                            <i className="fa-solid fa-campground" />
+                          </div>
+                          <div className="expedition-node expedition-node-end" aria-hidden="true">
+                            <i className="fa-solid fa-flag-checkered" />
+                          </div>
+                          <div
+                            className="expedition-walker"
+                            style={{ left: `clamp(18px, ${expeditionProgressPercent.toFixed(2)}%, calc(100% - 18px))` }}
+                          >
+                            <div className="relative h-9 w-9 overflow-hidden rounded-full border border-[#c9a227]/80 bg-[#1e1828]">
+                              <Image
+                                src={activeExpeditionCharacter.portrait}
+                                alt={activeExpeditionCharacter.name}
+                                fill
+                                className="object-cover"
+                                draggable={false}
+                              />
+                            </div>
                           </div>
                         </div>
-                      </div>  
-                      
-                    </div>
-                  ) : null
-                }
-                onClick={() => setExpeditionOpen(true)}
-              />
-            </div>
+                      </div>
+                    ) : null
+                  }
+                  onClick={() => setExpeditionOpen(true)}
+                />
+              </div>
 
-            <div className="rounded-2xl p-2">
-              <div className="mb-3 flex items-center justify-between">
-                <h2
-                  className="text-lg font-black uppercase tracking-[0.12em] text-[#f5e6c8]"
-                  style={{ fontFamily: "var(--font-display), serif" }}
-                >
+              <article className="rounded-2xl border border-[#8a7548]/35 bg-[linear-gradient(125deg,rgba(20,16,25,0.92),rgba(14,11,20,0.86))] p-4 shadow-[0_14px_30px_rgba(0,0,0,0.42)]">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h2 className="text-[13px] font-black uppercase tracking-[0.18em] text-[#f2ddb0]" style={{ fontFamily: "var(--font-display), serif" }}>
+                    War Bulletin
+                  </h2>
+                  <span className="rounded-md border border-[#6a5b81] bg-[#1e1828]/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#ccb890]">
+                    Status
+                  </span>
+                </div>
+                <p className="text-sm text-[#d5c39b]">
+                  {activeExpedition
+                    ? `Escouade en marche, retour dans ${formatTimer(expeditionRemainingSeconds)}.`
+                    : "Aucune expédition active. Lance une mission pour accumuler de l or et de l expérience."}
+                </p>
+              </article>
+            </section>
+
+            <section className="home-reveal-3 min-h-0 rounded-2xl border border-[#c9a227]/30 bg-[linear-gradient(146deg,rgba(23,18,30,0.9),rgba(14,11,20,0.95))] p-3 shadow-[0_24px_48px_rgba(0,0,0,0.44)] xl:col-span-5 xl:p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="text-lg font-black uppercase tracking-[0.13em] text-[#f5e6c8]" style={{ fontFamily: "var(--font-display), serif" }}>
                   Team Builder
                 </h2>
                 <span className="rounded-lg border border-[#6a5b81] bg-[#1e1828] px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#e6d39e]">
@@ -491,11 +518,10 @@ export default function Home() {
                 </span>
               </div>
 
-              <div className="space-y-2.5">
-                <section className="flex w-full justify-center p-2">
-                  <div className="inline-flex flex-col items-center">
-                    <div className="mb-2 w-full text-center text-[10px] font-bold uppercase tracking-[0.16em] text-[#c9b48a]">Active Team</div>
-                    <div className="grid w-fit grid-cols-3 justify-items-center gap-1.5">
+              <div className="space-y-3">
+                <section className="rounded-xl border border-[#715b8f]/35 bg-[#120f17]/65 p-2.5">
+                  <div className="mb-2 w-full text-center text-[10px] font-bold uppercase tracking-[0.18em] text-[#cfbc91]">Active Team</div>
+                  <div className="grid grid-cols-3 justify-items-center gap-2">
                     {teamSlots.map((slotCharacterId, index) => {
                       const selectedCharacter = getTeamCharacter(slotCharacterId);
                       const isSlotHovered = hoveredSlotIndex === index;
@@ -505,8 +531,8 @@ export default function Home() {
                           ref={(element) => {
                             slotRefs.current[index] = element;
                           }}
-                          className={`relative w-[112px] overflow-hidden rounded-lg border border-dashed bg-[#120f17] transition-colors ${
-                            isSlotHovered ? "border-[#c9a227]" : "border-[#6b5a84]"
+                          className={`relative w-full max-w-[112px] overflow-hidden rounded-lg border border-dashed bg-[#120f17] transition-colors ${
+                            isSlotHovered ? "border-[#d8b45d]" : "border-[#6b5a84]"
                           }`}
                         >
                           {selectedCharacter ? (
@@ -527,7 +553,7 @@ export default function Home() {
                                       return next;
                                     });
                                   }}
-                                  className="text-[10px] text-[#e6c55a]"
+                                  className="text-[10px] text-[#f2d48b]"
                                   aria-label={`Clear slot ${index + 1}`}
                                 >
                                   ×
@@ -542,14 +568,12 @@ export default function Home() {
                         </div>
                       );
                     })}
-                    </div>
                   </div>
                 </section>
 
-                <section className="flex w-full justify-center p-2">
-                  <div className="inline-flex flex-col items-center">
-                    <div className="mb-2 w-full text-center text-[10px] font-bold uppercase tracking-[0.16em] text-[#c9b48a]">Roster</div>
-                    <div className="flex justify-center gap-1.5">
+                <section className="rounded-xl border border-[#715b8f]/35 bg-[#100d15]/80 p-2.5">
+                  <div className="mb-2 w-full text-center text-[10px] font-bold uppercase tracking-[0.18em] text-[#cfbc91]">Roster</div>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
                     {roster.map((character) => {
                       const inTeam = isCharacterInTeam(character.id);
                       return (
@@ -566,14 +590,20 @@ export default function Home() {
                             const freeSlot = teamSlots.findIndex((slot) => slot === null);
                             handleDropToTeamSlot(freeSlot === -1 ? 0 : freeSlot, character.id);
                           }}
-                          className={`group w-[86px] overflow-hidden rounded-lg border text-left transition-all ${
+                          className={`group w-[86px] shrink-0 overflow-hidden rounded-lg border text-left transition-all ${
                             inTeam
-                              ? "border-[#c9a227] shadow-[0_0_15px_rgba(201,162,39,0.3)]"
+                              ? "border-[#c9a227] shadow-[0_0_18px_rgba(201,162,39,0.33)]"
                               : "border-[#433556] hover:border-[#7a6599]"
                           } ${dragPreview?.id === character.id ? "opacity-50" : ""}`}
                         >
                           <div className="relative aspect-[3/4] w-full">
-                            <Image src={character.portrait} alt={character.name} fill className="object-cover transition-transform duration-300 group-hover:scale-105" draggable={false} />
+                            <Image
+                              src={character.portrait}
+                              alt={character.name}
+                              fill
+                              className="object-cover transition-transform duration-300 group-hover:scale-105"
+                              draggable={false}
+                            />
                           </div>
                           <div className="truncate bg-[#1a1422] px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-[#ead9aa]">
                             {character.name}
@@ -581,14 +611,12 @@ export default function Home() {
                         </button>
                       );
                     })}
-                    </div>
                   </div>
                 </section>
               </div>
-            </div>
+            </section>
           </div>
         </div>
-
       </main>
 
       {minePopups.map((popup) => (
