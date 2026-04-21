@@ -196,6 +196,12 @@ io.on("connect", (socket) => {
     }
   })
 
+  socket.on("has_delete", async (sender) => {
+    io.emit("deletion", {
+      sender
+    });
+  })
+
   //delete the user's socket if he's disconnected
   socket.on("disconnect", async () => {
     const onlineUsers = await redis.hGetAll("online_users");

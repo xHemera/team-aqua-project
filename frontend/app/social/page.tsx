@@ -301,6 +301,7 @@ export default function SocialPage() {
         setHasBlocked(false);
     });
 
+    //prompt the challenge request
     socket.on("challenge", async({sender, receiver}) => {
       if (receiver == userPseudo)
       {
@@ -311,6 +312,7 @@ export default function SocialPage() {
         setWaiting(true);
     })
 
+    //send to the game if duel is accepted
     socket.on("accept", async ({user, oUser}) => {
       if (oUser == userPseudo)
       {
@@ -319,15 +321,25 @@ export default function SocialPage() {
       }
     })
 
+    //stops the waiting status if duel is refused
     socket.on("refuse", async ({user, oUser}) => {
       if (oUser == userPseudo)
         setWaiting(false);
     })
 
+    //sets unread to read if message is read
     socket.on("read", async ({user, oUser}) => {
       if (oUser == userPseudo)
         setUnread(false);
     })
+
+    //reloads inboxes and exits the conversation
+    socket.on("deletion", async (sender) => {
+      const i = await contact.getInboxes(userPseudo);
+      setInboxes(i);
+      setSelectedUser("");
+    })
+
   }, [userPseudo, selectedUser]);
 
 	//fetch the conversation

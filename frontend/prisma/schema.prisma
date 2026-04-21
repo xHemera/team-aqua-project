@@ -111,6 +111,7 @@ model User {
   image             String?
   badges            String[]  @default([])
   blockedUsers      String[]  @default([])
+	banned						Boolean		@default(false)
   profileBackground String?
   profileBanner     String?
   online            Boolean   @default(false)

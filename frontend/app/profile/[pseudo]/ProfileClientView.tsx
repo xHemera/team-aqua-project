@@ -351,6 +351,9 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
           : "Impossible de charger l'utilisateur";
         throw new Error(errorMessage);
       }
+    socket.emit("has_delete", {
+      sender: userPseudo
+    });
     socket.disconnect();
     router.push("/");
   }
