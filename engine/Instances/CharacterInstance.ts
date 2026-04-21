@@ -9,7 +9,7 @@ export class CharacterInstance {
 	defMod:		number[] = []
 	defTurn:	number[] = []
 	defMMod:	number[] = []
-	defTMMod:	number[] = []
+	defMTurn:	number[] = []
 	spdMod:		number[] = []
 	spdTMod:	number[] = []
 
