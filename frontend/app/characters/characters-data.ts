@@ -25,7 +25,7 @@ export const CHARACTERS: CharacterData[] = [
         id: "s1",
         name: "Piercing Shot",
         image: "/spells/water_spell.png",
-        description: "Deals {physical damage * 1.2 + skill level * 15} physical damage to a single target. Ignores 15% armor.",
+        description: "Deals {physical damage * 1.2 + skill level * 15} physical damage to a single target. Ignores 15% resistance.",
         unlockLevel: 1,
         level: 4,
         cost: 8,

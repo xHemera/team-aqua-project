@@ -12,20 +12,20 @@ function applyAndTick(mods: ModEntry[], raw: number): { result: number; mods: Mo
 
 export function resolvePhyDamage(raw: number, idUser: CharacterInstance, idTarget: CharacterInstance): number {
     const { result: afterUser,   mods: newUserMod   } = applyAndTick(idUser.phyMod,   raw);
-    const { result: afterTarget, mods: newTargetMod } = applyAndTick(idTarget.defMod, afterUser);
+    const { result: afterTarget, mods: newTargetMod } = applyAndTick(idTarget.phyResMod, afterUser);
 
     idUser.phyMod    = newUserMod;
-    idTarget.defMod  = newTargetMod;
+    idTarget.phyResMod  = newTargetMod;
 
     return afterTarget;
 }
 
 export function resolveMagDamage(raw: number, idUser: CharacterInstance, idTarget: CharacterInstance): number {
     const { result: afterUser,   mods: newUserMod   } = applyAndTick(idUser.magMod,    raw);
-    const { result: afterTarget, mods: newTargetMod } = applyAndTick(idTarget.defMMod, afterUser);
+    const { result: afterTarget, mods: newTargetMod } = applyAndTick(idTarget.magResMod, afterUser);
 
     idUser.magMod    = newUserMod;
-    idTarget.defMMod = newTargetMod;
+    idTarget.magResMod = newTargetMod;
 
     return afterTarget;
 }
