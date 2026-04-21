@@ -1,23 +1,27 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Cinzel, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 import BackgroundPreferenceSync from "./background-preference-sync";
 import AccentPreferenceSync from "./accent-preference-sync";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const cinzel = Cinzel({
+  variable: "--font-display",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const cormorant = Cormorant_Garamond({
+  variable: "--font-body",
   subsets: ["latin"],
-  preload: false,
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "Team Aqua Project",
-  description: "Minimal frontend with Better Auth",
+  description: "A Medieval Fantasy JRPG Experience",
 };
 
 export default function RootLayout({
@@ -36,7 +40,12 @@ export default function RootLayout({
           referrerPolicy="no-referrer"
         />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body
+        className={`${cinzel.variable} ${cormorant.variable} antialiased`}
+        style={{
+          fontFamily: "var(--font-body), Georgia, serif",
+        }}
+      >
         <BackgroundPreferenceSync />
         <AccentPreferenceSync />
         {children}

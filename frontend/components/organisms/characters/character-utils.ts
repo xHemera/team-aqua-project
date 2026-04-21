@@ -1,78 +1,5 @@
 import type { CharacterSkill, CharacterStats, ResolvedSkillEffect } from "./types";
 
-type SkillEffectTemplate = {
-  title: string;
-  description: string;
-};
-
-const SKILL_EFFECTS: Record<string, SkillEffectTemplate> = {
-  "Water Spell": {
-    title: "Water Arrow",
-    description:
-      "Inflige {physical damage * skill level} degats a la cible (AoE), si le spell est utilise plusieurs fois d'affile, les degats augmentent de 60% a chaque fois",
-  },
-  "Frenzy Spell": {
-    title: "Attack Boost",
-    description: "Augmente les degats du prochain sort de {10% * skill level}",
-  },
-  Stunned: {
-    title: "Stun",
-    description:
-      "Pendant le prochain tour de la cible, si il lance un sort il a {10% * skill level} de chances de le louper",
-  },
-  Healing: {
-    title: "Healing",
-    description: "Restore {10% * skill level} des PV max de la cible",
-  },
-  "Defense Boost": {
-    title: "Defense Boost",
-    description: "Reduit de {10% * skill level} les degats recu par l'equipe lors du prochain tour",
-  },
-  "Divine Protection": {
-    title: "Divine Protection",
-    description: "Annule tout les degats recu par la cible lors du prochain tour",
-  },
-  Fortify: {
-    title: "Fortify",
-    description: "Reduit les degats recus de {3% * skill level} pendant 1 tour.",
-  },
-  "Damage Boost": {
-    title: "Damage Boost",
-    description: "Augment les degats de la prochaine attaque normale de {5% * skill level}",
-  },
-  Berserk: {
-    title: "Berserk",
-    description:
-      "Durant les 3 prochain tour, augmente de {12% * skill level} toute source de degats recu et augmente de {10% * skill level} toute source de degats infliges",
-  },
-  Silence: {
-    title: "Silence",
-    description: "La cible ne pourra pas lance de sort lors du prochain tour",
-  },
-  "Poison Dart": {
-    title: "Poison Dart",
-    description: "Inflige {physical damage * 1.5 * skill level} degats et empoisonne la cible pendant 3 tour",
-  },
-  Amplify: {
-    title: "Amplify",
-    description:
-      "Votre prochaine instance de DoT infligera des degats critique garantie a hauteur de {100% * skill level} (Les degats sont infliges autant de fois que le DoT devait rester, cleanse le DoT)",
-  },
-  Fireball: {
-    title: "Fireball (lv. 1)",
-    description: "Inflige {magic damage * skill level} degats en AoE",
-  },
-  "Mana Restoration": {
-    title: "Mana Restoration (lv. 3)",
-    description: "Redonne {skill level} MP a la cible",
-  },
-  Counterspell: {
-    title: "Counterspell (lv. 5)",
-    description:
-      "Pendant le prochain tour, la cible ne recevra aucun effet du premier sort adverse (les degats sont un effet)",
-  },
-};
-
 export const LEVEL_UP_READY_CLASS = "!border-[#2f7f4f] !bg-[#1f5b37] !text-[#dcffe9] hover:!bg-[#286f44]";
 
 export const STAT_GROUPS = [
@@ -93,7 +20,7 @@ export const STAT_GROUPS = [
     titleClassName: "border-[#2c5b36] bg-[#16301c] text-[#b9efc5]",
     items: [
       { key: "hp", label: "HP", icon: "fa-heart", iconColor: "text-[#8fdf8f]" },
-      { key: "mp", label: "MP", icon: "fa-droplet", iconColor: "text-[#7fd9ff]" },
+      { key: "mp", label: "Mana", icon: "fa-droplet", iconColor: "text-[#7fd9ff]" },
     ],
   },
   {
@@ -104,7 +31,131 @@ export const STAT_GROUPS = [
   },
 ] as const;
 
-const formatPercent = (value: number) => `${value.toFixed(0)}%`;
+export const CHARACTER_STAT_ROWS = [
+  { key: "physicalDamage", label: "P. ATK", icon: "fa-hand-fist", iconColor: "text-[#ff8a7a]" },
+  { key: "magicalDamage", label: "M. ATK", icon: "fa-wand-magic-sparkles", iconColor: "text-[#7ecbff]" },
+  { key: "critChance", label: "Crit%", icon: "fa-crosshairs", iconColor: "text-[#f0d27a]" },
+  { key: "critDamage", label: "Crit DMG", icon: "fa-star", iconColor: "text-[#ff9ecb]" },
+  { key: "hp", label: "HP", icon: "fa-heart", iconColor: "text-[#8fdf8f]" },
+  { key: "mp", label: "Mana", icon: "fa-droplet", iconColor: "text-[#7fd9ff]" },
+  { key: "speed", label: "Speed", icon: "fa-gauge-high", iconColor: "text-[#c0b3ff]" },
+] as const;
+
+export const getStatBonus = (baseValue: number, totalValue: number) => Math.max(totalValue - baseValue, 0);
+
+const FORMULA_TOKEN_PATTERN = /\{([^}]+)\}/g;
+
+// Evaluate a formula expression safely
+const evaluateFormula = (expression: string, stats: CharacterStats, skill: CharacterSkill): number | null => {
+  try {
+    // Normalize the expression
+    let formula = expression.trim().toLowerCase();
+
+    // Replace stat references
+    const statMappings: Record<string, number> = {
+      "physical damage": stats.physicalDamage.toString(),
+      "physical damage": stats.physicalDamage.toString(),
+      "magic damage": stats.magicalDamage.toString(),
+      "magical damage": stats.magicalDamage.toString(),
+      "skill level": skill.level.toString(),
+      "max hp": stats.hp.toString(),
+      "max mp": stats.mp.toString(),
+    };
+
+    // Replace known stat names
+    for (const [pattern, value] of Object.entries(statMappings)) {
+      const regex = new RegExp(`\\b${pattern.replace(/\s+/g, "\\s+")}\\b`, "gi");
+      formula = formula.replace(regex, value);
+    }
+
+    // Handle percentage notation (e.g., "15%" -> "15")
+    formula = formula.replace(/(\d+)%/g, "$1");
+
+    // Check if formula still has unknown variables (contains letters)
+    if (/[a-zA-Z]/.test(formula)) {
+      // It might contain Math functions or other valid JS
+      const validFunctions = ["math.floor", "math.ceil", "math.round", "math.max", "math.min"];
+      const hasOnlyValidFunctions = validFunctions.some(fn => formula.includes(fn));
+
+      if (!hasOnlyValidFunctions && /[a-zA-Z]/.test(formula.replace(/math\./gi, ""))) {
+        return null; // Unknown variable
+      }
+    }
+
+    // Replace Math with actual Math object reference
+    formula = formula.replace(/math\./gi, "Math.");
+
+    // Validate characters (only numbers, operators, parens, dots, Math.)
+    if (!/^[\d\+\-\*\/\(\)\.\s,Math]+$/.test(formula.replace(/Math\./g, ""))) {
+      return null;
+    }
+
+    // Evaluate using Function constructor (safer than eval)
+    const result = new Function(`"use strict"; return (${formula});`)();
+
+    if (typeof result !== "number" || !Number.isFinite(result)) {
+      return null;
+    }
+
+    return result;
+  } catch {
+    return null;
+  }
+};
+
+// Format a number for display
+const formatNumber = (value: number): string => {
+  if (Number.isInteger(value)) {
+    return value.toString();
+  }
+  // Round to 1 decimal place if needed
+  const rounded = Math.round(value * 10) / 10;
+  return rounded.toString();
+};
+
+// Parse a description and resolve all formulas
+export const resolveSkillDescription = (
+  description: string,
+  stats: CharacterStats,
+  skill: CharacterSkill
+): ResolvedSkillEffect => {
+  const segments: Array<{ text: string; highlight?: boolean }> = [];
+  let lastIndex = 0;
+
+  // Find all formula tokens {expression}
+  for (const match of description.matchAll(FORMULA_TOKEN_PATTERN)) {
+    const fullMatch = match[0];
+    const expression = match[1];
+    const startIndex = match.index ?? 0;
+
+    // Add text before this formula
+    if (startIndex > lastIndex) {
+      segments.push({ text: description.slice(lastIndex, startIndex) });
+    }
+
+    // Evaluate the formula
+    const result = evaluateFormula(expression, stats, skill);
+
+    if (result !== null) {
+      segments.push({ text: formatNumber(result), highlight: true });
+    } else {
+      // Could not evaluate, keep original but styled differently
+      segments.push({ text: `{${expression}}`, highlight: true });
+    }
+
+    lastIndex = startIndex + fullMatch.length;
+  }
+
+  // Add remaining text
+  if (lastIndex < description.length) {
+    segments.push({ text: description.slice(lastIndex) });
+  }
+
+  return {
+    title: skill.name,
+    segments: segments.length > 0 ? segments : [{ text: description }],
+  };
+};
 
 export const formatCompactPower = (value: number) => {
   const units = ["", "k", "M", "B"];
@@ -127,12 +178,12 @@ export const formatCompactPower = (value: number) => {
 };
 
 export const calculatePower = (stats: CharacterStats) => {
-  const base =
-    (stats.physicalDamage + stats.magicalDamage) +
-    (stats.critChance * stats.critDamage) +
-    (stats.hp + stats.mp);
+  // More realistic power calculation for actual game balance
+  const offense = (stats.physicalDamage * 1.5) + (stats.magicalDamage * 1.5) + (stats.critChance * stats.critDamage / 100);
+  const defense = stats.hp * 0.5 + stats.mp * 0.2;
+  const utility = stats.speed * 2;
 
-  return Math.round(base * (stats.speed / 100));
+  return Math.round(offense + defense + utility);
 };
 
 export const getLevelUpState = (currentLevel: number, maxLevel: number, cost: number, availableResource: number) => {
@@ -150,186 +201,7 @@ export const getSkillTooltipPositionClassName = (index: number) => {
 };
 
 export const resolveSkillEffect = (skill: CharacterSkill, stats: CharacterStats): ResolvedSkillEffect | null => {
-  const effect = SKILL_EFFECTS[skill.name];
-  if (!effect) return null;
+  if (!skill.description) return null;
 
-  if (skill.name === "Water Spell") {
-    const damage = Math.round(stats.physicalDamage * skill.level);
-    return {
-      title: effect.title,
-      segments: [
-        { text: "Inflige " },
-        { text: `${damage}`, highlight: true },
-        {
-          text: " degats a la cible (AoE).\nSi le spell est utilise plusieurs fois d'affile, les degats augmentent de 60% a chaque fois.",
-        },
-      ],
-    };
-  }
-
-  if (skill.name === "Frenzy Spell") {
-    const bonusPercent = 10 * skill.level;
-    return {
-      title: effect.title,
-      segments: [
-        { text: "Augmente les degats du prochain sort de " },
-        { text: `${formatPercent(bonusPercent)}`, highlight: true },
-        { text: "." },
-      ],
-    };
-  }
-
-  if (skill.name === "Stunned") {
-    const missChance = 10 * skill.level;
-    return {
-      title: effect.title,
-      segments: [
-        { text: "Pendant le prochain tour de la cible, si il lance un sort il a " },
-        { text: `${formatPercent(missChance)}`, highlight: true },
-        { text: " de chances de le louper." },
-      ],
-    };
-  }
-
-  if (skill.name === "Healing") {
-    const healPercent = 10 * skill.level;
-    return {
-      title: effect.title,
-      segments: [
-        { text: "Restore " },
-        { text: `${formatPercent(healPercent)}`, highlight: true },
-        { text: " des PV max de la cible." },
-      ],
-    };
-  }
-
-  if (skill.name === "Defense Boost") {
-    const reduction = 10 * skill.level;
-    return {
-      title: effect.title,
-      segments: [
-        { text: "Reduit de " },
-        { text: `${formatPercent(reduction)}`, highlight: true },
-        { text: " les degats recu par l'equipe lors du prochain tour." },
-      ],
-    };
-  }
-
-  if (skill.name === "Divine Protection") {
-    return {
-      title: effect.title,
-      segments: [{ text: "Annule tout les degats recu par la cible lors du prochain tour." }],
-    };
-  }
-
-  if (skill.name === "Fortify") {
-    const reduction = 3 * skill.level;
-    return {
-      title: effect.title,
-      segments: [
-        { text: "Reduit les degats recus de " },
-        { text: `${formatPercent(reduction)}`, highlight: true },
-        { text: " pendant 1 tour." },
-      ],
-    };
-  }
-
-  if (skill.name === "Damage Boost") {
-    const bonus = 5 * skill.level;
-    return {
-      title: effect.title,
-      segments: [
-        { text: "Augment les degats de la prochaine attaque normale de " },
-        { text: `${formatPercent(bonus)}`, highlight: true },
-        { text: "." },
-      ],
-    };
-  }
-
-  if (skill.name === "Berserk") {
-    const receivedBonus = 12 * skill.level;
-    const inflictedBonus = 10 * skill.level;
-    return {
-      title: effect.title,
-      segments: [
-        { text: "Durant les 3 prochain tour, augmente de " },
-        { text: `${formatPercent(receivedBonus)}`, highlight: true },
-        { text: " toute source de degats recu et augmente de " },
-        { text: `${formatPercent(inflictedBonus)}`, highlight: true },
-        { text: " toute source de degats infliges." },
-      ],
-    };
-  }
-
-  if (skill.name === "Silence") {
-    return {
-      title: effect.title,
-      segments: [{ text: "La cible ne pourra pas lance de sort lors du prochain tour." }],
-    };
-  }
-
-  if (skill.name === "Poison Dart") {
-    const damage = Math.round(stats.physicalDamage * 1.5 * skill.level);
-    return {
-      title: effect.title,
-      segments: [
-        { text: "Inflige " },
-        { text: `${damage}`, highlight: true },
-        { text: " degats et empoisonne la cible pendant 3 tour." },
-      ],
-    };
-  }
-
-  if (skill.name === "Amplify") {
-    const guaranteedCritical = 100 * skill.level;
-    return {
-      title: effect.title,
-      segments: [
-        { text: "Votre prochaine instance de DoT infligera des degats critique garantie a hauteur de " },
-        { text: `${formatPercent(guaranteedCritical)}`, highlight: true },
-        {
-          text: " (Les degats sont infliges autant de fois que le DoT devait rester, cleanse le DoT).",
-        },
-      ],
-    };
-  }
-
-  if (skill.name === "Fireball") {
-    const damage = Math.round(stats.magicalDamage * skill.level);
-    return {
-      title: effect.title,
-      segments: [
-        { text: "Inflige " },
-        { text: `${damage}`, highlight: true },
-        { text: " degats en AoE." },
-      ],
-    };
-  }
-
-  if (skill.name === "Mana Restoration") {
-    return {
-      title: effect.title,
-      segments: [
-        { text: "Redonne " },
-        { text: `${skill.level}`, highlight: true },
-        { text: " MP a la cible." },
-      ],
-    };
-  }
-
-  if (skill.name === "Counterspell") {
-    return {
-      title: effect.title,
-      segments: [
-        {
-          text: "Pendant le prochain tour, la cible ne recevra aucun effet du premier sort adverse (les degats sont un effet).",
-        },
-      ],
-    };
-  }
-
-  return {
-    title: effect.title,
-    segments: [{ text: effect.description }],
-  };
+  return resolveSkillDescription(skill.description, stats, skill);
 };
