@@ -116,12 +116,40 @@ export default function SocialPage() {
   const [typer, setTyper] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
   const [unread, setUnread] = useState(false);
+  const [messageReadStatus, setMessageReadStatus] = useState<Record<string, boolean>>({});
 
   const MAX_MESSAGE_LENGTH = 500;
   const MAX_DISPLAY_LENGTH = 200;
 
   let timeout: NodeJS.Timeout;
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
+
+  // Helper functions for localStorage persistence
+  const getConversationKey = (user1: string, user2: string) => {
+    const sorted = [user1, user2].sort();
+    return `message_read_status_${sorted[0]}_${sorted[1]}`;
+  };
+
+  const getStoredReadStatus = (user1: string, user2: string): Record<string, boolean> => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const key = getConversationKey(user1, user2);
+      const stored = localStorage.getItem(key);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const saveReadStatusToStorage = (status: Record<string, boolean>) => {
+    if (!currentUser || !selectedUser || typeof window === 'undefined') return;
+    try {
+      const key = getConversationKey(currentUser.name, selectedUser);
+      localStorage.setItem(key, JSON.stringify(status));
+    } catch {
+      // Silent fail
+    }
+  };
 
   const toggleMessageExpanded = (messageId: string) => {
     setExpandedMessages((prev) => {
@@ -325,10 +353,20 @@ export default function SocialPage() {
     })
 
     socket.on("read", async ({user, oUser}) => {
-      if (oUser == userPseudo)
+      if (oUser == userPseudo) {
         setUnread(false);
+        setMessageReadStatus((prev) => {
+          const lastMessageId = currentMessages.findLast((m) => m.user_id === currentUser?.id)?.id;
+          if (lastMessageId) {
+            const updated = { ...prev, [lastMessageId]: true };
+            saveReadStatusToStorage(updated);
+            return updated;
+          }
+          return prev;
+        });
+      }
     })
-  }, [userPseudo, selectedUser]);
+  }, [userPseudo, selectedUser, currentMessages, currentUser]);
 
 	//fetch the conversation
 	useEffect(() => {
@@ -340,6 +378,18 @@ export default function SocialPage() {
     	setCurrentMessages(newMessages);
       contact.resetUnread(currentUser.name, selectedUser)
       fetchUnread();
+      
+      // Load read status from localStorage
+      const storedStatus = getStoredReadStatus(currentUser.name, selectedUser);
+      const newStatus: Record<string, boolean> = {};
+      newMessages.forEach((msg) => {
+        if (msg.user_id === currentUser.id) {
+          // Use stored status if available, otherwise default to false (unread)
+          newStatus[msg.id] = storedStatus[msg.id] ?? false;
+        }
+      });
+      setMessageReadStatus(newStatus);
+      saveReadStatusToStorage(newStatus);
 		}
 		fetchmessages();
     socket.emit("has_read", {
@@ -643,6 +693,19 @@ export default function SocialPage() {
 		const newMessages = await contact.getMsg(currentUser.name, selectedUser);
     contact.getUnreadNotif(currentUser.name);
 		if (!newMessages) return;
+    
+    //Initialize read status for new message as unread
+    const lastMessage = newMessages[newMessages.length - 1];
+    if (lastMessage) {
+      setMessageReadStatus((prev) => {
+        const updated = {
+          ...prev,
+          [lastMessage.id]: false,
+        };
+        saveReadStatusToStorage(updated);
+        return updated;
+      });
+    }
 
     // Prepare images from attachments
     const images = await Promise.all(
@@ -838,7 +901,7 @@ export default function SocialPage() {
                           unoptimized
                         />
                       </div>
-                      {user.online ? <div>ONLINE</div> : <div>OFFLINE</div>}
+                      {user.online ? <div>🟢</div> : <div>🔴</div>}
                       <span className="shrink-0 whitespace-nowrap text-sm font-semibold">{user.name}</span>
                       {
                         (unreadMap[user.name] ?? 0) > 0 && (
@@ -931,12 +994,17 @@ export default function SocialPage() {
                   No conversation selected
                 </div> ) :
               (
-                currentMessages.map((msg) => (
+                currentMessages.map((msg, index) => {
+                  const lastUserMessageIndex = currentMessages.findLastIndex((m) => m.user_id === currentUser.id);
+                  const isLastUserMessage = msg.user_id === currentUser.id && index === lastUserMessageIndex;
+                  return (
                 <div key={msg.id} className={`flex flex-col ${msg.user_id === currentUser.id ? "items-end" : "items-start"}`}>
                   <button
                     type="button"
                     onClick={() => {
-                      if (msg.user_id !== currentUser.id && selectedUser) {
+                      if (msg.user_id === currentUser.id) {
+                        router.push(`/profile/${currentUser.name}`);
+                      } else if (selectedUser) {
                         openProfileViewerForUserName(selectedUser);
                       }
                     }}
@@ -951,7 +1019,7 @@ export default function SocialPage() {
                       alt="Avatar"
                       width={20}
                       height={20}
-                      className="h-4 w-4 rounded border border-[#3c3650]"
+                      className="h-4 w-4 rounded transition-transform hover:scale-125"
                       unoptimized
                     />
                     <span className="font-semibold">
@@ -959,13 +1027,14 @@ export default function SocialPage() {
                     </span>
                     <span className="opacity-75">{formatTime(msg.createdAt)}</span>
                   </button>
-                  <article
-                    className={`max-w-[44rem] rounded-2xl px-5 py-3 ${
-                      msg.user_id === currentUser.id
-                        ? "bg-[var(--accent-color)] text-white"
-                        : "border border-[#3c3650] bg-[#242033] text-gray-100"
-                    }`}
-                  >
+                  <div className={`flex items-end ${msg.user_id === currentUser.id ? "flex-row-reverse gap-2" : "gap-2"}`}>
+                    <article
+                      className={`max-w-[44rem] rounded-2xl px-5 py-3 ${
+                        msg.user_id === currentUser.id
+                          ? "bg-[var(--accent-color)] text-white"
+                          : "border border-[#3c3650] bg-[#242033] text-gray-100"
+                      }`}
+                    >
                     {msg.message && (
                       <div>
                         <p className="leading-relaxed break-words whitespace-pre-wrap">
@@ -985,6 +1054,7 @@ export default function SocialPage() {
                         )}
                       </div>
                     )}
+
 
                     {/* {msg.attachments.length > 0 && (
                       <div className={`mt-2 grid gap-2 ${msg.attachments.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
@@ -1021,11 +1091,51 @@ export default function SocialPage() {
                         })}
                       </div>
                     )} */}
-                  </article>
+                    </article>
+                    {isLastUserMessage && (
+                      <div>
+                        {messageReadStatus[msg.id] ? (
+                          <span className="text-emerald-400 text-sm"><i className="fa-solid fa-check-double"></i></span>
+                        ) : (
+                          <span className="text-gray-500 text-sm"><i className="fa-solid fa-check"></i></span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                ))
+                );})
               )}
             </div>
+            {selectedUser && typer && selectedUser === typer && typing && (
+              <div className="px-5 py-3">
+                <style>{`
+                  @keyframes typing-animation {
+                    0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+                    30% { opacity: 1; transform: translateY(-8px); }
+                  }
+                  .typing-dot {
+                    display: inline-block;
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    background-color: currentColor;
+                    margin: 0 2px;
+                    animation: typing-animation 1.4s infinite;
+                  }
+                  .typing-dot:nth-child(1) { animation-delay: 0s; }
+                  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+                  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+                `}</style>
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-400">
+                  <span>{typer} is typing</span>
+                  <span className="text-[var(--accent-color)]">
+                    <span className="typing-dot"></span>
+                    <span className="typing-dot"></span>
+                    <span className="typing-dot"></span>
+                  </span>
+                </div>
+              </div>
+            )}
             <footer className="sticky bottom-0 border-t border-[#3c3650] bg-[#15131d] p-4">
               {selectedUser && (<div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2 rounded-full border border-[#3c3650] bg-[#242033] px-2 py-2">
@@ -1076,7 +1186,6 @@ export default function SocialPage() {
                   >
                     <i className="fa-solid fa-paper-plane" />
                   </button>
-                  {unread ? <div>unread</div> : <div>read</div>}
                 </div>
                 {draftAttachments.length > 0 && (
                   <div className="flex flex-wrap gap-2">
@@ -1099,7 +1208,6 @@ export default function SocialPage() {
                     ))}
                   </div>
                 )}
-                {selectedUser && typer && selectedUser === typer && typing && <div>{typer} is typing</div>}
               </div>)}
             </footer>
           </section>

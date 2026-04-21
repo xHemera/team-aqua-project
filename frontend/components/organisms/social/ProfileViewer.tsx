@@ -291,7 +291,7 @@ export default function ProfileViewerModal({
         <div className="flex flex-col gap-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 items-center gap-4">
-              <div className="relative h-16 w-16 overflow-hidden rounded-2xl border border-[color:var(--accent-border)] bg-[#242033]">
+              <div className="relative h-16 w-16 transition-transform hover:scale-110  overflow-hidden rounded-2xl border border-[color:var(--accent-border)] bg-[#242033]">
                 {displayedAvatarUrl ? (
                   <Image
                     src={displayedAvatarUrl}
