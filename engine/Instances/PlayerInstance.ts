@@ -1,5 +1,7 @@
+import { CharacterInstance } from "./CharacterInstance";
+
 export class PlayerInstance {
-	characters: CharacterData[] = []
+	characters: CharacterInstance[] = []
 	timer:		number;
 
 	constructor(){
