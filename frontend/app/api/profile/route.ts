@@ -174,13 +174,9 @@ export async function DELETE() {
     const userId = session.user.id;
 
     await prisma.$transaction(async (tx) => {
-      await tx.messages.deleteMany({ where: { user_id: userId } });
-      //await tx.inbox.deleteMany({ where: { inboxUser: {some : {user_id: userId } } } });
-      await tx.inbox_users.deleteMany({ where: { user_id: userId } });
-      await tx.friends.deleteMany({ where: { userId: userId } });
+      await tx.inbox.deleteMany({ where: { inboxUser: {some : {user_id: userId } } } });
       await tx.session.deleteMany({ where: { userId: userId } });
       await tx.account.deleteMany({ where: { userId: userId } });
-      await tx.match_history.deleteMany({ where: { user_id: userId } });
 
       await tx.user.delete({ where: { id: userId } });
     });

@@ -19,8 +19,8 @@ type Match_history = {
   id:           string;
   result:       string;
   createdAt:    Date;
-  playedDeck:   string;
-  opponentDeck: string;
+  playerTeam:   string[];
+  opponentTeam: string[];
   opponent:     string;
   user_id:      string;
 }
@@ -435,7 +435,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                 </div>
               </div>
               <div className="flex items-center gap-2 pb-3">
-                {profileBadges.map((badge, index) => (
+                {profileBadges.map((badge) => (
                   <span key={badge} className="rounded-md border border-yellow-500/50 bg-yellow-600/90 px-3 py-1 text-xs font-bold">{badge}</span>
                 )
                 )}
@@ -473,28 +473,32 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                           <div className="rounded-lg bg-black/20 px-3 py-2.5">
                             <p className="mb-1 text-xs uppercase tracking-wide text-gray-400">Deck joué</p>
                             <div className="inline-flex items-center gap-2.5">
-                              <Image
-                                src={deckpublic[match.playedDeck] || deckpublic.Flygon}
-                                alt={match.playedDeck}
-                                width={24}
-                                height={24}
-                                className="h-6 w-6"
-                              />
-                              <span className="text-base font-semibold text-white">{match.playedDeck}</span>
+                              {match.playerTeam.map((member) => 
+                                <Image
+                                  src={deckpublic[member] || deckpublic.Flygon}
+                                  alt={member}
+                                  width={24}
+                                  height={24}
+                                  className="h-6 w-6"
+                                />
+                              )}
+                              <span className="text-base font-semibold text-white">{match.playerTeam}</span>
                             </div>
                           </div>
 
                           <div className="rounded-lg bg-black/20 px-3 py-2.5">
                             <p className="mb-1 text-xs uppercase tracking-wide text-gray-400">Deck affronté</p>
                             <div className="inline-flex items-center gap-2.5">
-                              <Image
-                                src={deckpublic[match.opponentDeck] || deckpublic.Flygon}
-                                alt={match.opponentDeck}
-                                width={24}
-                                height={24}
-                                className="h-6 w-6"
-                              />
-                              <span className="text-base font-semibold text-white">{match.opponentDeck}</span>
+                              {match.opponentTeam.map((member) => 
+                                <Image
+                                  src={deckpublic[member] || deckpublic.Flygon}
+                                  alt={member}
+                                  width={24}
+                                  height={24}
+                                  className="h-6 w-6"
+                                />
+                              )}
+                              <span className="text-base font-semibold text-white">{match.opponentTeam}</span>
                             </div>
                           </div>
                         </div>

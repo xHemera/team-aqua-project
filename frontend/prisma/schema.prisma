@@ -15,7 +15,7 @@ model Spell {
   effect      Int
   mpCost      Int
   level       Int
-  character   Character @relation(fields: [characterId], references: [id])
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
 }
 
 model Character {
@@ -32,7 +32,7 @@ model Character {
   dBoost      Int
   nturnEffect Int
   spells      Spell[]
-  gameState   GameState @relation(fields: [gameStateId], references: [id])
+  gameState   GameState @relation(fields: [gameStateId], references: [id], onDelete: Cascade)
 }
 
 model GameState {
@@ -41,7 +41,7 @@ model GameState {
   rubis       Int
   gold        Int
   characters  Character[]
-  user        User      @relation(fields: [user_id], references: [id])
+  user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model Friends {
@@ -49,7 +49,7 @@ model Friends {
   userId        String
   request_sent  Boolean
   created_at    DateTime    @default(now())
-  user          User        @relation(fields: [userId], references: [id])
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@id([userId, friendId])
 }
 
@@ -59,8 +59,8 @@ model Messages {
   inbox_id  String
   message   String?
   createdAt DateTime	@default(now())
-  user      User?			@relation(fields: [user_id], references: [id])
-  inbox     Inbox?		@relation(fields: [inbox_id], references: [id])
+  user      User?			@relation(fields: [user_id], references: [id], onDelete: Cascade)
+  inbox     Inbox?		@relation(fields: [inbox_id], references: [id], onDelete: Cascade)
 }
 
 model Inbox {
@@ -70,7 +70,7 @@ model Inbox {
 	createdAt         DateTime  @default(now())
 	inboxUser					Inbox_users[]
 	messages          Messages[]
-	user              User?     @relation(fields: [last_sent_user_id], references: [id])
+	user              User?     @relation(fields: [last_sent_user_id], references: [id], onDelete: Cascade)
 }
 
 model Inbox_users {
@@ -78,8 +78,8 @@ model Inbox_users {
   inbox_id	      String
   user_id         String
   unread_messages Int?
-  user		        User?			@relation(fields: [user_id], references: [id])
-  inbox		        Inbox?		@relation(fields: [inbox_id], references: [id])
+  user		        User?			@relation(fields: [user_id], references: [id], onDelete: Cascade)
+  inbox		        Inbox?		@relation(fields: [inbox_id], references: [id], onDelete: Cascade)
 }
 
 model Avatar {
@@ -100,7 +100,7 @@ model Match_history {
   opponentTeam  String[]
   opponent      String
   user_id       String
-  user          User?     @relation(fields: [user_id], references: [id])
+  user          User?     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model User {
@@ -117,7 +117,7 @@ model User {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   avatarId          String?
-  avatar            Avatar?   @relation(fields: [avatarId], references: [id])
+  avatar            Avatar?   @relation(fields: [avatarId], references: [id], onDelete: Cascade)
   sessions          Session[]
   accounts          Account[]
   friends           Friends[]
