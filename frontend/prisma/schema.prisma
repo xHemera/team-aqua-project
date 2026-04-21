@@ -118,6 +118,7 @@ model User {
   updatedAt         DateTime  @updatedAt
   avatarId          String?
   avatar            Avatar?   @relation(fields: [avatarId], references: [id])
+  banner            ProfileBanner?
   sessions          Session[]
   accounts          Account[]
   friends           Friends[]
@@ -129,6 +130,17 @@ model User {
 
   @@unique([email])
   @@map("user")
+}
+
+model ProfileBanner {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  mimeType  String
+  data      Bytes
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Session {

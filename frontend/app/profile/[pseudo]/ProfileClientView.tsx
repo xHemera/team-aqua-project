@@ -36,6 +36,7 @@ type Avatar = {
 
 type ProfileClientViewProps = {
   profileName: string;
+  profileUserId: string;
   initialAvatar: string;
   isOwnProfile: boolean;
   profileBadges: string[];
@@ -134,7 +135,7 @@ const deckpublic: Record<string, string> = {
 const normalizeBackgroundValue = (value: string) => normalizeImageValue(value, defaultBackground);
 const normalizeBannerValue = (value: string) => normalizeImageValue(value, defaultBanner);
 
-export default function ProfileClientView({ profileName, initialAvatar, isOwnProfile, profileBadges, matchHistory }: ProfileClientViewProps) {
+export default function ProfileClientView({ profileName, profileUserId, initialAvatar, isOwnProfile, profileBadges, matchHistory }: ProfileClientViewProps) {
   const router = useRouter();
   const [avatars, setAvatars] = useState<Avatar[]>([]);
   const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
@@ -164,6 +165,35 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
+
+  /**
+   * Objective: upload banner file to database and get data URL for display.
+   * Usage: called when user selects a banner file.
+   * Input: browser `File` object.
+   * Output: promise resolving to Data URL string.
+   * Special cases: Falls back to local data URL if upload fails.
+   */
+  const uploadBannerToDb = async (file: File): Promise<string> => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/profile/banner", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        return data.dataUrl;
+      }
+    } catch (error) {
+      console.error("Banner upload error:", error);
+    }
+
+    // Fallback to local data URL if upload fails
+    return fileToDataUrl(file);
+  };
   const [draftAvatarId, setDraftAvatarId] = useState<string | null>(null);
   const [draftBackground, setDraftBackground] = useState(defaultBackground);
   const [draftBanner, setDraftBanner] = useState(defaultBanner);
@@ -258,6 +288,28 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
     if (!isOwnProfile) return;
     applyBackgroundPreferenceToDocument(profileBackground, defaultBackground);
   }, [isOwnProfile, profileBackground]);
+
+  // Load banner from database for all profiles
+  useEffect(() => {
+    const loadBannerFromDb = async () => {
+      try {
+        const res = await fetch(`/api/profile/banner?userId=${profileUserId}`);
+        if (res.ok) {
+          const blob = await res.blob();
+          const dataUrl = URL.createObjectURL(blob);
+          const normalizedBanner = normalizeBannerValue(dataUrl);
+          setProfileBanner(normalizedBanner);
+          if (isOwnProfile) setDraftBanner(normalizedBanner);
+        }
+      } catch (error) {
+        console.error("Failed to load banner:", error);
+      }
+    };
+
+    if (profileUserId) {
+      loadBannerFromDb();
+    }
+  }, [profileUserId, isOwnProfile]);
 
   useEffect(() => {
     const handleEscapeModal = (event: KeyboardEvent) => {
@@ -567,68 +619,53 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-200">Site Background</label>
-                <div className="flex gap-2">
-                  <Input
-                    type="url"
-                    value={draftBackground}
-                    onChange={(event) => setDraftBackground(event.target.value)}
-                    placeholder="https://..."
-                    className="min-w-0 flex-1 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500"
-                  />
-                  <input
-                    ref={bgUploadRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (file) setDraftBackground(await fileToDataUrl(file));
-                      e.target.value = "";
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    onClick={() => bgUploadRef.current?.click()}
-                    variant="ghost"
-                    className="h-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-200 whitespace-nowrap"
-                  >
-                    <i className="fa-solid fa-upload text-xs" />
-                    File
-                  </Button>
-                </div>
+                <input
+                  ref={bgUploadRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setDraftBackground(await fileToDataUrl(file));
+                    e.target.value = "";
+                  }}
+                />
+                <Button
+                  type="button"
+                  onClick={() => bgUploadRef.current?.click()}
+                  variant="ghost"
+                  className="h-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-200"
+                >
+                  <i className="fa-solid fa-upload text-xs" />
+                  Upload Background
+                </Button>
               </div>
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-200">Profile Banner</label>
-                <div className="flex gap-2">
-                  <Input
-                    type="url"
-                    value={draftBanner}
-                    onChange={(event) => setDraftBanner(event.target.value)}
-                    placeholder="https://..."
-                    className="min-w-0 flex-1 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500"
-                  />
-                  <input
-                    ref={bannerUploadRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (file) setDraftBanner(await fileToDataUrl(file));
-                      e.target.value = "";
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    onClick={() => bannerUploadRef.current?.click()}
-                    variant="ghost"
-                    className="h-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-200 whitespace-nowrap"
-                  >
-                    <i className="fa-solid fa-upload text-xs" />
-                    File
-                  </Button>
-                </div>
+                <input
+                  ref={bannerUploadRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const dataUrl = await uploadBannerToDb(file);
+                      setDraftBanner(dataUrl);
+                    }
+                    e.target.value = "";
+                  }}
+                />
+                <Button
+                  type="button"
+                  onClick={() => bannerUploadRef.current?.click()}
+                  variant="ghost"
+                  className="h-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-200"
+                >
+                  <i className="fa-solid fa-upload text-xs" />
+                  Upload Banner
+                </Button>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-1">
