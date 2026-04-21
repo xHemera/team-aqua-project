@@ -1,5 +1,4 @@
 import { CharacterInstance } from "../Instances/CharacterInstance";
-import { Game } from "./Game";
 import { GameState } from "./GameState";
 
 export type TurnEntry = {
