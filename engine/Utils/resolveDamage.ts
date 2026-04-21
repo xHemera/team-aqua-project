@@ -22,22 +22,34 @@ function applyResistance(damage: number, baseRes: number, resMods: ModEntry[]): 
     };
 }
 
-export function resolvePhyDamage(raw: number, idUser: CharacterInstance, idTarget: CharacterInstance): number {
-    const { result: afterUser,   mods: newPhyMod    } = applyAndTick(idUser.phyMod,       raw);
-    const { result: afterTarget, mods: newPhyResMod } = applyResistance(afterUser, idTarget.phyRes, idTarget.phyResMod);
+export function resolvePhyDamage(
+    raw: number,
+    idUser: CharacterInstance,
+    idTarget: CharacterInstance,
+    resOverride?: number  // optionnel, remplace phyRes si fourni
+): number {
+    const { result: afterUser,   mods: newPhyMod    } = applyAndTick(idUser.phyMod, raw);
+    const baseRes = resOverride ?? idTarget.phyRes;
+    const { result: afterTarget, mods: newPhyResMod } = applyResistance(afterUser, baseRes, idTarget.phyResMod);
 
     idUser.phyMod      = newPhyMod;
     idTarget.phyResMod = newPhyResMod;
 
-    const isCrit     = rollCrit(idUser);
-    const finalDmg   = isCrit ? applyCrit(afterTarget, idUser) : afterTarget;
+    const isCrit   = rollCrit(idUser);
+    const finalDmg = isCrit ? applyCrit(afterTarget, idUser) : afterTarget;
 
     return finalDmg;
 }
 
-export function resolveMagDamage(raw: number, idUser: CharacterInstance, idTarget: CharacterInstance): number {
-    const { result: afterUser,   mods: newMagMod    } = applyAndTick(idUser.magMod,       raw);
-    const { result: afterTarget, mods: newMagResMod } = applyResistance(afterUser, idTarget.magRes, idTarget.magResMod);
+export function resolveMagDamage(
+    raw: number,
+    idUser: CharacterInstance,
+    idTarget: CharacterInstance,
+    resOverride?: number
+): number {
+    const { result: afterUser,   mods: newMagMod    } = applyAndTick(idUser.magMod, raw);
+    const baseRes = resOverride ?? idTarget.magRes;
+    const { result: afterTarget, mods: newMagResMod } = applyResistance(afterUser, baseRes, idTarget.magResMod);
 
     idUser.magMod      = newMagMod;
     idTarget.magResMod = newMagResMod;
