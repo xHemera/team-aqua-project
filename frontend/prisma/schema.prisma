@@ -96,8 +96,8 @@ model Match_history {
   id            String    @id @default(cuid())
   result        String
   createdAt     DateTime  @default(now())
-  playedDeck    String
-  opponentDeck  String
+  playerTeam    String[]
+  opponentTeam  String[]
   opponent      String
   user_id       String
   user          User?     @relation(fields: [user_id], references: [id])
