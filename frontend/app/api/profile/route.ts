@@ -7,7 +7,7 @@ import { headers } from "next/headers";
 export async function GET() {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user) {
+    if (!session || !session.user) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -30,7 +30,7 @@ export async function GET() {
           },
         },
       },
-    });
+      });
 
     if (!user) {
       return Response.json({ error: "User not found" }, { status: 404 });
@@ -64,18 +64,34 @@ export async function GET() {
   }
 }
 
+export async function PUT()
+{
+const session = await auth.api.getSession({ headers: await headers() });
+if (!session || !session.user) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+}
+    const user = await prisma.user.update({
+        where: { id: session.user.id },
+        data: {
+            online: false
+        }
+    });
+    if (user) return Response.json(null, { status: 201});
+    return Response.json({error: "Unprocessable entity"}, {status: 422});
+}
+
 export async function PATCH(request: Request) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user) {
+    if (!session || !session.user) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
     const { avatarId, profileBackground, profileBanner } = body as {
-      avatarId?: string;
+      avatarId: string;
       profileBackground?: string | null;
-      profileBanner?: string | null;
+      profileBanner: string | null;
     };
 
     // Validate and find avatar if provided
@@ -166,18 +182,6 @@ export async function DELETE() {
       await tx.messages.deleteMany({ where: { user_id: userId } });
       await tx.inbox_users.deleteMany({ where: { user_id: userId } });
       await tx.friends.deleteMany({ where: { userId } });
-
-      const userDecks = await tx.decks.findMany({
-        where: { userId },
-        select: { id: true },
-      });
-      const deckIds = userDecks.map((deck) => deck.id);
-
-      if (deckIds.length > 0) {
-        await tx.cards.deleteMany({ where: { deckId: { in: deckIds } } });
-      }
-      await tx.decks.deleteMany({ where: { userId } });
-
       await tx.session.deleteMany({ where: { userId } });
       await tx.account.deleteMany({ where: { userId } });
 

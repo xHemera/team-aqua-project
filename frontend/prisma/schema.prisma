@@ -7,39 +7,50 @@ datasource db {
   provider = "postgresql"
 }
 
+model Spell {
+  id          String    @id @default(cuid())
+  characterId String
+  name        String
+  type        String
+  effect      Int
+  mpCost      Int
+  level       Int
+  character   Character @relation(fields: [characterId], references: [id])
+}
+
+model Character {
+  id          String    @id @default(cuid())
+  gameStateId String
+  name        String
+  hp          Int
+  level       Int
+  countering  Boolean
+  silenced    Boolean
+  poisened    Boolean
+  berserk     Boolean
+  aBoost      Int
+  dBoost      Int
+  nturnEffect Int
+  spells      Spell[]
+  gameState   GameState @relation(fields: [gameStateId], references: [id])
+}
+
+model GameState {
+  id          String    @id @default(cuid())
+  user_id     String    @unique
+  rubis       Int
+  gold        Int
+  characters  Character[]
+  user        User      @relation(fields: [user_id], references: [id])
+}
+
 model Friends {
-  friendId      String      @id
+  friendId      String
   userId        String
   request_sent  Boolean
   created_at    DateTime    @default(now())
   user          User        @relation(fields: [userId], references: [id])
-}
-
-model Decks {
-  id        String    @id @default(cuid())
-  title     String?
-  image     String?
-  body      String?
-  cards     Cards[]
-  createdAt DateTime @default(now())
-  userId    String?
-  user      User?   @relation(fields: [userId], references: [id])
-}
-
-model Cards {
-  id       String		@id @default(cuid())
-  type     String
-  element  String?
-  hp       Int?
-  name     String
-  cap1     String?
-  cap2     String?
-  prize    Int?
-  retreat  Int?
-  weakness String?
-  resist   String?
-  deckId   String?
-  deck     Decks?		@relation(fields: [deckId], references: [id])
+  @@id([userId, friendId])
 }
 
 model Messages {
@@ -81,6 +92,17 @@ model Avatar {
   users       User[]
 }
 
+model Match_history {
+  id            String    @id @default(cuid())
+  result        String
+  createdAt     DateTime  @default(now())
+  playedDeck    String
+  opponentDeck  String
+  opponent      String
+  user_id       String
+  user          User?     @relation(fields: [user_id], references: [id])
+}
+
 model User {
   id                String    @id @default(cuid())
   name              String
@@ -91,17 +113,19 @@ model User {
   blockedUsers      String[]  @default([])
   profileBackground String?
   profileBanner     String?
+  online            Boolean   @default(false)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   avatarId          String?
   avatar            Avatar?   @relation(fields: [avatarId], references: [id])
   sessions          Session[]
   accounts          Account[]
-  decks             Decks[]
   friends           Friends[]
   inboxUser         Inbox_users[]
   messages          Messages[]
   inbox             Inbox[]
+  matchHistory      Match_history[]
+  ganeState         GameState?
 
   @@unique([email])
   @@map("user")

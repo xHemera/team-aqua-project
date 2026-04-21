@@ -9,17 +9,8 @@ import AppPageShell from "@/components/AppPageShell";
 import { DEFAULT_PROFILE_ICON, PROFILE_ICONS } from "@/lib/profile-icons";
 import { contact }  from "./index"
 import NotificationToast from "@/components/organisms/home/NotificationToast";
-
-const esper = PROFILE_ICONS.find((icon) => icon.type === "esper")?.url ?? DEFAULT_PROFILE_ICON.url;
-const dragon = PROFILE_ICONS.find((icon) => icon.type === "dragon")?.url ?? DEFAULT_PROFILE_ICON.url;
-const mizu = PROFILE_ICONS.find((icon) => icon.type === "mizu")?.url ?? DEFAULT_PROFILE_ICON.url;
-
-type Friends = {
-  friendId:     string;
-  userId:       string;
-  request_sent: boolean;
-  created_at:   Date;
-}
+import ProfileViewerModal from "@/components/organisms/social/ProfileViewer";
+import Validate from "@/components/organisms/Validate";
 
 type Messages = {
   id:         string;
@@ -27,6 +18,7 @@ type Messages = {
   inbox_id:   string;
   message:    string | null;
   createdAt:  Date;
+  images?:    Array<{ id: string; name: string; data: string }>;
 }
 
 type Inbox_users = {
@@ -38,43 +30,20 @@ type Inbox_users = {
 
 type Inbox = {
   id: 								string;
-  last_message: 			string | null;
-  last_sent_user_id:  string | null;
-  createdAt:  				Date;
   inboxUser:  				Inbox_users[];
-	messages:					  Messages[];
 };
 
 type Avatar = {
   url:					string;
-  id:						string;
-  name:					string;
-  type:					string;
-  accent: 			string;
-  accentHover:	string;
-	users?:				any;
 };
 
 type User = {
-  id:            			string;
-  name:          			string;
-  email:         			string;
-  emailVerified:			Boolean;
-  badges:             string[];
-  blockedUsers:       string[];
-  image:        			string | null;
-  profileBackground:	string | null;
-  profileBanner: 			string | null;
-  createdAt:    			Date;
-  updatedAt:    			Date;
-  avatarId:      			string | null;
-  avatar:        			Avatar | null;
-  // accounts:      	Account[];
-  // decks:        		Decks[];
-  friends:       	    Friends[];
-  inboxUser:     			Inbox_users[];
-  messages:      	    Messages[];
-  inbox:         			Inbox[];
+  id:           string;
+  name:         string;
+  badges:       string[];
+  blockedUsers: string[];
+  avatar:       Avatar | null;
+  online:       boolean;
 };
 
 type Attachment = {
@@ -126,20 +95,45 @@ export default function SocialPage() {
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
   const [currentMessages, setCurrentMessages] = useState<Messages[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [inboxes, setInboxes] = useState<Inbox[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 	const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
   const [showNotification, setShowNotification] = useState(true);
   const [notification, setNotification] = useState<string | null>(null);
   const [notifSender, setNotifSender] = useState<string | null>(null);
+  const [showProfileViewer, setShowProfileViewer] = useState(false);
+  const [profileViewerUser, setProfileViewerUser] = useState<User | null>(null);
   const [request, setRequest] = useState(false);
+  const [friendRequestSender, setFriendRequestSender] = useState<string | null>(null);
   const [waiting, setWaiting] = useState(false);
   const [friend, setFriend] = useState(false);
-  const [isblocked, setIsBlocked] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
   const [hasBlocked, setHasBlocked] = useState(false);
+  const [messageImages, setMessageImages] = useState<Record<string, Array<{ id: string; name: string; data: string }>>>({});
+  const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
+  const [challenge, setChallenge] = useState(false);
+  const [opponent, setOpponent] = useState<string | null>(null);
+  const [typer, setTyper] = useState<string | null>(null);
+  const [typing, setTyping] = useState(false);
 
+  const MAX_MESSAGE_LENGTH = 500;
+  const MAX_DISPLAY_LENGTH = 200;
+
+  let timeout: NodeJS.Timeout;
   const hasDraft = message.trim().length > 0 || draftAttachments.length > 0;
 
+  const toggleMessageExpanded = (messageId: string) => {
+    setExpandedMessages((prev) => {
+      const next = new Set(prev);
+      if (next.has(messageId)) {
+        next.delete(messageId);
+      } else {
+        next.add(messageId);
+      }
+      return next;
+    });
+  };
+  
   //fetch the current user pseudo
   useEffect(() => {
     const getUserData = async () => {
@@ -148,18 +142,20 @@ export default function SocialPage() {
         setUserPseudo(data.user.name);
     };
     getUserData();
-  });
+  }, []);
 
   //fetch users and their inboxes
   useEffect(() => {
     async function fetchUsers() {
     if (!userPseudo) return;
-      const u = await contact.getUsers();
-      const cU = await contact.getCurrentUser(userPseudo);
-      const i = await contact.getInboxes();
-      setUsers(u);
-      setCurrentUser(cU);
-      setInboxes(i);
+      const [u, cU, i] = await Promise.all([
+      contact.getUsers(),
+      contact.getCurrentUser(userPseudo),
+      contact.getInboxes(userPseudo),
+    ]);
+    setCurrentUser(cU);
+    setUsers(u);
+    setInboxes(i);
     }
     fetchUsers();
   }, [userPseudo]);
@@ -180,72 +176,160 @@ export default function SocialPage() {
 		};
 	}, [userPseudo]);
 
-  //render messages sent by other users
   useEffect(() => {
     if (!userPseudo) return;
-    socket.on("received", async ({sender, receiver, msg}) => {
-      if (selectedUser === sender)
+    const handler = async ({ sender,
+      receiver,
+      msg,
+      images,
+      messageId }: {
+      sender: string,
+      receiver: string,
+      msg: string,
+      images: string,
+      messageId: string }) => {
+
+      if (selectedUser && selectedUser === sender)
       {
-        const newMessages = await contact.getMsg(userPseudo, sender);
+        const newMessages = await contact.getMsg(userPseudo, selectedUser);
         if (!newMessages) return;
         setCurrentMessages(newMessages);
+        contact.resetUnread(userPseudo, selectedUser);
+        
+        //Store images for this message ID
+        // if (images && images.length > 0 && messageId) {
+        //   setMessageImages((prev) => ({
+        //     ...prev,
+        //     [messageId]: images,
+        //   }));
+        // }
       }
       else //set variables to send a notification
       {
         setNotifSender(sender);
         setNotification(msg);
-        await fetchUnread();
+        fetchUnread();
+      }
+    }
+    socket.on("received", handler);
+    return () => {
+      socket.off("received", handler);
+    }
+  });
+
+  useEffect(() => {
+    if (!userPseudo) return;
+    socket.on("add_conv", async () => {
+      const i = await contact.getInboxes(userPseudo);
+      setInboxes(i);
+    });
+  }, [userPseudo]);
+
+  //render messages sent by other users
+  useEffect(() => {
+    if (!userPseudo || !selectedUser) return;
+
+
+    //show if the selected user is writing
+    socket.on("isTyping", async ({sender, receiver}) => {
+      if (sender == selectedUser)
+      {
+        setTyper(sender);
+        setTyping(true);
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          setTyping(false);
+        }, 2000);
       }
     });
 
-    //refresh the inboxes to display new conversations
-    socket.on("add_conv", async () => {
-      const i = await contact.getInboxes();
-      setInboxes(i);
+    //show if the selected user is writing
+    socket.on("isNotTyping", async ({sender, receiver}) => {
+      if (sender == selectedUser)
+        setTyping(false);
     });
 
-    //adds the request live
+    //adds the request dynamically
     socket.on("request", async ({user, oUser}) => {
-      if (user == selectedUser)
+      if (user == selectedUser) {
         setRequest(true);
+        setFriendRequestSender(user);
+      }
     });
 
-    //adds match button live
+    //adds match button dynamically
     socket.on("adding", async ({user, oUser}) => {
       if (user == selectedUser)
       {
         setWaiting(false);
+        setRequest(false)
         setFriend(true);
       }
     });
 
-    //resets status live
+    //resets status dynamically
     socket.on("refusing", async ({user, oUser}) => {
       if (user == selectedUser)
+      {
         setWaiting(false);
+        setFriend(false);
+      }
     });
 
-    //sets blocked live
-    socket.on("blocking", async ({user, oUser}) => {
+    //sets blocked status dynamically
+    socket.on("blocked", async ({user, oUser}) => {
       if (user == selectedUser)
         setIsBlocked(true);
+        setFriend(false);
     });
 
-    //resets status live
+    socket.on("blocking", async () => {
+      setHasBlocked(true);
+      setFriend(false);
+    })
+
+    //resets status dynamically
     socket.on("unblocking", async ({user, oUser}) => {
-      if (user == selectedUser)
+      if (oUser == selectedUser)
         setIsBlocked(false);
+      if (user == userPseudo)
+        setHasBlocked(false);
     });
+
+    socket.on("challenge", async({sender, receiver}) => {
+      if (receiver == userPseudo)
+      {
+        setChallenge(true);
+        setOpponent(sender);
+      }
+      if (sender == userPseudo)
+        setWaiting(true);
+    })
+
+    socket.on("accept", async ({user, oUser}) => {
+      if (oUser == userPseudo)
+      {
+        setWaiting(false);
+        router.push("game");
+      }
+    })
+
+    socket.on("refuse", async ({user, oUser}) => {
+      if (oUser == userPseudo)
+        setWaiting(false);
+    })
   }, [userPseudo, selectedUser]);
 
 	//fetch the conversation
 	useEffect(() => {
 		async function fetchmessages()
 		{
-			if (!currentUser) return;
+			if (!currentUser || !selectedUser) return;
 			const newMessages = await contact.getMsg(currentUser.name, selectedUser);
 			if (!newMessages) return;
     	setCurrentMessages(newMessages);
+      contact.resetUnread(currentUser.name, selectedUser)
+      fetchUnread();
 		}
 		fetchmessages();
 		messageListRef.current?.scrollTo({
@@ -266,47 +350,66 @@ export default function SocialPage() {
   useEffect(() => {
     async function isWaiting()
     {
-      if (!currentUser) return;
+      if (!currentUser || !selectedUser) return;
       const friend = await contact.getFriendFromOther(currentUser.name, selectedUser);
-      if (!friend) return;
+      if (!friend) {
+        setWaiting(false);
+        setRequest(false);
+        setFriendRequestSender(null);
+        return;
+      }
       if (friend.request_sent == true) setWaiting(true);
+      else setWaiting(false);
       return;
     }
     isWaiting();
-  }, [currentUser])
+  }, [currentUser, selectedUser])
 
   //sets friend status
   useEffect(() => {
     async function isFriend()
     {
-      if (!currentUser) return;
-      const friend = await contact.getFriendFromOther(currentUser.name, selectedUser);
-      if (!friend) return;
-      if (friend.request_sent == false) setFriend(true);
+      if (!currentUser || !selectedUser) return;
+      const myFriend = await contact.getFriend(currentUser.name, selectedUser);
+      const theirFriend = await contact.getFriendFromOther(currentUser.name, selectedUser);
+      if (!myFriend || !theirFriend) {
+        setFriend(false);
+        return;
+      }
+      if (myFriend.request_sent == false && theirFriend.request_sent == false) setFriend(true);
       return;
     }
     isFriend();
-  }, [currentUser])
+  }, [currentUser, selectedUser])
 
   //sets request status
   useEffect(() => {
     async function isRequesting()
     {
-      if (!currentUser) return;
+      if (!currentUser || !selectedUser) return;
       const friend = await contact.getFriend(currentUser.name, selectedUser);
-      if (!friend) return;
-      if (friend.request_sent == true) setRequest(true);
+      if (!friend) {
+        setRequest(false);
+        setFriendRequestSender(null);
+        return;
+      }
+      if (friend.request_sent == true) 
+      {
+        setRequest(true);
+      } else {
+        setRequest(false);
+        setFriendRequestSender(null);
+      }
       return;
     }
     isRequesting();
-  }, [currentUser])
+  }, [currentUser, selectedUser])
 
   //sets blocked status
   useEffect(() => {
     async function isBlockedByMe()
     {
-      if (!currentUser) return;
-      if (!friend) return;
+      if (!currentUser || !selectedUser) return;
       const blockedUser = await contact.getUser(selectedUser);
       if (!blockedUser) return;
       for (const id of currentUser.blockedUsers)
@@ -317,14 +420,13 @@ export default function SocialPage() {
       return;
     }
     isBlockedByMe();
-  }, [currentUser])
+  }, [currentUser, selectedUser])
 
   //sets blocked status from user
   useEffect(() => {
     async function amIBlocked()
     {
-      if (!currentUser) return;
-      if (!friend) return;
+      if (!currentUser || !selectedUser) return;
       const blockingUser = await contact.getUser(selectedUser);
       if (!blockingUser) return;
       for (const id of blockingUser.blockedUsers)
@@ -335,7 +437,7 @@ export default function SocialPage() {
       return;
     }
     amIBlocked();
-  }, [currentUser])
+  }, [currentUser, selectedUser])
 
 	useEffect(() => {
 		return () => {
@@ -354,38 +456,21 @@ export default function SocialPage() {
 		return () => clearTimeout(timeoutId);
 	}, [inviteNotification]);
 
-	//Loading screen while currentUser is not set
-	if (!currentUser)
-	{
-		return <div>Loading...</div>;
-	}
+  //fetch the number of unreaded messages
+  useEffect(() => {
+    fetchUnread();
+  }, [userPseudo])
 
-  //fetch the number of unreaded messages (BROKEN)
   async function fetchUnread()
   {
     if (!userPseudo) return;
-    const cU = await contact.getCurrentUser(userPseudo);
-    const inbox = await contact.getUnread(cU.name);
-    if (!inbox) return;
-    const results: Record<string, number> = {};
-    for (const iU of inbox) {
-      let otherUserId: string | null = null;
-      let unread = 0;
-
-      for (const user of iU.inboxUser) {
-        if (user.user_id !== cU.id) {
-          otherUserId = user.user_id;
-        } else {
-          unread = user.unread_messages ?? 0;
-        }
-      }
-
-      if (otherUserId) {
-        results[otherUserId] = unread;
-      }
-    }
+    const results = await contact.getUnread(userPseudo);
     setUnreadMap(results);
   }
+
+	//Loading screen while currentUser is not set
+	if (!currentUser)
+		return <div>Loading...</div>;
 
   //open a add contact modal
   const openAddContactModal = () => {
@@ -438,12 +523,13 @@ export default function SocialPage() {
       }
       //makes a new inbox for both users and updates it
       contact.addContact(currentUser.name, inviteUsername);
-      const i = await contact.getInboxes();
+      const i = await contact.getInboxes(currentUser.name);
       setInboxes(i);
       socket.emit("new_conv", {
         sender: currentUser.name,
         receiver: inviteUsername,
       });
+      
       //return if user does not exist
       if (!response.ok || !payload.user) {
         setInviteNotification({
@@ -457,7 +543,7 @@ export default function SocialPage() {
       setSelectedUser(foundName);
       setInviteNotification({
         type: "success",
-        message: "votre invitation a bien ete envoyer",
+        message: "invitation sent",
       });
       setIsAddContactModalOpen(false);
       setInviteUsername("");
@@ -471,18 +557,6 @@ export default function SocialPage() {
     }
   };
 
-  //
-  async function sendFriendRequest()
-  {
-    if (!currentUser || !selectedUser) return;
-    contact.addFriend(currentUser.name, selectedUser);
-    socket.emit("friend_request", {
-      user: currentUser.name,
-      oUser: selectedUser
-    });
-    setWaiting(true);
-  }
-
   async function addFriend()
   {
     if (!currentUser || !selectedUser) return;
@@ -491,8 +565,7 @@ export default function SocialPage() {
       user: currentUser.name,
       oUser: selectedUser
     });
-    setFriend(true);
-    setRequest(false);
+    setFriendRequestSender(null);
   }
 
   async function refuseFriendship()
@@ -504,32 +577,7 @@ export default function SocialPage() {
       oUser: selectedUser
     });
     setRequest(false);
-  }
-
-  async function blockUser()
-  {
-    if (!currentUser || !selectedUser) return;
-    const oUser = await contact.getFriend(currentUser.name, selectedUser);
-    if (oUser)
-      contact.blockFriend(currentUser.name, selectedUser);
-    else
-      contact.blockUser(currentUser.name, selectedUser);
-    socket.emit("friend_or_user_blocked", {
-      user: currentUser.name,
-      oUser: selectedUser
-    });
-    setHasBlocked(true);
-  }
-
-  async function unblockUser()
-  {
-    if (!currentUser || !selectedUser) return;
-    contact.unblockUser(currentUser.name, selectedUser);
-    socket.emit("user_unblocked", {
-      user: currentUser.name,
-      oUser: selectedUser
-    });
-    setHasBlocked(false);
+    setFriendRequestSender(null);
   }
 
   const handlePickAttachments = () => {
@@ -560,18 +608,63 @@ export default function SocialPage() {
   const sendMessage = async () => {
     const cleanMessage = message.trim();
     if (!cleanMessage && draftAttachments.length === 0) return;
+    if (isBlocked || hasBlocked) return;
 
     contact.addMsg(cleanMessage, currentUser.name, selectedUser);
 
     //fetch messages between users
 		const newMessages = await contact.getMsg(currentUser.name, selectedUser);
 		if (!newMessages) return;
+
+    // Prepare images from attachments
+    const images = await Promise.all(
+      draftAttachments
+        .filter(att => att.type.startsWith("image/"))
+        .map((attachment) => 
+          new Promise<{ id: string; name: string; data: string }>((resolve) => {
+            fetch(attachment.previewUrl)
+              .then(res => res.blob())
+              .then(blob => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                  resolve({
+                    id: attachment.id,
+                    name: attachment.name,
+                    data: reader.result as string,
+                  });
+                };
+                reader.readAsDataURL(blob);
+              })
+              .catch(() => resolve({ id: attachment.id, name: attachment.name, data: "" }));
+          })
+        )
+    );
+
+    // Get the last message ID
+    const lastMessageId = newMessages.length > 0 ? newMessages[newMessages.length - 1].id : null;
+
+    // Store images locally for the sent message
+    if (images.length > 0 && lastMessageId) {
+      setMessageImages((prev) => ({
+        ...prev,
+        [lastMessageId]: images,
+      }));
+    }
+
     setCurrentMessages(newMessages);
+    socket.emit("notTyping", {
+      sender : currentUser.name,
+      receiver: selectedUser,
+    });
+    contact.resetUnread(currentUser.name, selectedUser);
+
     //sends a signal to the other user's socket
     socket.emit("msg_sent", {
       sender: currentUser.name,
       receiver: selectedUser,
-      msg: cleanMessage
+      msg: cleanMessage,
+      images: images.length > 0 ? images : undefined,
+      messageId: lastMessageId,
     });
 
     setMessage("");
@@ -579,28 +672,59 @@ export default function SocialPage() {
   };
 
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
+    if (!isBlocked && !hasBlocked && event.key === "Enter") {
       event.preventDefault();
       sendMessage();
     }
   };
 
-  //bouton pour defier un ami (a completer avec la vrai fonctionnalite corentin)
-  const sendChallenge = async () => {
-    if (!selectedUser || !currentUser) return;
+  const openProfileViewerForUserName = async (name: string) => {
+    const targetUser = await contact.getUser(name) ?? null;
+    setProfileViewerUser(targetUser);
+    setShowProfileViewer(true);
+  };
 
-    try {
-      socket.emit("challenge_sent", {
-        sender: currentUser.name,
+  //waiting screen when waiting for duel
+  //(oui je sais c'est pas un waiting screen je vous laisse le faire)
+  const isWaiting = () => {
+    return <div>Waiting for your opponent</div>
+  }
+
+  const acceptDuel = async () => {
+    socket.emit("duel_accepted", {
+      user: currentUser.name,
+      oUser: selectedUser,
+    })
+    return router.push("game");
+  }
+
+  const refuseDuel = async () => {
+    setChallenge(false);
+    socket.emit("duel_refused", {
+      user: currentUser.name,
+      oUser: selectedUser,
+    })
+  }
+
+  const isTyping = async () => {
+    if (!selectedUser || !currentUser)
+      return ;
+    if (message.length === 0)
+    {
+      socket.emit("notTyping", {
+        sender : currentUser.name,
         receiver: selectedUser,
       });
-    } catch (error) {
-      console.error("Erreur lors de l'envoi du défi:", error);
     }
-  };
+    socket.emit("typing", {
+      sender : currentUser.name,
+      receiver: selectedUser,
+    });
+  }
 
   return (
     <AppPageShell showSidebar containerClassName="min-h-0 flex-1 flex-col">
+      {waiting && isWaiting()}
       {showNotification && notification && notifSender && (notifSender !== selectedUser) && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       {inviteNotification && (
         <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
@@ -619,14 +743,14 @@ export default function SocialPage() {
       {isAddContactModalOpen && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 px-4">
           <div className="w-full max-w-md rounded-2xl border border-[#3c3650] bg-[#1b1826] p-5 shadow-2xl">
-            <h3 className="text-lg font-bold text-white">entrez le nom d&apos;utilisateur</h3>
-            <p className="mt-1 text-sm text-gray-300">Saisis le pseudo du joueur pour envoyer une invitation.</p>
+            <h3 className="text-lg font-bold text-white">enter a username</h3>
+            <p className="mt-1 text-sm text-gray-300">Enter the username of the player to send an invitation.</p>
 
             <input
               type="text"
               value={inviteUsername}
               onChange={(event) => setInviteUsername(event.target.value)}
-              placeholder="Pseudo du joueur"
+              placeholder="Player username"
               className="mt-4 w-full rounded-xl border border-[#3c3650] bg-[#242033] px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-[var(--accent-color)]"
               autoFocus
             />
@@ -637,14 +761,14 @@ export default function SocialPage() {
                 disabled={isInviting}
                 className="rounded-xl border border-[#3c3650] bg-[#242033] px-4 py-2 text-sm font-semibold text-gray-200 transition-colors hover:bg-[#302a45] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Annuler
+                cancel
               </button>
               <button
                 onClick={submitContactInvite}
                 disabled={isInviting || inviteUsername.trim().length === 0}
                 className="rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {isInviting ? "Recherche..." : "Envoyer"}
+                {isInviting ? "Recherche..." : "Send"}
               </button>
             </div>
           </div>
@@ -654,73 +778,58 @@ export default function SocialPage() {
       <div className="flex w-full justify-center px-4">
         <section className="flex h-[calc(100vh-2rem)] w-[calc(100%-14rem)] flex-col overflow-hidden rounded-3xl border border-[#3c3650] bg-[#15131d]/85 shadow-2xl backdrop-blur-md">
           {/* Header avec contacts et boutons */}
-          <header className="flex items-center border-b border-[#3c3650] px-5 py-3"> 
+          <header className="flex items-center border-b border-[#3c3650] px-5 py-3">
             {/* Contacts scroll horizontalement */}
             <div className="flex-1 overflow-x-auto px-4">
               <div className="flex gap-2">
                 {
                   users.map((user) => {
                   const isActive = selectedUser === user.name;
-                  if (user.name === userPseudo)
-                    return null;
+                  if (user.name === currentUser.name) return null;
                   const hasConversation = inboxes.some(inbox => {
                     const ids = inbox.inboxUser.map(iu => iu.user_id);
-                    return ids.includes(user.id) && ids.includes(currentUser.id);
+                    return ids.includes(user.id);
                   });
                   if (!hasConversation) return null;
-                return (
-                  <button
-                    key={user.name}
-                    onClick={async () => {
-                      const next = await contact.selectUser(user.name);
-                      if (next)
-                        setSelectedUser(next)
+                  return(
+                    <button
+                      key={user.name}
+                      onClick={() => {
+                        setSelectedUser(user.name);
+                        }
                       }
-                    }
-                    className={`relative flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 transition-colors ${
-                      isActive
-                        ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)] text-white"
-                        : "border-[#3c3650] bg-[#242033] text-gray-200 hover:bg-[#302a45]"
-                    }`}
-                  >
-                    <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-visible">
-                      <Image
-                        src={user.avatar?.url ?? DEFAULT_PROFILE_ICON.url}
-                        alt={user.name}
-                        width={32}
-                        height={32}
-                        className="h-8 w-8 rounded-lg border border-[#3c3650] object-cover"
-                        unoptimized
-                      />
-                    </div>
-                    <span className="shrink-0 whitespace-nowrap text-sm font-semibold">{user.name}</span>
-                    {
-                      unreadMap[user.id] > 0 && (
-                      <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
-                        {unreadMap[user.id]}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+                      className={`relative flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 transition-colors ${
+                        isActive
+                          ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)] text-white"
+                          : "border-[#3c3650] bg-[#242033] text-gray-200 hover:bg-[#302a45]"
+                      }`}
+                    >
+                      <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-visible">
+                        <Image
+                          src={user.avatar?.url ?? DEFAULT_PROFILE_ICON.url}
+                          alt={user.name}
+                          width={32}
+                          height={32}
+                          className="h-8 w-8 rounded-lg border border-[#3c3650] object-cover"
+                          unoptimized
+                        />
+                      </div>
+                      {user.online ? <div>ONLINE</div> : <div>OFFLINE</div>}
+                      <span className="shrink-0 whitespace-nowrap text-sm font-semibold">{user.name}</span>
+                      {
+                        (unreadMap[user.id] ?? 0) > 0 && (
+                        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
+                          {unreadMap[user.id] ?? 0}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             {/* Boutons à droite */}
             <div className="flex items-center gap-2">
-              {selectedUser && (
-                <button
-                  onClick={() => {
-                    // TODO: implémenter la logique de blocage
-                    console.log(`Blocage de ${selectedUser}`);
-                  }}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-red-500/50 bg-red-500/10 text-red-400 transition-colors hover:bg-red-500/20"
-                  aria-label="Bloquer l'utilisateur"
-                  title="Bloquer l'utilisateur"
-                >
-                  <i className="fa-solid fa-ban"></i>
-                </button>
-              )}
               <button
                 onClick={openAddContactModal}
                 disabled={isInviting}
@@ -731,16 +840,88 @@ export default function SocialPage() {
               </button>
             </div>
           </header>
-          <section className="flex min-h-0 flex-col">
+          <section className="flex h-full min-h-0 flex-col">
+
+            {/*Friend request*/}
+            {request && friendRequestSender && (
+              <div className="border-b border-[#3c3650] bg-[#1b1826] p-4">
+                <div className="rounded-lg border border-[var(--accent-color)] bg-[#242033] p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-300">
+                        <span className="text-[var(--accent-color)]">{friendRequestSender}</span> wants to be your friend
+                      </p>
+                      <p className="mt-1 text-xs text-gray-400">Do you want to accept this request?</p>
+                    </div>
+                    <div className="ml-4 flex gap-2">
+                      <button
+                        onClick={addFriend}
+                        className="rounded-lg bg-emerald-500/90 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-600"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        onClick={refuseFriendship}
+                        className="rounded-lg bg-red-500/90 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-600"
+                      >
+                        Refuse
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {/*Duel request*/}
+            {challenge && (
+              <div className="border-b border-[#3c3650] bg-[#1b1826] p-4">
+                <div className="rounded-lg border border-[var(--accent-color)] bg-[#242033] p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-300">
+                        <span className="text-[var(--accent-color)]">{friendRequestSender}</span> wants to du-du-du-du-du-du-duel !
+                      </p>
+                      <p className="mt-1 text-xs text-gray-400">Do you want to accept this request?</p>
+                    </div>
+                    <div className="ml-4 flex gap-2">
+                      <button
+                        onClick={() => acceptDuel()}
+                        className="rounded-lg bg-emerald-500/90 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-600"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        onClick={() => refuseDuel()}
+                        className="rounded-lg bg-red-500/90 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-600"
+                      >
+                        Refuse
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div ref={messageListRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
-              {currentMessages.map((msg) => (
+              {!selectedUser ? (
+                <div className="flex h-full min-h-[16rem] items-center justify-center text-base font-semibold text-gray-400">
+                  No conversation selected
+                </div> ) :
+              (
+                currentMessages.map((msg) => (
                 <div key={msg.id} className={`flex flex-col ${msg.user_id === currentUser.id ? "items-end" : "items-start"}`}>
-                  <div className="mb-1 flex items-center gap-2 text-xs text-gray-400">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (msg.user_id !== currentUser.id && selectedUser) {
+                        openProfileViewerForUserName(selectedUser);
+                      }
+                    }}
+                    className="mb-1 flex items-center gap-2 text-xs text-gray-400"
+                  >
                     <Image
                       src={
                         msg.user_id === currentUser.id
-                          ? currentUser?.avatar?.url ?? DEFAULT_PROFILE_ICON.url
+                          ? currentUser.avatar?.url ?? DEFAULT_PROFILE_ICON.url
                           : users.find(u => u.name === selectedUser)?.avatar?.url ?? DEFAULT_PROFILE_ICON.url
                       }
                       alt="Avatar"
@@ -750,10 +931,10 @@ export default function SocialPage() {
                       unoptimized
                     />
                     <span className="font-semibold">
-                      {msg.user_id === currentUser.id ? currentUser?.name : selectedUser}
+                      {msg.user_id === currentUser.id ? currentUser.name : selectedUser}
                     </span>
                     <span className="opacity-75">{formatTime(msg.createdAt)}</span>
-                  </div>
+                  </button>
                   <article
                     className={`max-w-[44rem] rounded-2xl px-5 py-3 ${
                       msg.user_id === currentUser.id
@@ -761,7 +942,25 @@ export default function SocialPage() {
                         : "border border-[#3c3650] bg-[#242033] text-gray-100"
                     }`}
                   >
-                    {msg.message && <p className="leading-relaxed">{msg.message}</p>}
+                    {msg.message && (
+                      <div>
+                        <p className="leading-relaxed break-words whitespace-pre-wrap">
+                          {expandedMessages.has(msg.id) ? msg.message : msg.message.slice(0, MAX_DISPLAY_LENGTH)}
+                        </p>
+                        {msg.message.length > MAX_DISPLAY_LENGTH && (
+                          <button
+                            onClick={() => toggleMessageExpanded(msg.id)}
+                            className={`mt-2 text-xs font-semibold transition-colors ${
+                              msg.user_id === currentUser.id
+                                ? "text-white/80 hover:text-white"
+                                : "text-gray-300 hover:text-gray-100"
+                            }`}
+                          >
+                            {expandedMessages.has(msg.id) ? "voir moins" : "voir plus"}
+                          </button>
+                        )}
+                      </div>
+                    )}
 
                     {/* {msg.attachments.length > 0 && (
                       <div className={`mt-2 grid gap-2 ${msg.attachments.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
@@ -800,10 +999,10 @@ export default function SocialPage() {
                     )} */}
                   </article>
                 </div>
-              ))}
+                ))
+              )}
             </div>
-
-            <footer className="border-t border-[#3c3650] bg-[#15131d] p-4">
+            <footer className="sticky bottom-0 border-t border-[#3c3650] bg-[#15131d] p-4">
               {selectedUser && (<div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2 rounded-full border border-[#3c3650] bg-[#242033] px-2 py-2">
                   <input
@@ -815,15 +1014,7 @@ export default function SocialPage() {
                     accept="image/*,.pdf,.txt,.doc,.docx"
                   />
 
-                  <button
-                    onClick={sendChallenge}
-                    className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)]"
-                    aria-label="Défier l'ami"
-                  >
-                    <i className="fa-solid fa-bolt" />
-                  </button>
-
-                  <button
+                <button
                     onClick={handlePickAttachments}
                     className="flex h-9 w-9 items-center justify-center rounded-full bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
                     aria-label="Ajouter des pièces jointes"
@@ -833,18 +1024,31 @@ export default function SocialPage() {
 
                   <input
                     type="text"
-                    placeholder={`Envoyez un message à @${selectedUser}`}
+                    placeholder={hasBlocked ? "You have blocked this user" : isBlocked ? "You are blocked by this user" : `Send a message to @${selectedUser}`}
                     value={message}
-                    onChange={(event) => setMessage(event.target.value)}
+                    onChange={(event) => {
+                      const newValue = event.target.value.slice(0, MAX_MESSAGE_LENGTH);
+                      setMessage(newValue)
+                      isTyping();
+                    }}
                     onKeyDown={handleInputKeyDown}
-                    className="flex-1 bg-transparent px-1 text-sm text-gray-200 outline-none placeholder:text-gray-500"
+                    maxLength={MAX_MESSAGE_LENGTH}
+                    className={`flex-1 bg-transparent px-1 text-sm outline-none ${
+                        isBlocked || hasBlocked
+                          ? "text-gray-500 placeholder:text-gray-600 cursor-not-allowed"
+                          : "text-gray-200 placeholder:text-gray-500"
+                      }`}
                   />
-
+                  <span className="text-xs text-gray-500">{message.length}/{MAX_MESSAGE_LENGTH}</span>
                   <button
-                    onClick={sendMessage}
-                    disabled={!hasDraft}
+                    onClick={() => {
+                      if (!isBlocked && !hasBlocked) {
+                        sendMessage();
+                      }
+                    }}
+                    disabled={!hasDraft || isBlocked || hasBlocked}
                     className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-                    aria-label="Envoyer"
+                    aria-label="Send message"
                   >
                     <i className="fa-solid fa-paper-plane" />
                   </button>
@@ -863,7 +1067,7 @@ export default function SocialPage() {
                         <button
                           onClick={() => removeDraftAttachment(attachment.id)}
                           className="text-gray-300 transition-colors hover:text-white"
-                          aria-label={`Supprimer ${attachment.name}`}
+                          aria-label={`Delete ${attachment.name}`}
                         >
                           <i className="fa-solid fa-xmark" />
                         </button>
@@ -871,11 +1075,19 @@ export default function SocialPage() {
                     ))}
                   </div>
                 )}
+                {typer && typing && <div>{typer} is typing</div>}
               </div>)}
             </footer>
           </section>
         </section>
       </div>
+
+      <ProfileViewerModal
+        open={showProfileViewer}
+        onClose={() => setShowProfileViewer(false)}
+        user={profileViewerUser}
+        currentUser={currentUser}
+      />
     </AppPageShell>
   );
 }

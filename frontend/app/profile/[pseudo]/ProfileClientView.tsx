@@ -15,12 +15,31 @@ import { persistAvatarPreference } from "@/lib/avatar-preference";
 import { applyAccentPalette, resolveProfileIcon } from "@/lib/profile-icons";
 import NotificationToast from "@/components/organisms/home/NotificationToast";
 
-type AvatarEntry = { id: string; name: string; type: string; url: string; accent: string; accentHover: string };
+type Match_history = {
+  id:           string;
+  result:       string;
+  createdAt:    Date;
+  playedDeck:   string;
+  opponentDeck: string;
+  opponent:     string;
+  user_id:      string;
+}
+
+type Avatar = {
+  id: string;
+  name: string;
+  type: string;
+  url: string;
+  accent: string;
+  accentHover: string
+};
 
 type ProfileClientViewProps = {
   profileName: string;
   initialAvatar: string;
   isOwnProfile: boolean;
+  profileBadges: string[];
+  matchHistory: Match_history[];
 };
 
 type ProfilePayload = {
@@ -44,44 +63,65 @@ const defaultBanner = "https://www.katebackdrop.fr/cdn/shop/files/B4035519.jpg?v
 const defaultBackground = DEFAULT_SITE_BACKGROUND;
 
 // HARDCODE: temporary mocked match history while battle history API is pending.
-const matchHistory = [
-  {
-    result: "Victoire",
-    resultStyle: "bg-green-600",
-    borderStyle: "border-green-500",
-    date: "26 janv. 2026",
-    playedDeck: "Flygon",
-    opponentDeck: "Ceruledge",
-    opponent: "SunMiaou",
-  },
-  {
-    result: "Défaite",
-    resultStyle: "bg-red-600",
-    borderStyle: "border-red-500",
-    date: "18 janv. 2026",
-    playedDeck: "Zacian",
-    opponentDeck: "Toxtricity",
-    opponent: "Xoco",
-  },
-  {
-    result: "Victoire",
-    resultStyle: "bg-green-600",
-    borderStyle: "border-green-500",
-    date: "09 déc. 2025",
-    playedDeck: "Ceruledge",
-    opponentDeck: "Flygon",
-    opponent: "Sauralt",
-  },
-  {
-    result: "Victoire",
-    resultStyle: "bg-green-600",
-    borderStyle: "border-green-500",
-    date: "22 nov. 2025",
-    playedDeck: "Toxtricity",
-    opponentDeck: "Zacian",
-    opponent: "GeekMaster",
-  },
-];
+// const matchHistory = [
+//   {
+//     result: "Victoire",
+//     resultStyle: "bg-green-600",
+//     borderStyle: "border-green-500",
+//     date: "26 janv. 2026",
+//     playedDeck: "Flygon",
+//     opponentDeck: "Ceruledge",
+//     opponent: "SunMiaou",
+//   },
+//   {
+//     result: "Défaite",
+//     resultStyle: "bg-red-600",
+//     borderStyle: "border-red-500",
+//     date: "18 janv. 2026",
+//     playedDeck: "Zacian",
+//     opponentDeck: "Toxtricity",
+//     opponent: "Xoco",
+//   },
+//   {
+//     result: "Victoire",
+//     resultStyle: "bg-green-600",
+//     borderStyle: "border-green-500",
+//     date: "09 déc. 2025",
+//     playedDeck: "Ceruledge",
+//     opponentDeck: "Flygon",
+//     opponent: "Sauralt",
+//   },
+//   {
+//     result: "Victoire",
+//     resultStyle: "bg-green-600",
+//     borderStyle: "border-green-500",
+//     date: "22 nov. 2025",
+//     playedDeck: "Toxtricity",
+//     opponentDeck: "Zacian",
+//     opponent: "GeekMaster",
+//   },
+// ];
+
+const formatTime = (date: Date) =>
+  date.toLocaleTimeString("fr-FR", {
+    timeZone: "Europe/Paris",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  });
+
+const BORDER_STYLES = {
+  win: "border-green-500",
+  lose: "border-red-500"
+};
+
+const RESULT_STYLES: Record<string, string> = {
+  win: "bg-green-600",
+  lose: "bg-red-600"
+};
+
+const greenRes = "bg-green-600";
+const redRes = "bg-red-600";
 
 // HARDCODE: static deck icon map used for history presentation.
 const deckpublic: Record<string, string> = {
@@ -94,9 +134,9 @@ const deckpublic: Record<string, string> = {
 const normalizeBackgroundValue = (value: string) => normalizeImageValue(value, defaultBackground);
 const normalizeBannerValue = (value: string) => normalizeImageValue(value, defaultBanner);
 
-export default function ProfileClientView({ profileName, initialAvatar, isOwnProfile }: ProfileClientViewProps) {
+export default function ProfileClientView({ profileName, initialAvatar, isOwnProfile, profileBadges, matchHistory }: ProfileClientViewProps) {
   const router = useRouter();
-  const [avatars, setAvatars] = useState<AvatarEntry[]>([]);
+  const [avatars, setAvatars] = useState<Avatar[]>([]);
   const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
   const [avatar, setAvatar] = useState(initialAvatar);
   const [profileBackground, setProfileBackground] = useState(defaultBackground);
@@ -127,7 +167,6 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
   const [draftBackground, setDraftBackground] = useState(defaultBackground);
   const [draftBanner, setDraftBanner] = useState(defaultBanner);
 
-
   //fetch the current user pseudo
   useEffect(() => {
     const getUserData = async () => {
@@ -139,11 +178,9 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
     void getUserData();
   }, []);
 
-  
   //reconnect socket in case of a page refresh
   useEffect(() => {
       if (!userPseudo || socket.connected) return;
-  
       socket.connect();
       socket.emit("login", userPseudo);
       return () => {
@@ -172,7 +209,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
       const avatarsRes = await fetch("/api/avatars");
       let profile: ProfilePayload | null = null;
       if (avatarsRes.ok) {
-        const avatarList: AvatarEntry[] = await avatarsRes.json();
+        const avatarList: Avatar[] = await avatarsRes.json();
         setAvatars(avatarList);
 
         const profileRes = await fetch("/api/profile");
@@ -285,6 +322,17 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
   };
 
   const handleLogout = async () => {
+    const response = await fetch("/api/profile", {
+        method: "PUT",
+      })
+      const user: unknown = await response.json();
+      if (!response.ok) {
+        const errorMessage =
+        typeof user === "object" && user !== null && "error" in user
+          ? String((user as { error: string }).error ?? "Impossible de charger l'utilisateur")
+          : "Impossible de charger l'utilisateur";
+        throw new Error(errorMessage);
+      }
     socket.disconnect();
     await authClient.signOut();
     router.push("/");
@@ -292,7 +340,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
 
   const bannerStyle = buildBackgroundStyle(profileBanner, defaultBanner);
   const totalMatches = matchHistory.length;
-  const totalWins = matchHistory.filter((match) => match.result.toLowerCase() === "victoire").length;
+  const totalWins = matchHistory.filter((match) => match.result.toLowerCase() === "win").length;
   const totalLosses = totalMatches - totalWins;
 
   return (
@@ -306,10 +354,10 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
               onClick={openCustomizationPanel}
               variant="ghost"
               className="inline-flex h-11 items-center gap-2 rounded-xl border border-[color:var(--accent-border)] bg-[#1f1b2d]/90 px-3 text-sm font-medium text-white shadow-lg transition-colors hover:bg-[#2b2540]"
-              aria-label="Personnaliser le profil"
+              aria-label="Customize Profile"
             >
               <i className="fa-solid fa-sliders"></i>
-              <span className="hidden sm:inline">Personnaliser</span>
+              <span className="hidden sm:inline">Customize Profile</span>
             </Button>
           )}
 
@@ -319,7 +367,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
               onClick={handleLogout}
               variant="ghost"
               className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-400/80 bg-red-500/90 text-white shadow-lg transition-colors hover:bg-red-500"
-              aria-label="Déconnexion"
+              aria-label="Logout"
             >
               <i className="fa-solid fa-right-from-bracket"></i>
             </IconButton>
@@ -350,26 +398,24 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                 <div className="pb-3">
                   <div className="mb-2 flex flex-wrap items-center gap-3">
                     <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{profileName}</h1>
-                    <i className="fa-solid fa-circle-check text-[var(--accent-color)] text-xl"></i>
-                    <i className="fa-brands fa-telegram text-blue-400 text-xl"></i>
                   </div>
-                  <p className="text-sm text-gray-300">#1 MIMIKYU ENJOYER</p>
                 </div>
               </div>
-
               <div className="flex items-center gap-2 pb-3">
-                <span className="rounded-md border border-yellow-500/50 bg-yellow-600/90 px-3 py-1 text-xs font-bold">OWNER</span>
-                <span className="rounded-md border border-[color:var(--accent-border)] bg-[var(--accent-color)] px-3 py-1 text-xs font-bold">GIGACHAD</span>
+                {profileBadges.map((badge, index) => (
+                  <span key={badge} className="rounded-md border border-yellow-500/50 bg-yellow-600/90 px-3 py-1 text-xs font-bold">{badge}</span>
+                )
+                )}
               </div>
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col">
               <div className="mb-3 shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-[#312b42] pb-3">
-                <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-gray-300">Historique de partie</h2>
+                <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-gray-300">Match History</h2>
                 <div className="text-sm text-gray-400">
                   <span>Total : {totalMatches}</span>
-                  <span className="ml-4">Victoires : {totalWins}</span>
-                  <span className="ml-4 hidden sm:inline">Défaites : {totalLosses}</span>
+                  <span className="ml-4">Wins : {totalWins}</span>
+                  <span className="ml-4 hidden sm:inline">Losses : {totalLosses}</span>
                 </div>
               </div>
 
@@ -377,16 +423,16 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                 <div className="space-y-3.5 pb-1">
                   {matchHistory.map((match, index) => (
                     <article
-                      key={`${match.date}-${match.opponent}-${index}`}
-                      className={`rounded-xl border-l-4 ${match.borderStyle} bg-[#211d2e] p-5 transition-colors hover:bg-[#2a253b]`}
+                      key={`${formatTime(match.createdAt)}-${match.opponent}-${index}`}
+                      className={`rounded-xl border-l-4 ${BORDER_STYLES[match.result as keyof typeof BORDER_STYLES] ?? "border-gray-500"} bg-[#211d2e] p-5 transition-colors hover:bg-[#2a253b]`}
                     >
                       <div className="grid gap-4 md:grid-cols-12 md:items-center">
                         <div className="md:col-span-3">
                           <div className="flex flex-wrap items-center gap-3">
-                            <span className={`rounded-md px-3.5 py-1.5 text-sm font-bold uppercase tracking-wide ${match.resultStyle}`}>
+                            <span className={`rounded-md px-3.5 py-1.5 text-sm font-bold uppercase tracking-wide ${RESULT_STYLES[match.result as keyof typeof RESULT_STYLES] ?? "border-gray-600"}`}>
                               {match.result}
                             </span>
-                            <span className="text-base text-gray-300">{match.date}</span>
+                            <span className="text-base text-gray-300">{formatTime(match.createdAt)}</span>
                           </div>
                         </div>
 
@@ -444,7 +490,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white">Personnalisation du profil</h3>
+              <h3 className="text-lg font-semibold text-white">Customize Profile</h3>
               <IconButton
                 type="button"
                 onClick={() => setShowCustomizationPanel(false)}
@@ -458,7 +504,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
 
             <div className="space-y-4">
               <div>
-                <p className="mb-2 text-sm font-medium text-gray-200">Photo de profil</p>
+                <p className="mb-2 text-sm font-medium text-gray-200">Profile Picture</p>
                 <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
                   {avatars.map((av) => (
                     <Button
@@ -487,7 +533,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-200">Fond d&apos;écran du site</label>
+                <label className="mb-1 block text-sm font-medium text-gray-200">Site Background</label>
                 <div className="flex gap-2">
                   <Input
                     type="url"
@@ -514,13 +560,13 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                     className="h-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-200 whitespace-nowrap"
                   >
                     <i className="fa-solid fa-upload text-xs" />
-                    Fichier
+                    File
                   </Button>
                 </div>
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-200">Bannière de profil</label>
+                <label className="mb-1 block text-sm font-medium text-gray-200">Profile Banner</label>
                 <div className="flex gap-2">
                   <Input
                     type="url"
@@ -547,7 +593,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                     className="h-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-200 whitespace-nowrap"
                   >
                     <i className="fa-solid fa-upload text-xs" />
-                    Fichier
+                    File
                   </Button>
                 </div>
               </div>
@@ -559,14 +605,14 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
                   variant="ghost"
                   className="h-auto rounded-lg px-4 py-2 text-sm text-gray-200"
                 >
-                  Annuler
+                  Cancel
                 </Button>
                 <Button
                   type="button"
                   onClick={handleSaveCustomization}
                   className="h-auto rounded-lg px-4 py-2 text-sm font-semibold text-white"
                 >
-                  Enregistrer
+                  Save
                 </Button>
               </div>
             </div>

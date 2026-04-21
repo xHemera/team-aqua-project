@@ -301,29 +301,18 @@ wait_any_key() {
     echo ""
 }
 
+
 run_prisma_migrations() {
     print_info "Application des migrations Prisma..."
 
-    if ! docker compose ps --services --filter status=running | grep -q '^frontend$'; then
-        print_info "Frontend pas encore démarré; migrations Prisma laissées au conteneur frontend"
-        return 0
-    fi
+    export $(grep -v '^#' .env | xargs)
 
     local attempts=0
     local max_attempts=12
 
-    #DANGER
-    until docker compose -f docker-compose.yml exec frontend bunx prisma migrate dev --name init --url "postgresql://postgres:postgres@db:5432/aqua_temp"; do
-        attempts=$((attempts + 1))
-        if [ "$attempts" -ge "$max_attempts" ]; then
-            print_info "Impossible d'appliquer les migrations Prisma via dev.sh (frontend en restart)."
-            print_info "Le conteneur frontend exécute déjà 'prisma migrate deploy' au démarrage."
-            return 0
-        fi
-
-        print_info "Frontend pas encore prêt, nouvelle tentative dans 3s... ($attempts/$max_attempts)"
-        sleep 3
-    done
+    docker compose -f docker-compose.yml exec frontend bunx prisma migrate dev --name init --url "$DATABASE_URL";
+    docker compose -f docker-compose.yml exec frontend bunx prisma migrate deploy --config prisma/prisma.config.ts;
+        
 
     print_success "Migrations Prisma appliquées"
 }

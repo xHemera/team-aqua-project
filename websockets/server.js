@@ -79,6 +79,10 @@ io.on("connect", (socket) => {
         friend
       });
     }
+    io.to(socket.id).emit("adding", {
+      user,
+      friend
+    });
   })
 
   socket.on("friend_denied", async ({user, friend}) => {
@@ -96,11 +100,15 @@ io.on("connect", (socket) => {
     const receiverSock = await redis.hGet("online_users", oUser);
     if (receiverSock)
     {
-      io.to(receiverSock).emit("blocking", {
+      io.to(receiverSock).emit("blocked", {
         user,
         oUser
       });
     }
+  })
+
+  socket.on("blocking_friend_or_user", async () => {
+    io.to(socket.id).emit("blocking");
   })
 
   socket.on("user_unblocked", async ({user, oUser}) => {
@@ -108,6 +116,69 @@ io.on("connect", (socket) => {
     if (receiverSock)
     {
       io.to(receiverSock).emit("unblocking", {
+        user,
+        oUser
+      });
+    }
+    io.to(socket.id).emit("unblocking", {
+      user,
+      oUser
+    })
+  })
+
+  socket.on("challenge_sent", async ({sender, receiver}) => {
+    const receiverSock = await redis.hGet("online_users", receiver);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("challenge", {
+        sender,
+        receiver
+      });
+    }
+    io.to(socket.id).emit("challenge", {
+      sender,
+      receiver
+    });
+  })
+
+  socket.on("typing", async ({sender, receiver}) => {
+    const receiverSock = await redis.hGet("online_users", receiver);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("isTyping", {
+        sender,
+        receiver
+      });
+    }
+  })
+
+  socket.on("notTyping", async ({sender, receiver}) => {
+    const receiverSock = await redis.hGet("online_users", receiver);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("isNotTyping", {
+        sender,
+        receiver
+      });
+    }
+  })
+
+  socket.on("duel_accepted", async ({user, oUser}) => {
+    const receiverSock = await redis.hGet("online_users", oUser);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("accept", {
+        user,
+        oUser
+      });
+    }
+  })
+
+  socket.on("duel_refused", async ({user, oUser}) => {
+    const receiverSock = await redis.hGet("online_users", oUser);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("refuse", {
         user,
         oUser
       });
