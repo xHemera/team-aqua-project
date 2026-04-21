@@ -68,7 +68,7 @@ export default function CharacterViewer({
   };
 
   const offenseStats = [
-    { key: "physicalDamage", label: "Physical ATK", icon: "fa-sword", shortLabel: "P.ATK" },
+    { key: "physicalDamage", label: "Physical ATK", icon: "fa-hand-fist", shortLabel: "P.ATK" },
     { key: "magicalDamage", label: "Magical ATK", icon: "fa-wand-magic-sparkles", shortLabel: "M.ATK" },
     { key: "critChance", label: "Critical Rate", icon: "fa-crosshairs", suffix: "%", shortLabel: "Crit%" },
     { key: "critDamage", label: "Critical Damage", icon: "fa-burst", suffix: "%", shortLabel: "Crit DMG" },
@@ -77,6 +77,8 @@ export default function CharacterViewer({
   const defenseStats = [
     { key: "hp", label: "Health Points", icon: "fa-heart", shortLabel: "HP" },
     { key: "mp", label: "Mana Points", icon: "fa-droplet", shortLabel: "MP" },
+    { key: "physicalResistance", label: "Physical Resistance", icon: "fa-shield", shortLabel: "P.RES", suffix: "%" },
+    { key: "magicalResistance", label: "Magical Resistance", icon: "fa-wand-magic-sparkles", shortLabel: "M.RES", suffix: "%" },
   ];
 
   const utilityStats = [
@@ -193,13 +195,13 @@ export default function CharacterViewer({
         </div>
 
         {/* Character Full Body - Large centered display */}
-        <div className="absolute inset-0 flex items-end justify-center overflow-hidden">
+        <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
           <div className="relative h-[130%] w-full">
             <Image
               src={selectedCharacter.body}
               alt={selectedCharacter.name}
               fill
-              className="object-contain object-bottom"
+              className="object-contain object-center"
               priority
             />
             <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#0c0a0f] via-[#0c0a0f]/80 to-transparent" />
@@ -296,35 +298,22 @@ export default function CharacterViewer({
                 const value = selectedCharacter.stats[stat.key as keyof CharacterStats];
                 const baseValue = selectedCharacter.baseStats[stat.key as keyof CharacterStats];
                 const bonus = value - baseValue;
-                const percent = Math.round((value / (baseValue * 2.5)) * 100);
                 return (
-                  <div key={stat.key}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 text-[#c9b896]">
-                        <i className={`fa-solid ${stat.icon} w-4 text-center text-sm text-[#8a7a5a]`} />
-                        <span className="text-sm">{stat.shortLabel}</span>
-                      </div>
-                      <div className="flex items-baseline gap-2">
-                        <span
-                          className="text-lg font-bold text-[#f5e6c8]"
-                          style={{ fontFamily: "var(--font-display), serif" }}
-                        >
-                          {value}
-                        </span>
-                        {bonus > 0 && (
-                          <span className="text-xs font-medium text-[#8fbc8f]">+{bonus}</span>
-                        )}
-                      </div>
+                  <div key={stat.key} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 text-[#c9b896]">
+                      <i className={`fa-solid ${stat.icon} w-4 text-center text-sm text-[#8a7a5a]`} />
+                      <span className="text-sm">{stat.shortLabel}</span>
                     </div>
-                    <div className="mt-1 h-1 overflow-hidden rounded-full bg-black/50">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{
-                          width: `${Math.min(percent, 100)}%`,
-                          backgroundColor: stat.key === "hp" ? "#cd5c5c" : "#5c8dcd",
-                          opacity: 0.6,
-                        }}
-                      />
+                    <div className="flex items-baseline gap-2">
+                      <span
+                        className="text-lg font-bold text-[#f5e6c8]"
+                        style={{ fontFamily: "var(--font-display), serif" }}
+                      >
+                        {value}{stat.suffix || ""}
+                      </span>
+                      {bonus > 0 && (
+                        <span className="text-xs font-medium text-[#8fbc8f]">+{bonus}{stat.suffix || ""}</span>
+                      )}
                     </div>
                   </div>
                 );

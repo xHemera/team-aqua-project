@@ -15,6 +15,8 @@ export type CharacterStats = {
   critDamage: number;
   hp: number;
   mp: number;
+  physicalResistance: number;
+  magicalResistance: number;
   speed: number;
 };
 
@@ -25,6 +27,8 @@ export type CharacterBaseStats = {
   critDamage: number;
   hp: number;
   mp: number;
+  physicalResistance: number;
+  magicalResistance: number;
   speed: number;
 };
 
