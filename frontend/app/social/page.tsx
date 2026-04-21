@@ -115,6 +115,7 @@ export default function SocialPage() {
   const [opponent, setOpponent] = useState<string | null>(null);
   const [typer, setTyper] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
+  const [unread, setUnread] = useState(false);
 
   const MAX_MESSAGE_LENGTH = 500;
   const MAX_DISPLAY_LENGTH = 200;
@@ -138,7 +139,7 @@ export default function SocialPage() {
   useEffect(() => {
     const getUserData = async () => {
       const { data } = await authClient.getSession();
-      if (data?.user?.name)
+      if (data && data.user.name)
         setUserPseudo(data.user.name);
     };
     getUserData();
@@ -176,6 +177,7 @@ export default function SocialPage() {
 		};
 	}, [userPseudo]);
 
+  //render messages sent by other users
   useEffect(() => {
     if (!userPseudo) return;
     const handler = async ({ sender,
@@ -195,6 +197,10 @@ export default function SocialPage() {
         if (!newMessages) return;
         setCurrentMessages(newMessages);
         contact.resetUnread(userPseudo, selectedUser);
+        socket.emit("has_read", {
+          user: userPseudo,
+          oUser: selectedUser,
+        });
         
         //Store images for this message ID
         // if (images && images.length > 0 && messageId) {
@@ -208,6 +214,7 @@ export default function SocialPage() {
       {
         setNotifSender(sender);
         setNotification(msg);
+        setShowNotification(true);
         fetchUnread();
       }
     }
@@ -228,8 +235,6 @@ export default function SocialPage() {
   //render messages sent by other users
   useEffect(() => {
     if (!userPseudo || !selectedUser) return;
-
-
     //show if the selected user is writing
     socket.on("isTyping", async ({sender, receiver}) => {
       if (sender == selectedUser)
@@ -318,6 +323,11 @@ export default function SocialPage() {
       if (oUser == userPseudo)
         setWaiting(false);
     })
+
+    socket.on("read", async ({user, oUser}) => {
+      if (oUser == userPseudo)
+        setUnread(false);
+    })
   }, [userPseudo, selectedUser]);
 
 	//fetch the conversation
@@ -332,6 +342,10 @@ export default function SocialPage() {
       fetchUnread();
 		}
 		fetchmessages();
+    socket.emit("has_read", {
+      user: userPseudo,
+      oUser: selectedUser,
+    });
 		messageListRef.current?.scrollTo({
 			top: messageListRef.current.scrollHeight,
 			behavior: "smooth",
@@ -461,10 +475,22 @@ export default function SocialPage() {
     fetchUnread();
   }, [userPseudo])
 
+  //sets read/unread status
+  useEffect(() => {
+    if (!currentUser || !selectedUser) return;
+    async function fetchSelectedUnread()
+    {
+      if (!currentUser || !selectedUser) return;
+      const unr = await contact.getUnread(currentUser.name, selectedUser);
+      setUnread(unr > 0);
+    }
+    fetchSelectedUnread();
+  }, [selectedUser])
+
   async function fetchUnread()
   {
     if (!userPseudo) return;
-    const results = await contact.getUnread(userPseudo);
+    const results = await contact.getUnreadNotif(userPseudo);
     setUnreadMap(results);
   }
 
@@ -500,8 +526,8 @@ export default function SocialPage() {
         body: JSON.stringify({ username }),
       });
       const payload = (await response.json()) as {
-        error?: string;
-        user?: { name: string; avatarUrl?: string | null };
+        error: string;
+        user: { name: string; avatarUrl: string | null };
       };
       //return if we invite ourselves
       if (payload.error === "vous ne pouvez pas vous inviter")
@@ -538,7 +564,6 @@ export default function SocialPage() {
         });
         return;
       }
-
       const foundName = payload.user.name;
       setSelectedUser(foundName);
       setInviteNotification({
@@ -557,24 +582,26 @@ export default function SocialPage() {
     }
   };
 
+  //accept someone as a friend to be able to duel
   async function addFriend()
   {
-    if (!currentUser || !selectedUser) return;
-    contact.acceptFriendRequest(currentUser.name, selectedUser);
+    if (!currentUser || !friendRequestSender) return;
+    contact.acceptFriendRequest(currentUser.name, friendRequestSender);
     socket.emit("friend_added", {
       user: currentUser.name,
-      oUser: selectedUser
+      oUser: friendRequestSender
     });
     setFriendRequestSender(null);
   }
 
+  //refuse a friend request
   async function refuseFriendship()
   {
-    if (!currentUser || !selectedUser) return;
-    contact.denyFriendRequest(currentUser.name, selectedUser);
+    if (!currentUser || !friendRequestSender) return;
+    contact.denyFriendRequest(currentUser.name, friendRequestSender);
     socket.emit("friend_denied", {
       user: currentUser.name,
-      oUser: selectedUser
+      oUser: friendRequestSender
     });
     setRequest(false);
     setFriendRequestSender(null);
@@ -614,6 +641,7 @@ export default function SocialPage() {
 
     //fetch messages between users
 		const newMessages = await contact.getMsg(currentUser.name, selectedUser);
+    contact.getUnreadNotif(currentUser.name);
 		if (!newMessages) return;
 
     // Prepare images from attachments
@@ -652,11 +680,13 @@ export default function SocialPage() {
     }
 
     setCurrentMessages(newMessages);
+
     socket.emit("notTyping", {
       sender : currentUser.name,
       receiver: selectedUser,
     });
     contact.resetUnread(currentUser.name, selectedUser);
+    setUnread(true);
 
     //sends a signal to the other user's socket
     socket.emit("msg_sent", {
@@ -683,12 +713,6 @@ export default function SocialPage() {
     setProfileViewerUser(targetUser);
     setShowProfileViewer(true);
   };
-
-  //waiting screen when waiting for duel
-  //(oui je sais c'est pas un waiting screen je vous laisse le faire)
-  const isWaiting = () => {
-    return <div>Waiting for your opponent</div>
-  }
 
   const acceptDuel = async () => {
     socket.emit("duel_accepted", {
@@ -724,7 +748,6 @@ export default function SocialPage() {
 
   return (
     <AppPageShell showSidebar containerClassName="min-h-0 flex-1 flex-col">
-      {waiting && isWaiting()}
       {showNotification && notification && notifSender && (notifSender !== selectedUser) && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       {inviteNotification && (
         <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
@@ -795,7 +818,8 @@ export default function SocialPage() {
                     <button
                       key={user.name}
                       onClick={() => {
-                        setSelectedUser(user.name);
+                          setSelectedUser(user.name);
+                          setShowNotification(false);
                         }
                       }
                       className={`relative flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 transition-colors ${
@@ -817,9 +841,9 @@ export default function SocialPage() {
                       {user.online ? <div>ONLINE</div> : <div>OFFLINE</div>}
                       <span className="shrink-0 whitespace-nowrap text-sm font-semibold">{user.name}</span>
                       {
-                        (unreadMap[user.id] ?? 0) > 0 && (
+                        (unreadMap[user.name] ?? 0) > 0 && (
                         <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
-                          {unreadMap[user.id] ?? 0}
+                          {unreadMap[user.name] ?? 0}
                         </span>
                       )}
                     </button>
@@ -843,7 +867,7 @@ export default function SocialPage() {
           <section className="flex h-full min-h-0 flex-col">
 
             {/*Friend request*/}
-            {request && friendRequestSender && (
+            {selectedUser && request && friendRequestSender && (
               <div className="border-b border-[#3c3650] bg-[#1b1826] p-4">
                 <div className="rounded-lg border border-[var(--accent-color)] bg-[#242033] p-4">
                   <div className="flex items-center justify-between">
@@ -1052,8 +1076,8 @@ export default function SocialPage() {
                   >
                     <i className="fa-solid fa-paper-plane" />
                   </button>
+                  {unread ? <div>unread</div> : <div>read</div>}
                 </div>
-
                 {draftAttachments.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {draftAttachments.map((attachment) => (
@@ -1075,7 +1099,7 @@ export default function SocialPage() {
                     ))}
                   </div>
                 )}
-                {typer && typing && <div>{typer} is typing</div>}
+                {selectedUser && typer && selectedUser === typer && typing && <div>{typer} is typing</div>}
               </div>)}
             </footer>
           </section>

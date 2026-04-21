@@ -125,7 +125,7 @@ model User {
   messages          Messages[]
   inbox             Inbox[]
   matchHistory      Match_history[]
-  ganeState         GameState?
+  gameState         GameState?
 
   @@unique([email])
   @@map("user")

@@ -206,47 +206,6 @@ export async function addMsg(msg: string, sender: string, receiver: string)
 		throw Error("Could not create the message");
 }
 
-export async function resetUnread(sender: string, receiver: string)
-{
-    const user1 = await prisma.user.findFirst({
-        where: { name: sender },
-		select: {id: true}
-    })
-    const user2 = await prisma.user.findFirst({
-        where: { name: receiver },
-		select: {id: true}
-    })
-
-    if (!user1 || !user2) throw new Error("User not found");
-
-	const inbox = await prisma.inbox.findFirst({
-		where: {
-			inboxUser: {
-				some: { user_id: user1.id }
-			},
-			AND: { 
-				inboxUser: {
-					some: { user_id: user2.id }
-				}
-			}
-		},
-        select: { id: true }
-	})
-
-	if (!inbox)
-		throw Error("No discussion found or created prior");
-
-    await prisma.inbox_users.updateMany({
-        where: {
-            inbox_id: inbox.id,
-            user_id: user1.id
-		},
-        data: {
-            unread_messages: 0
-        }
-    })
-}
-
 //return all messages from a conversation
 export async function getMsg(user: string, otherUser: string)
 {
@@ -278,8 +237,8 @@ export async function getMsg(user: string, otherUser: string)
 	return msgs.messages;
 }
 
-//fetch the unread number per user
-export async function getUnread(currentUser: string)
+//fetch the unread number per user for notification
+export async function getUnreadNotif(currentUser: string)
 {
     const results: Record<string, number> = {};
     const cUser = await prisma.user.findFirst({
@@ -301,6 +260,8 @@ export async function getUnread(currentUser: string)
         },
         select: {
             id: true,
+            name: true,
+
         }
     });
     if (!users) return results;
@@ -327,13 +288,14 @@ export async function getUnread(currentUser: string)
             let unread = 0;
             if (!iU || !iU.unread_messages) { unread = 0; }
             else { unread = iU.unread_messages; }
-            results[user.id] = unread;
+            results[user.name] = unread;
         })
     );
     return results;
 }
 
-export async function getSelectedUnread(currentUser: string, selectedUser: string)
+//get unread count for status
+export async function getUnread(currentUser: string, selectedUser: string)
 {
     const user1 = await prisma.user.findFirst({
         where: { name: currentUser },
@@ -344,8 +306,9 @@ export async function getSelectedUnread(currentUser: string, selectedUser: strin
         select: { id: true }
     })
 
+    let unread = 0;
     if (!user1 || !user2) throw Error("Users not found");
-    const unread = await prisma.inbox_users.findFirst({
+    const iU = await prisma.inbox_users.findFirst({
         where: {
             inbox: {
                 inboxUser: { some: { user_id: user1.id } },
@@ -353,12 +316,11 @@ export async function getSelectedUnread(currentUser: string, selectedUser: strin
             },
             user_id: user2.id
         },
-        select: {
-            unread_messages: true
-        }
+        select: { unread_messages: true }
     });
-    if (!unread) return 0;
-    return unread.unread_messages;
+    if (!iU || !iU.unread_messages) { unread = 0; }
+    else { unread = iU.unread_messages; }
+    return unread;
 }
 
 //return the other user friend type
@@ -461,6 +423,47 @@ export async function addFriend(currentUser: string, otherUser: string)
             }
         });
     }
+}
+
+export async function resetUnread(sender: string, receiver: string)
+{
+    const user1 = await prisma.user.findFirst({
+        where: { name: sender },
+		select: {id: true}
+    })
+    const user2 = await prisma.user.findFirst({
+        where: { name: receiver },
+		select: {id: true}
+    })
+
+    if (!user1 || !user2) throw new Error("User not found");
+
+	const inbox = await prisma.inbox.findFirst({
+		where: {
+			inboxUser: {
+				some: { user_id: user1.id }
+			},
+			AND: { 
+				inboxUser: {
+					some: { user_id: user2.id }
+				}
+			}
+		},
+        select: { id: true }
+	})
+
+	if (!inbox)
+		throw Error("No discussion found or created prior");
+
+    await prisma.inbox_users.updateMany({
+        where: {
+            inbox_id: inbox.id,
+            user_id: user1.id
+		},
+        data: {
+            unread_messages: 0
+        }
+    })
 }
 
 //change both requests to false, making them friends

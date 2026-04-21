@@ -21,6 +21,8 @@ export const STAT_GROUPS = [
     items: [
       { key: "hp", label: "HP", icon: "fa-heart", iconColor: "text-[#8fdf8f]" },
       { key: "mp", label: "Mana", icon: "fa-droplet", iconColor: "text-[#7fd9ff]" },
+      { key: "physicalResistance", label: "P.Res", icon: "fa-shield", iconColor: "text-[#9ed7a8]" },
+      { key: "magicalResistance", label: "M.Res", icon: "fa-wand-magic-sparkles", iconColor: "text-[#98b8ff]" },
     ],
   },
   {
@@ -38,6 +40,8 @@ export const CHARACTER_STAT_ROWS = [
   { key: "critDamage", label: "Crit DMG", icon: "fa-star", iconColor: "text-[#ff9ecb]" },
   { key: "hp", label: "HP", icon: "fa-heart", iconColor: "text-[#8fdf8f]" },
   { key: "mp", label: "Mana", icon: "fa-droplet", iconColor: "text-[#7fd9ff]" },
+  { key: "physicalResistance", label: "P. RES", icon: "fa-shield", iconColor: "text-[#9ed7a8]" },
+  { key: "magicalResistance", label: "M. RES", icon: "fa-wand-magic-sparkles", iconColor: "text-[#98b8ff]" },
   { key: "speed", label: "Speed", icon: "fa-gauge-high", iconColor: "text-[#c0b3ff]" },
 ] as const;
 
@@ -57,6 +61,10 @@ const evaluateFormula = (expression: string, stats: CharacterStats, skill: Chara
       "physical damage": stats.physicalDamage.toString(),
       "magic damage": stats.magicalDamage.toString(),
       "magical damage": stats.magicalDamage.toString(),
+      "physical resistance": stats.physicalResistance.toString(),
+      "physical resist": stats.physicalResistance.toString(),
+      "magical resistance": stats.magicalResistance.toString(),
+      "magic resistance": stats.magicalResistance.toString(),
       "skill level": skill.level.toString(),
       "max hp": stats.hp.toString(),
       "max mp": stats.mp.toString(),
@@ -180,7 +188,8 @@ export const formatCompactPower = (value: number) => {
 export const calculatePower = (stats: CharacterStats) => {
   // More realistic power calculation for actual game balance
   const offense = (stats.physicalDamage * 1.5) + (stats.magicalDamage * 1.5) + (stats.critChance * stats.critDamage / 100);
-  const defense = stats.hp * 0.5 + stats.mp * 0.2;
+  const resistanceScore = (stats.physicalResistance + stats.magicalResistance) * 12;
+  const defense = stats.hp * 0.5 + stats.mp * 0.2 + resistanceScore;
   const utility = stats.speed * 2;
 
   return Math.round(offense + defense + utility);

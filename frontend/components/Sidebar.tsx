@@ -11,7 +11,7 @@ import { useAvatarPreference } from "@/hooks/useAvatarPreference";
 import { socket } from "../socket";
 
 const NAV_ITEMS = [
-  { href: "/home", icon: "fa-solid fa-castle", label: "Home" },
+  { href: "/home", icon: "fa-solid fa-house", label: "Home" },
   { href: "/characters", icon: "fa-solid fa-users", label: "Heroes" },
   { href: "/social", icon: "fa-solid fa-messages", label: "Tavern" },
   { href: "/admin", icon: "fa-solid fa-crown", label: "Council" },
