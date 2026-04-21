@@ -339,6 +339,22 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
     router.push("/");
   };
 
+  const deleteProfile = async () => {
+    const response = await fetch("/api/profile", {
+        method: "DELETE",
+      })
+      const user: unknown = await response.json();
+      if (!response.ok) {
+        const errorMessage =
+        typeof user === "object" && user !== null && "error" in user
+          ? String((user as { error: string }).error ?? "Impossible de charger l'utilisateur")
+          : "Impossible de charger l'utilisateur";
+        throw new Error(errorMessage);
+      }
+    socket.disconnect();
+    router.push("/");
+  }
+
   const handleDeleteProfile = () => {
     setShowDeleteConfirmation(true);
   };
@@ -664,7 +680,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
               </Button>
               <Button
                 type="button"
-                onClick={() => setShowDeleteConfirmation(false)}
+                onClick={() => {setShowDeleteConfirmation(false); deleteProfile()}}
                 className="h-auto rounded-lg px-4 py-2 text-sm font-semibold text-white bg-red-600/90 hover:bg-red-700 border border-red-500/50"
               >
                 Delete Profile
