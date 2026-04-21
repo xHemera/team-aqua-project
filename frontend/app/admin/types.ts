@@ -1,8 +1,9 @@
-export type AdminUser = {
-  id: string;
-  pseudo: string;
-  avatar: string | null;
+export type User = {
+  id:     string;
+  name:   string;
   badges: string[];
+  banned: boolean;
+  avatar?: string | null
 };
 
 export type ReportedConversationMessage = {

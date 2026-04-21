@@ -11,53 +11,9 @@ import { contact }  from "./index"
 import NotificationToast from "@/components/organisms/home/NotificationToast";
 import ProfileViewerModal from "@/components/organisms/social/ProfileViewer";
 import Validate from "@/components/organisms/Validate";
+import {type} from "./index"
 
-type Messages = {
-  id:         string;
-  user_id:    string;
-  inbox_id:   string;
-  message:    string | null;
-  createdAt:  Date;
-  images?:    Array<{ id: string; name: string; data: string }>;
-}
 
-type Inbox_users = {
-	id:								string;
-	inbox_id:					string;
-	user_id:					string;
-	unread_messages:	number | null;
-};
-
-type Inbox = {
-  id: 								string;
-  inboxUser:  				Inbox_users[];
-};
-
-type Avatar = {
-  url:					string;
-};
-
-type User = {
-  id:           string;
-  name:         string;
-  badges:       string[];
-  blockedUsers: string[];
-  avatar:       Avatar | null;
-  online:       boolean;
-};
-
-type Attachment = {
-  id: 				string;
-  name: 			string;
-  sizeLabel:	string;
-  type: 			string;
-  previewUrl: string;
-};
-
-type InviteNotification = {
-  type: "success" | "error";
-  message: string;
-};
 
 const formatTime = (date: Date) =>
   date.toLocaleTimeString("fr-FR", {
@@ -72,7 +28,7 @@ const toSizeLabel = (bytes: number) => {
 };
 
 //creation d'un fichier a partager
-const buildAttachmentFromFile = (file: File): Attachment => ({
+const buildAttachmentFromFile = (file: File): type.Attachment => ({
   id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
   name: file.name,
   sizeLabel: toSizeLabel(file.size),
@@ -87,22 +43,22 @@ export default function SocialPage() {
 
   const [selectedUser, setSelectedUser] = useState("");
   const [message, setMessage] = useState("");
-  const [draftAttachments, setDraftAttachments] = useState<Attachment[]>([]);
-  const [inviteNotification, setInviteNotification] = useState<InviteNotification | null>(null);
+  const [draftAttachments, setDraftAttachments] = useState<type.Attachment[]>([]);
+  const [inviteNotification, setInviteNotification] = useState<type.InviteNotification | null>(null);
   const [isInviting, setIsInviting] = useState(false);
   const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
   const [inviteUsername, setInviteUsername] = useState("");
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
-  const [currentMessages, setCurrentMessages] = useState<Messages[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [inboxes, setInboxes] = useState<Inbox[]>([]);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentMessages, setCurrentMessages] = useState<type.Messages[]>([]);
+  const [users, setUsers] = useState<type.User[]>([]);
+  const [inboxes, setInboxes] = useState<type.Inbox[]>([]);
+  const [currentUser, setCurrentUser] = useState<type.User | null>(null);
 	const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
   const [showNotification, setShowNotification] = useState(true);
   const [notification, setNotification] = useState<string | null>(null);
   const [notifSender, setNotifSender] = useState<string | null>(null);
   const [showProfileViewer, setShowProfileViewer] = useState(false);
-  const [profileViewerUser, setProfileViewerUser] = useState<User | null>(null);
+  const [profileViewerUser, setProfileViewerUser] = useState<type.User | null>(null);
   const [request, setRequest] = useState(false);
   const [friendRequestSender, setFriendRequestSender] = useState<string | null>(null);
   const [waiting, setWaiting] = useState(false);

@@ -299,7 +299,7 @@ export default function ProfileViewerModal({
                     fill
                     className="object-cover"
                     unoptimized
-                    onClick={() =>handleProfileClick()}
+                    onClick={() => handleProfileClick()}
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-lg font-black text-white">

@@ -1,16 +1,16 @@
 import Card from "@/components/atoms/Card";
 import Input from "@/components/atoms/Input";
 import UserListItem from "@/components/molecules/admin/UserListItem";
-import type { AdminUser } from "@/app/admin/types";
+import type { User } from "@/app/admin/types";
+import { useRouter } from "next/navigation";
 
 type UsersManagementPanelProps = {
-  users: AdminUser[];
-  filteredUsers: AdminUser[];
+  users: User[];
+  filteredUsers: User[];
   loadingUsers: boolean;
   usersError: string | null;
   userQuery: string;
   onUserQueryChange: (value: string) => void;
-  onViewProfile: (pseudo: string) => void;
   pendingReportsCount: number;
 };
 
@@ -21,9 +21,15 @@ export default function UsersManagementPanel({
   usersError,
   userQuery,
   onUserQueryChange,
-  onViewProfile,
   pendingReportsCount,
 }: UsersManagementPanelProps) {
+  const router = useRouter();
+
+  function onViewProfile(user: string)
+  {
+    router.push(`/profile/${user}`)
+  }
+
   return (
     <Card className="flex min-h-0 w-full flex-col p-4 lg:w-[56%] lg:p-5">
       <div className="flex items-center justify-between gap-3 pb-4">
