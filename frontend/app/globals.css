@@ -257,6 +257,35 @@ body::before {
     0 2px 4px rgba(0, 0, 0, 0.4);
 }
 
+@keyframes mine-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.55);
+  }
+  18% {
+    opacity: 1;
+    transform: translate(-50%, -62%) scale(1.14);
+  }
+  48% {
+    opacity: 0.95;
+    transform: translate(-50%, -88%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -130%) scale(0.9);
+  }
+}
+
+.mine-reward-pop {
+  animation: mine-pop 0.62s cubic-bezier(0.2, 0.75, 0.28, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.mine-clicker,
+.mine-clicker * {
+  cursor: pointer !important;
+}
+
 /* Skill Frame */
 .skill-frame {
   position: relative;
@@ -416,4 +445,100 @@ body::before {
 ::selection {
   background: rgba(201, 162, 39, 0.3);
   color: var(--text-primary);
+}
+
+@keyframes expedition-lane-glow {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes expedition-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-2px) rotate(1deg);
+  }
+}
+
+.expedition-walk-lane {
+  position: relative;
+  height: 42px;
+  border-radius: 9999px;
+  --expedition-progress: 0%;
+  background: linear-gradient(90deg, rgba(201, 162, 39, 0.08), rgba(122, 145, 98, 0.16), rgba(201, 162, 39, 0.08));
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  overflow: hidden;
+}
+
+.expedition-walk-lane::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--expedition-progress);
+  background: linear-gradient(90deg, rgba(122, 145, 98, 0.1), rgba(201, 162, 39, 0.22));
+  box-shadow: inset -8px 0 14px rgba(201, 162, 39, 0.2);
+}
+
+.expedition-walk-lane::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0,
+    transparent 10px,
+    rgba(201, 162, 39, 0.15) 10px,
+    rgba(201, 162, 39, 0.15) 12px
+  );
+  animation: expedition-lane-glow 1.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.expedition-walker {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  transition: left 0.14s linear;
+  z-index: 2;
+}
+
+.expedition-walker > div {
+  animation: expedition-bob 0.38s ease-in-out infinite;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 6px 14px rgba(0, 0, 0, 0.45);
+}
+
+.expedition-node {
+  position: absolute;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  transform: translateY(-50%);
+  border: 1px solid rgba(201, 162, 39, 0.45);
+  background: rgba(20, 17, 27, 0.88);
+  color: rgba(230, 197, 90, 0.9);
+  font-size: 10px;
+  z-index: 3;
+}
+
+.expedition-node-start {
+  left: 4px;
+}
+
+.expedition-node-end {
+  right: 4px;
 }
