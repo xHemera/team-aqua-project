@@ -1,19 +1,31 @@
-import { CharacterInstance } from "../Instances/CharacterInstance";
+import { CharacterInstance, ModEntry } from "../Instances/CharacterInstance";
 
-export function resolvePhyDamage(raw: number, idUser: CharacterInstance ,idTarget: CharacterInstance) : number {
-	let retValue: number = raw
-	idUser.phyMod.forEach((value) => retValue = retValue * value)
-	idUser.phyTurn.forEach((value) => value --)
-	idTarget.defMod.forEach((value) => retValue = retValue * value)
-	idTarget.defTurn.forEach((value) => value--)
-	return retValue
+function applyAndTick(mods: ModEntry[], raw: number): { result: number; mods: ModEntry[] } {
+    const result = mods.reduce((acc, { value }) => acc * value, raw);
+    return {
+        result,
+        mods: mods
+            .map(entry => ({ ...entry, turn: entry.turn - 1 }))
+            .filter(entry => entry.turn > 0),
+    };
 }
 
-export function resolveMagDamage(raw: number, idUser: CharacterInstance ,idTarget: CharacterInstance) : number {
-	let retValue: number = raw
-	idUser.magMod.forEach((value) => retValue = retValue * value)
-	idUser.magTurn.forEach((value) => value --)
-	idTarget.defMMod.forEach((value) => retValue = retValue * value)
-	idTarget.defMTurn.forEach((value) => value--)
-	return retValue
+export function resolvePhyDamage(raw: number, idUser: CharacterInstance, idTarget: CharacterInstance): number {
+    const { result: afterUser,   mods: newUserMod   } = applyAndTick(idUser.phyMod,   raw);
+    const { result: afterTarget, mods: newTargetMod } = applyAndTick(idTarget.defMod, afterUser);
+
+    idUser.phyMod    = newUserMod;
+    idTarget.defMod  = newTargetMod;
+
+    return afterTarget;
+}
+
+export function resolveMagDamage(raw: number, idUser: CharacterInstance, idTarget: CharacterInstance): number {
+    const { result: afterUser,   mods: newUserMod   } = applyAndTick(idUser.magMod,    raw);
+    const { result: afterTarget, mods: newTargetMod } = applyAndTick(idTarget.defMMod, afterUser);
+
+    idUser.magMod    = newUserMod;
+    idTarget.defMMod = newTargetMod;
+
+    return afterTarget;
 }
