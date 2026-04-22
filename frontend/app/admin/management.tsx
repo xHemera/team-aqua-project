@@ -36,7 +36,7 @@ export async function getReports()
             reason: true,
             createdAt: true,
         }
-    })
+    });
     if (!reports)
         return ;
     return reports;
@@ -50,15 +50,41 @@ export async function getUsersByName(reporter: string, reported: string)
         select: {
             id: true,
         }
-    })
+    });
     const user2 = await prisma.user.findFirst({
         where: { name: reported },
         select: {
             id: true,
         }
-    })
+    });
     if (!user1 || !user2) throw Error("Users not found");
     results[user1.id] = reporter;
     results[user2.id] = reported;
     return results;
+}
+
+export async function deleteReport(reporter: string, reported: string)
+{
+    const report = await prisma.reported_Conv.deleteMany({
+        where: {
+            reportedUser: reported,
+            reporter: reporter,
+        },
+    });
+}
+
+export async function banUser(username: string)
+{
+    const user = await prisma.user.updateMany({
+        where: { name: username },
+        data: { banned: true }
+    });
+}
+
+export async function unbanUser(username: string)
+{
+    await prisma.user.updateMany({
+        where: { name: username },
+        data: { banned: false }
+    })
 }

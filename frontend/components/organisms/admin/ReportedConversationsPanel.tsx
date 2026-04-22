@@ -32,7 +32,8 @@ export default function ReportedConversationsPanel({
   onSelectReportId,
 }: ReportedConversationsPanelProps) {
   const [users, setUsers] = useState<Record<string, string>>({});
-  const selectedReport = reports.find((report) => report.id === selectedReportId) ?? reports[0] ?? null;
+  const [reportList, setReportList] = useState(reports)
+  const selectedReport = reportList.find((report) => report.id === selectedReportId) ?? reportList[0] ?? null;
 
   useEffect(() => {
     async function fetchUsers()
@@ -43,6 +44,25 @@ export default function ReportedConversationsPanel({
     }
     fetchUsers();
   }, [selectedReport]);
+
+  async function deleteReport()
+  {
+    if (!selectedReport) return;
+    manage.deleteReport(selectedReport.reporter, selectedReport.reportedUser);
+    const i = reports.findIndex((report) => report.id === selectedReport.id);
+    reports.splice(i, 1);
+    setReportList(reports);
+  }
+
+  async function banUser()
+  {
+    if (!selectedReport) return;
+    manage.deleteReport(selectedReport.reporter, selectedReport.reportedUser);
+    manage.banUser(selectedReport.reportedUser);
+    const i = reports.findIndex((report) => report.id === selectedReport.id);
+    reports.splice(i, 1);
+    setReportList(reports);
+  }
 
   return (
     <Card className="flex min-h-0 w-full flex-col p-4 lg:w-[44%] lg:p-5">
@@ -61,13 +81,13 @@ export default function ReportedConversationsPanel({
             <Card className="rounded-xl border-red-400/50 bg-red-900/20 p-3 text-sm text-red-100">{reportsError}</Card>
           )}
 
-          {!loadingReports && !reportsError && reports.length === 0 && (
+          {!loadingReports && !reportsError && reportList.length === 0 && (
             <Card className="rounded-xl bg-[#1c1827] p-3 text-sm text-gray-300">No reported conversations available.</Card>
           )}
 
-          {!loadingReports && !reportsError && reports.length > 0 && (
+          {!loadingReports && !reportsError && reportList.length > 0 && (
             <div className="space-y-2">
-              {reports.map((report) => (
+              {reportList.map((report) => (
                 <ReportListItem
                   key={report.id}
                   report={report}
@@ -106,8 +126,8 @@ export default function ReportedConversationsPanel({
                   size="sm"
                   variant="secondary"
                   className="h-9 px-3 text-xs"
-                  disabled
-                  title="Action de moderation a connecter a l'API de signalement"
+                  onClick={deleteReport}
+                  title="Mark as reviewed"
                 >
                   Mark as Reviewed
                 </Button>
@@ -115,8 +135,8 @@ export default function ReportedConversationsPanel({
                   type="button"
                   size="sm"
                   className="h-9 px-3 text-xs"
-                  disabled
-                  title="Action de moderation a connecter a l'API de signalement"
+                  onClick={banUser}
+                  title="Ban"
                 >
                   Ban
                 </Button>
