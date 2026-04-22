@@ -178,7 +178,7 @@ export default function SocialPage() {
     return () => {
       socket.off("received", handler);
     }
-  });
+  }, []);
 
   useEffect(() => {
     if (!userPseudo) return;
@@ -345,10 +345,7 @@ export default function SocialPage() {
       return;
     }
     isWaiting();
-  }, [currentUser, selectedUser])
 
-  //sets friend status
-  useEffect(() => {
     async function isFriend()
     {
       if (!currentUser || !selectedUser) return;
@@ -362,10 +359,7 @@ export default function SocialPage() {
       return;
     }
     isFriend();
-  }, [currentUser, selectedUser])
 
-  //sets request status
-  useEffect(() => {
     async function isRequesting()
     {
       if (!currentUser || !selectedUser) return;
@@ -385,10 +379,7 @@ export default function SocialPage() {
       return;
     }
     isRequesting();
-  }, [currentUser, selectedUser])
 
-  //sets blocked status
-  useEffect(() => {
     async function isBlockedByMe()
     {
       if (!currentUser || !selectedUser) return;
@@ -402,10 +393,7 @@ export default function SocialPage() {
       return;
     }
     isBlockedByMe();
-  }, [currentUser, selectedUser])
 
-  //sets blocked status from user
-  useEffect(() => {
     async function amIBlocked()
     {
       if (!currentUser || !selectedUser) return;
