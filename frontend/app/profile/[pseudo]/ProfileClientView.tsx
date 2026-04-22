@@ -12,7 +12,7 @@ import { socket } from "../../../socket"
 import { authClient } from "@/lib/auth-client";
 import { applyBackgroundPreferenceToDocument, buildBackgroundStyle, DEFAULT_SITE_BACKGROUND, normalizeImageValue } from "@/lib/background-utils";
 import { persistAvatarPreference } from "@/lib/avatar-preference";
-import { applyAccentPalette, resolveProfileIcon } from "@/lib/profile-icons";
+import { applyAccentPalette, resolveProfileIcon, DEFAULT_PROFILE_ICON } from "@/lib/profile-icons";
 import NotificationToast from "@/components/organisms/home/NotificationToast";
 
 type Match_history = {
@@ -60,8 +60,7 @@ type ProfilePatchPayload = {
 
 // HARDCODE: temporary default banner until user banners are fully managed in DB.
 const defaultBanner = "https://www.katebackdrop.fr/cdn/shop/files/B4035519.jpg?v=1710741683&width=600";
-// HARDCODE: fallback app background value from frontend configuration.
-const defaultBackground = DEFAULT_SITE_BACKGROUND;
+
 
 // HARDCODE: temporary mocked match history while battle history API is pending.
 // const matchHistory = [
@@ -132,14 +131,14 @@ const deckpublic: Record<string, string> = {
   Zacian: "/decks/zacian-icon.png",
 };
 
+// HARDCODE: fallback app background value from frontend configuration.
+const defaultBackground = DEFAULT_SITE_BACKGROUND;
+
 const normalizeBackgroundValue = (value: string) => normalizeImageValue(value, defaultBackground);
-const normalizeBannerValue = (value: string) => normalizeImageValue(value, defaultBanner);
+const normalizeBannerValue = (value: string) => value; // Banner normalization preserved only
 
 export default function ProfileClientView({ profileName, profileUserId, initialAvatar, isOwnProfile, profileBadges, matchHistory }: ProfileClientViewProps) {
   const router = useRouter();
-  const [avatars, setAvatars] = useState<Avatar[]>([]);
-  const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
-  const [avatar, setAvatar] = useState(initialAvatar);
   const [profileBackground, setProfileBackground] = useState(defaultBackground);
   const [profileBanner, setProfileBanner] = useState(defaultBanner);
   const [showCustomizationPanel, setShowCustomizationPanel] = useState(false);
@@ -149,7 +148,13 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
   const [notification, setNotification] = useState<string | null>(null);
   const [notifSender, setNotifSender] = useState<string | null>(null);
   const bgUploadRef = useRef<HTMLInputElement>(null);
-  const bannerUploadRef = useRef<HTMLInputElement>(null);
+  const avatarUploadRef = useRef<HTMLInputElement>(null);
+  const [draftBackground, setDraftBackground] = useState(defaultBackground);
+  const [draftBanner, setDraftBanner] = useState(defaultBanner);
+  const [customAvatar, setCustomAvatar] = useState<string | null>(null);
+  
+  // Default avatar for all users
+  const defaultAvatar = DEFAULT_PROFILE_ICON.url;
 
   /**
    * Objective: convert uploaded file to Data URL for instant local preview.
@@ -166,39 +171,13 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
       reader.readAsDataURL(file);
     });
 
-  /**
-   * Objective: upload banner file to database and get data URL for display.
-   * Usage: called when user selects a banner file.
-   * Input: browser `File` object.
-   * Output: promise resolving to Data URL string.
-   * Special cases: Falls back to local data URL if upload fails.
-   */
-  const uploadBannerToDb = async (file: File): Promise<string> => {
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await fetch("/api/profile/banner", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        return data.dataUrl;
-      }
-    } catch (error) {
-      console.error("Banner upload error:", error);
+  useEffect(() => {
+    if (!isOwnProfile) return;
+    const savedAvatar = localStorage.getItem("profileCustomAvatar");
+    if (savedAvatar) {
+      setCustomAvatar(savedAvatar);
     }
-
-    // Fallback to local data URL if upload fails
-    return fileToDataUrl(file);
-  };
-  const [draftAvatarId, setDraftAvatarId] = useState<string | null>(null);
-  const [draftBackground, setDraftBackground] = useState(defaultBackground);
-  const [draftBanner, setDraftBanner] = useState(defaultBanner);
-
-  //fetch the current user pseudo
+  }, [isOwnProfile]);
   useEffect(() => {
     const getUserData = async () => {
       const { data } = await authClient.getSession();
@@ -229,87 +208,41 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
   }, [userPseudo]);
 
   useEffect(() => {
-    const icon = resolveProfileIcon({ url: initialAvatar });
+    const icon = resolveProfileIcon({ url: DEFAULT_PROFILE_ICON.url });
     applyAccentPalette(icon);
-  }, [initialAvatar]);
+  }, []);
 
   useEffect(() => {
     if (!isOwnProfile) return;
 
     const initOwnProfile = async () => {
-      const avatarsRes = await fetch("/api/avatars");
-      let profile: ProfilePayload | null = null;
-      if (avatarsRes.ok) {
-        const avatarList: Avatar[] = await avatarsRes.json();
-        setAvatars(avatarList);
-
-        const profileRes = await fetch("/api/profile");
-        if (profileRes.ok) {
-          profile = await profileRes.json();
-          if (profile?.avatar) {
-            setSelectedAvatarId(profile.avatar.id);
-            setDraftAvatarId(profile.avatar.id);
-            setAvatar(profile.avatar.url);
-            persistAvatarPreference(profile.avatar.url, profile.avatar.id);
-            applyAccentPalette(resolveProfileIcon({ id: profile.avatar.id, url: profile.avatar.url }));
-          }
-        }
-      }
-
       const savedBackground =
         localStorage.getItem("profileBackground") ||
         localStorage.getItem("background") ||
         localStorage.getItem("wallpaper") ||
         localStorage.getItem("customBackground");
 
+      // Background personalization for profile page
       if (savedBackground) {
         const nextSavedBackground = normalizeBackgroundValue(savedBackground);
         setProfileBackground(nextSavedBackground);
         setDraftBackground(nextSavedBackground);
         applyBackgroundPreferenceToDocument(nextSavedBackground, defaultBackground);
-      } else if (profile?.profileBackground) {
-        const nextBackground = normalizeBackgroundValue(profile.profileBackground);
-        setProfileBackground(nextBackground);
-        setDraftBackground(nextBackground);
-        applyBackgroundPreferenceToDocument(nextBackground, defaultBackground);
-      }
-
-      if (profile?.profileBanner) {
-        const nextBanner = normalizeBannerValue(profile.profileBanner);
-        setProfileBanner(nextBanner);
-        setDraftBanner(nextBanner);
       }
     };
 
     initOwnProfile();
   }, [isOwnProfile]);
 
+
+
+  // Apply background preference for profile page
   useEffect(() => {
     if (!isOwnProfile) return;
     applyBackgroundPreferenceToDocument(profileBackground, defaultBackground);
   }, [isOwnProfile, profileBackground]);
 
-  // Load banner from database for all profiles
-  useEffect(() => {
-    const loadBannerFromDb = async () => {
-      try {
-        const res = await fetch(`/api/profile/banner?userId=${profileUserId}`);
-        if (res.ok) {
-          const blob = await res.blob();
-          const dataUrl = URL.createObjectURL(blob);
-          const normalizedBanner = normalizeBannerValue(dataUrl);
-          setProfileBanner(normalizedBanner);
-          if (isOwnProfile) setDraftBanner(normalizedBanner);
-        }
-      } catch (error) {
-        console.error("Failed to load banner:", error);
-      }
-    };
-
-    if (profileUserId) {
-      loadBannerFromDb();
-    }
-  }, [profileUserId, isOwnProfile]);
+  // Load banner from database for all profiles (REMOVED - banner has been disabled)
 
   useEffect(() => {
     const handleEscapeModal = (event: KeyboardEvent) => {
@@ -324,28 +257,22 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
   }, []);
 
   const openCustomizationPanel = () => {
-    setDraftAvatarId(selectedAvatarId);
     setDraftBackground(profileBackground);
     setDraftBanner(profileBanner);
     setShowCustomizationPanel(true);
   };
 
   /**
-   * Objective: persist profile customization (avatar/background/banner) to API.
+   * Objective: persist profile customization (background only) to API.
    * Usage: called when user confirms profile customization panel.
    * Input: none (reads draft states).
    * Output: none (state updates + local preference sync).
-   * Special cases: sends `avatarId` only when avatar changed.
    */
   const handleSaveCustomization = async () => {
     const patchBody: ProfilePatchPayload = {
       profileBackground: draftBackground,
       profileBanner: draftBanner,
     };
-
-    if (draftAvatarId && draftAvatarId !== selectedAvatarId) {
-      patchBody.avatarId = draftAvatarId;
-    }
 
     const res = await fetch("/api/profile", {
       method: "PATCH",
@@ -355,20 +282,11 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
 
     if (res.ok) {
       const updated = await res.json();
-      if (updated.avatar) {
-        setSelectedAvatarId(updated.avatar.id);
-        setAvatar(updated.avatar.url);
-        persistAvatarPreference(updated.avatar.url, updated.avatar.id);
-        applyAccentPalette(resolveProfileIcon({ id: updated.avatar.id, url: updated.avatar.url }));
-      }
+      // Apply background preference for profile page
       if (updated.profileBackground !== undefined) {
         const normalized = normalizeBackgroundValue(updated.profileBackground);
         setProfileBackground(normalized);
         applyBackgroundPreferenceToDocument(normalized, defaultBackground);
-      }
-      if (updated.profileBanner !== undefined) {
-        const normalized = normalizeBannerValue(updated.profileBanner);
-        setProfileBanner(normalized);
       }
     }
     setShowCustomizationPanel(false);
@@ -460,24 +378,25 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
         </header>
 
         <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-[#3c3650] bg-[#15131d]/85 shadow-2xl backdrop-blur-md">
-          <div className="relative h-36 overflow-hidden border-b border-[#3c3650]">
-            <div className="absolute inset-0" style={bannerStyle} />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/35 via-transparent to-black/35" />
-          </div>
-
           <div className="flex min-h-0 flex-1 flex-col px-5 pb-6 pt-4 sm:px-10 sm:pb-8">
-            <div className="-mt-16 mb-6 shrink-0 flex flex-wrap items-end justify-between gap-5 sm:-mt-20">
+            <div className="mb-6 shrink-0 flex flex-wrap items-end justify-between gap-5">
               <div className="flex items-end gap-4">
                 <div className="relative">
-                  <Image
-                    src={avatar}
-                    alt={`Avatar de ${profileName}`}
-                    width={176}
-                    height={176}
-                    className="h-40 w-40 rounded-2xl border border-[color:var(--accent-border)] object-cover drop-shadow-2xl sm:h-44 sm:w-44"
-                    priority
-                    unoptimized
-                  />
+                  {customAvatar ? (
+                    <Image
+                      src={customAvatar}
+                      alt={`Avatar de ${profileName}`}
+                      width={176}
+                      height={176}
+                      className="h-40 w-40 rounded-2xl border border-[color:var(--accent-border)] object-cover drop-shadow-2xl sm:h-44 sm:w-44"
+                      priority
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="h-40 w-40 rounded-2xl border border-[color:var(--accent-border)] bg-gray-700 flex items-center justify-center drop-shadow-2xl sm:h-44 sm:w-44">
+                      <i className="fa-solid fa-user text-6xl text-gray-400" />
+                    </div>
+                  )}
                 </div>
 
                 <div className="pb-3">
@@ -589,34 +508,48 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
 
             <div className="space-y-4">
               <div>
-                <p className="mb-2 text-sm font-medium text-gray-200">Profile Picture</p>
-                <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
-                  {avatars.map((av) => (
+                <label className="mb-2 block text-sm font-medium text-gray-200">Profile Picture</label>
+                <input
+                  ref={avatarUploadRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const dataUrl = await fileToDataUrl(file);
+                      setCustomAvatar(dataUrl);
+                      localStorage.setItem("profileCustomAvatar", dataUrl);
+                    }
+                    e.target.value = "";
+                  }}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={() => avatarUploadRef.current?.click()}
+                    variant="ghost"
+                    className="h-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-200"
+                  >
+                    <i className="fa-solid fa-upload text-xs" />
+                    Upload Picture
+                  </Button>
+                  {customAvatar && (
                     <Button
-                      key={av.id}
                       type="button"
+                      onClick={() => {
+                        setCustomAvatar(null);
+                        localStorage.removeItem("profileCustomAvatar");
+                      }}
                       variant="ghost"
-                      onClick={() => setDraftAvatarId(av.id)}
-                      title={av.name}
-                      className="flex h-auto items-center justify-center border-0 bg-transparent p-0 hover:bg-transparent"
+                      className="h-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-red-400 hover:text-red-300"
                     >
-                      <Image
-                        src={av.url}
-                        alt={av.name}
-                        width={80}
-                        height={80}
-                        className={`h-16 w-16 rounded-xl object-cover pointer-events-none transition-all ${
-                          draftAvatarId === av.id
-                            ? "ring-2 ring-[color:var(--accent-border)] ring-offset-2 ring-offset-[#15131d]"
-                            : "opacity-75 hover:opacity-100"
-                        }`}
-                        unoptimized
-                      />
+                      <i className="fa-solid fa-trash text-xs" />
+                      Remove
                     </Button>
-                  ))}
+                  )}
                 </div>
               </div>
-
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-200">Site Background</label>
                 <input
@@ -638,33 +571,6 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
                 >
                   <i className="fa-solid fa-upload text-xs" />
                   Upload Background
-                </Button>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-200">Profile Banner</label>
-                <input
-                  ref={bannerUploadRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const dataUrl = await uploadBannerToDb(file);
-                      setDraftBanner(dataUrl);
-                    }
-                    e.target.value = "";
-                  }}
-                />
-                <Button
-                  type="button"
-                  onClick={() => bannerUploadRef.current?.click()}
-                  variant="ghost"
-                  className="h-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-200"
-                >
-                  <i className="fa-solid fa-upload text-xs" />
-                  Upload Banner
                 </Button>
               </div>
 

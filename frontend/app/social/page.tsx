@@ -117,6 +117,7 @@ export default function SocialPage() {
   const [typing, setTyping] = useState(false);
   const [unread, setUnread] = useState(false);
   const [messageReadStatus, setMessageReadStatus] = useState<Record<string, boolean>>({});
+  const [customUserAvatar, setCustomUserAvatar] = useState<string | null>(null);
 
   const MAX_MESSAGE_LENGTH = 500;
   const MAX_DISPLAY_LENGTH = 200;
@@ -171,6 +172,19 @@ export default function SocialPage() {
         setUserPseudo(data.user.name);
     };
     getUserData();
+  }, []);
+
+  //load custom avatar from localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = localStorage.getItem('profileCustomAvatar');
+      if (stored) {
+        setCustomUserAvatar(stored);
+      }
+    } catch {
+      // Silent fail
+    }
   }, []);
 
   //fetch users and their inboxes
@@ -810,7 +824,22 @@ export default function SocialPage() {
   }
 
   return (
-    <AppPageShell showSidebar containerClassName="min-h-0 flex-1 flex-col">
+    <AppPageShell showSidebar containerClassName="min-h-0 flex-1 flex-col" mainClassName="bg-gradient-to-br from-[#0c0a0f] via-[#12101a] to-[#0a0810]">
+      <style>{`
+        .checkered-bg {
+          background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c9a227' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+          background-repeat: repeat;
+        }
+        input:focus {
+          outline: none !important;
+          box-shadow: none !important;
+          border-color: transparent !important;
+        }
+        div:has(input:focus) {
+          box-shadow: none !important;
+          outline: none !important;
+        }
+      `}</style>
       {showNotification && notification && notifSender && (notifSender !== selectedUser) && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       {inviteNotification && (
         <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
@@ -828,7 +857,7 @@ export default function SocialPage() {
 
       {isAddContactModalOpen && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 px-4">
-          <div className="w-full max-w-md rounded-2xl border border-[#3c3650] bg-[#1b1826] p-5 shadow-2xl">
+          <div className="w-full max-w-md rounded-2xl border border-[#c9a227]/25 bg-[#1b1826] p-5 shadow-2xl">
             <h3 className="text-lg font-bold text-white">enter a username</h3>
             <p className="mt-1 text-sm text-gray-300">Enter the username of the player to send an invitation.</p>
 
@@ -837,7 +866,7 @@ export default function SocialPage() {
               value={inviteUsername}
               onChange={(event) => setInviteUsername(event.target.value)}
               placeholder="Player username"
-              className="mt-4 w-full rounded-xl border border-[#3c3650] bg-[#242033] px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-[var(--accent-color)]"
+              className="mt-4 w-full rounded-xl border border-[#c9a227]/30 bg-[#242033] px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-[var(--accent-color)]"
               autoFocus
             />
 
@@ -845,7 +874,7 @@ export default function SocialPage() {
               <button
                 onClick={closeAddContactModal}
                 disabled={isInviting}
-                className="rounded-xl border border-[#3c3650] bg-[#242033] px-4 py-2 text-sm font-semibold text-gray-200 transition-colors hover:bg-[#302a45] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-[#c9a227]/30 bg-[#242033] px-4 py-2 text-sm font-semibold text-gray-200 transition-colors hover:bg-[#302a45] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 cancel
               </button>
@@ -862,9 +891,9 @@ export default function SocialPage() {
       )}
 
       <div className="flex w-full justify-center px-4">
-        <section className="flex h-[calc(100vh-2rem)] w-[calc(100%-14rem)] flex-col overflow-hidden rounded-3xl border border-[#3c3650] bg-[#15131d]/85 shadow-2xl backdrop-blur-md">
+        <section className="checkered-bg flex h-[calc(100vh-2rem)] w-[calc(100%-14rem)] flex-col overflow-hidden rounded-3xl border border-[#c9a227]/25 bg-black/15 shadow-2xl">
           {/* Header avec contacts et boutons */}
-          <header className="flex items-center border-b border-[#3c3650] px-5 py-3">
+          <header className="flex items-center border-b border-[#c9a227]/30 px-5 py-3">
             {/* Contacts scroll horizontalement */}
             <div className="flex-1 overflow-x-auto px-4">
               <div className="flex gap-2">
@@ -888,16 +917,16 @@ export default function SocialPage() {
                       className={`relative flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 transition-colors ${
                         isActive
                           ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)] text-white"
-                          : "border-[#3c3650] bg-[#242033] text-gray-200 hover:bg-[#302a45]"
+                          : "border-[#c9a227]/30 bg-[#242033] text-gray-200 hover:bg-[#302a45]"
                       }`}
                     >
                       <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-visible">
                         <Image
-                          src={user.avatar?.url ?? DEFAULT_PROFILE_ICON.url}
+                          src={user.name === userPseudo && customUserAvatar ? customUserAvatar : user.avatar?.url ?? DEFAULT_PROFILE_ICON.url}
                           alt={user.name}
                           width={32}
                           height={32}
-                          className="h-8 w-8 rounded-lg border border-[#3c3650] object-cover"
+                          className="h-8 w-8 rounded-lg border border-[#c9a227]/30 object-cover"
                           unoptimized
                         />
                       </div>
@@ -931,7 +960,7 @@ export default function SocialPage() {
 
             {/*Friend request*/}
             {selectedUser && request && friendRequestSender && (
-              <div className="border-b border-[#3c3650] bg-[#1b1826] p-4">
+              <div className="border-b border-[#c9a227]/30 bg-[#1b1826] p-4">
                 <div className="rounded-lg border border-[var(--accent-color)] bg-[#242033] p-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -960,7 +989,7 @@ export default function SocialPage() {
             )}
             {/*Duel request*/}
             {challenge && (
-              <div className="border-b border-[#3c3650] bg-[#1b1826] p-4">
+              <div className="border-b border-[#c9a227]/30 bg-[#1b1826] p-4">
                 <div className="rounded-lg border border-[var(--accent-color)] bg-[#242033] p-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -1013,7 +1042,7 @@ export default function SocialPage() {
                     <Image
                       src={
                         msg.user_id === currentUser.id
-                          ? currentUser.avatar?.url ?? DEFAULT_PROFILE_ICON.url
+                          ? customUserAvatar || (currentUser.avatar?.url ?? DEFAULT_PROFILE_ICON.url)
                           : users.find(u => u.name === selectedUser)?.avatar?.url ?? DEFAULT_PROFILE_ICON.url
                       }
                       alt="Avatar"
@@ -1029,15 +1058,15 @@ export default function SocialPage() {
                   </button>
                   <div className={`flex items-end ${msg.user_id === currentUser.id ? "flex-row-reverse gap-2" : "gap-2"}`}>
                     <article
-                      className={`max-w-[44rem] rounded-2xl px-5 py-3 ${
+                      className={`max-w-[44rem] rounded-2xl px-4 py-2 ${
                         msg.user_id === currentUser.id
                           ? "bg-[var(--accent-color)] text-white"
-                          : "border border-[#3c3650] bg-[#242033] text-gray-100"
+                          : "border border-[#c9a227]/30 bg-[#242033] text-gray-100"
                       }`}
                     >
                     {msg.message && (
                       <div>
-                        <p className="leading-relaxed break-words whitespace-pre-wrap">
+                        <p className="text-l leading-relaxed break-words whitespace-pre-wrap">
                           {expandedMessages.has(msg.id) ? msg.message : msg.message.slice(0, MAX_DISPLAY_LENGTH)}
                         </p>
                         {msg.message.length > MAX_DISPLAY_LENGTH && (
@@ -1067,7 +1096,7 @@ export default function SocialPage() {
                               className={`rounded-lg border p-2 ${
                                 msg.user_id === currentUser.id
                                   ? "border-white/30 bg-white/10"
-                                  : "border-[#3c3650] bg-[#15131d]"
+                                  : "border-[#c9a227]/30 bg-[#15131d]"
                               }`}
                             >
                               {isImage ? (
@@ -1136,9 +1165,9 @@ export default function SocialPage() {
                 </div>
               </div>
             )}
-            <footer className="sticky bottom-0 border-t border-[#3c3650] bg-[#15131d] p-4">
+            <footer className="sticky bottom-0 border-t border-[#c9a227]/30 bg-[#15131d] p-4">
               {selectedUser && (<div className="flex flex-col gap-3">
-                <div className="flex items-center gap-2 rounded-full border border-[#3c3650] bg-[#242033] px-2 py-2">
+                <div className="flex items-center gap-2 rounded-full border border-[#c9a227]/30 bg-[#242033] px-2 py-2 focus-within:border-[#c9a227]/30 focus-within:ring-0">
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -1167,7 +1196,7 @@ export default function SocialPage() {
                     }}
                     onKeyDown={handleInputKeyDown}
                     maxLength={MAX_MESSAGE_LENGTH}
-                    className={`flex-1 bg-transparent px-1 text-sm outline-none ${
+                    className={`flex-1 bg-transparent px-1 text-xl outline-none focus:ring-0 focus:outline-none ${
                         isBlocked || hasBlocked
                           ? "text-gray-500 placeholder:text-gray-600 cursor-not-allowed"
                           : "text-gray-200 placeholder:text-gray-500"
@@ -1192,7 +1221,7 @@ export default function SocialPage() {
                     {draftAttachments.map((attachment) => (
                       <div
                         key={attachment.id}
-                        className="inline-flex items-center gap-2 rounded-full border border-[#3c3650] bg-[#242033] px-3 py-1 text-xs text-gray-200"
+                        className="inline-flex items-center gap-2 rounded-full border border-[#c9a227]/30 bg-[#242033] px-3 py-1 text-xs text-gray-200"
                       >
                         <i className="fa-regular fa-paperclip" />
                         <span className="max-w-[14rem] truncate">{attachment.name}</span>

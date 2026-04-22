@@ -24,6 +24,7 @@ export default function Sidebar() {
   const [pseudo, setPseudo] = useState<string | null>(null);
   const [badges, setBadges] = useState<string[]>([]);
   const [socialUnread, setSocialUnread] = useState<number>(0);
+  const [customUserAvatar, setCustomUserAvatar] = useState<string | null>(null);
   const unreadRequestSeqRef = useRef(0);
 
   const refreshSocialUnread = async () => {
@@ -59,6 +60,19 @@ export default function Sidebar() {
     return () => {
       isCancelled = true;
     };
+  }, []);
+
+  //load custom avatar from localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = localStorage.getItem('profileCustomAvatar');
+      if (stored) {
+        setCustomUserAvatar(stored);
+      }
+    } catch {
+      // Silent fail
+    }
   }, []);
 
   useEffect(() => {
@@ -176,14 +190,25 @@ export default function Sidebar() {
             : "border-[#2a2638] hover:border-[#c9a227]/50"
         }`}
       >
-        <Image
-          src={avatar}
-          alt="Avatar"
-          width={48}
-          height={48}
-          className="h-full w-full bg-[#0c0a0f] object-contain"
-          unoptimized
-        />
+        {customUserAvatar ? (
+          <Image
+            src={customUserAvatar}
+            alt={pseudo ?? "Profile"}
+            width={48}
+            height={48}
+            className="h-12 w-12 object-cover"
+            unoptimized
+          />
+        ) : (
+          <Image
+            src={DEFAULT_PROFILE_ICON.url}
+            alt={pseudo ?? "Profile"}
+            width={48}
+            height={48}
+            className="h-12 w-12 object-cover"
+            unoptimized
+          />
+        )}
       </Button>
     </aside>
   );
