@@ -669,6 +669,11 @@ export default function SocialPage() {
     setDraftAttachments([]);
   };
 
+  const reportConv = async () => {
+    if (!currentUser || !selectedUser) return ;
+    contact.reported(currentUser.name, selectedUser);
+  };
+
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (!isBlocked && !hasBlocked && event.key === "Enter") {
       event.preventDefault();
@@ -870,7 +875,7 @@ export default function SocialPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-semibold text-gray-300">
-                        <span className="text-[var(--accent-color)]">{friendRequestSender}</span> wants to du-du-du-du-du-du-duel !
+                        <span className="text-[var(--accent-color)]">{opponent}</span> wants to du-du-du-du-du-du-duel !
                       </p>
                       <p className="mt-1 text-xs text-gray-400">Do you want to accept this request?</p>
                     </div>
@@ -1005,11 +1010,20 @@ export default function SocialPage() {
                     onChange={handleFilesChange}
                     accept="image/*,.pdf,.txt,.doc,.docx"
                   />
-
-                <button
+                {/*Bouton pour attachments*/}
+                {/* <button
                     onClick={handlePickAttachments}
                     className="flex h-9 w-9 items-center justify-center rounded-full bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
                     aria-label="Ajouter des pièces jointes"
+                  >
+                    <i className="fa-solid fa-paperclip" />
+                  </button> */}
+
+                  {/*Bouton de signalement en attendant un vrai*/}
+                  <button
+                    onClick={reportConv}
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
+                    aria-label="Report this conversation"
                   >
                     <i className="fa-solid fa-paperclip" />
                   </button>

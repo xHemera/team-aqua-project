@@ -585,5 +585,48 @@ export async function unblockUser(currentUser: string, otherUser: string)
                 set: cUser.blockedUsers.filter(id => id !== oUser.id),
             }
         }
+    });
+}
+
+export async function reported(user: string, reportedUser: string)
+{
+    const cUser = await prisma.user.findFirst({
+        where: { name: user },
+        select: {
+            id: true,
+        }
+    });
+    const rUser = await prisma.user.findFirst({
+        where: { name: reportedUser },
+        select: {
+            id: true,
+        }
+    });
+    if (!cUser || !rUser) throw Error("Users not found");
+    
+    const inbox = await prisma.inbox.findFirst({
+        where: {
+            inboxUser: {
+                some: {user_id: cUser.id }
+            },
+            AND: {
+                inboxUser: {
+                    some: { user_id: rUser.id }
+                }
+            }
+        },
+        select: {
+            id: true,
+        }
+    })
+    if (!inbox) throw Error("Inbox not found");
+
+    await prisma.reported_Conv.create({
+        data: {
+            inboxId: inbox.id,
+            reporter: user,
+            reportedUser: reportedUser,
+            reason: "placeholder",
+        }
     })
 }
