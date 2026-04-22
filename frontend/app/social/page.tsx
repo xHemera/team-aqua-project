@@ -178,7 +178,7 @@ export default function SocialPage() {
     return () => {
       socket.off("received", handler);
     }
-  }, []);
+  }, [selectedUser, userPseudo]);
 
   useEffect(() => {
     if (!userPseudo) return;
@@ -709,7 +709,7 @@ export default function SocialPage() {
 
   return (
     <AppPageShell showSidebar containerClassName="min-h-0 flex-1 flex-col">
-      {showNotification && notification && notifSender && (notifSender !== selectedUser) && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
+      {showNotification && notification && notifSender && notifSender !== selectedUser && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       {inviteNotification && (
         <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
           <div
