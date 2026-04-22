@@ -6,23 +6,21 @@ export type User = {
   avatar?: string | null
 };
 
-export type ReportedConversationMessage = {
+export type Message = {
   id: string;
-  sender: string;
-  content: string;
-  time: string;
-  mine?: boolean;
+  user_id: string;
+  message: string | null;
+  createdAt: Date;
 };
 
-export type ReportedConversation = {
-  id: string;
-  reporter: string;
-  targetUser: string;
-  reason: string;
-  status: "pending" | "reviewed";
-  createdAtLabel: string;
-  preview: string;
-  messages: ReportedConversationMessage[];
+export type ReportedConv = {
+  id:           string;
+  reportedUser: string;
+  reporter:     string;
+  reason:       string;
+  createdAt:    Date;
+  inbox:        Inbox;
+  inboxId:      string;
 };
 
 export type SocialUser = {
@@ -41,7 +39,8 @@ export type InboxUser = {
 
 export type Inbox = {
   id: string;
-  inboxUser: InboxUser[];
+  messages: Message[];
+  last_message:  string | null;
 };
 
 export type SocialMessage = {

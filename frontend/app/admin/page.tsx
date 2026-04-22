@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import AppPageShell from "@/components/AppPageShell";
 import UsersManagementPanel from "@/components/organisms/admin/UsersManagementPanel";
 import ReportedConversationsPanel from "@/components/organisms/admin/ReportedConversationsPanel";
-import type { User, ReportedConversation } from "./types";
+import type { type } from "./index";
 import { manage }  from "./index"
 
 const formatDateLabel = (value: string | Date) => {
@@ -19,110 +19,99 @@ const formatDateLabel = (value: string | Date) => {
   });
 };
 
-const formatTime = (value: string | Date) => {
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return "--:--";
-  return date.toLocaleTimeString("fr-FR", {
-    timeZone: "Europe/Paris",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-const HARD_CODED_REPORTS: ReportedConversation[] = [
-  {
-    id: "rpt-001",
-    reporter: "KantoFox",
-    targetUser: "NightPulse",
-    reason: "Insultes repetees",
-    status: "pending",
-    createdAtLabel: formatDateLabel("2026-04-17T14:12:00Z"),
-    preview: "Tu es nul, desinstalle le jeu.",
-    messages: [
-      {
-        id: "msg-1",
-        sender: "KantoFox",
-        content: "Salut, tu peux eviter les insultes ?",
-        time: formatTime("2026-04-17T14:09:00Z"),
-      },
-      {
-        id: "msg-2",
-        sender: "NightPulse",
-        content: "Tu es nul, desinstalle le jeu.",
-        time: formatTime("2026-04-17T14:10:00Z"),
-        mine: true,
-      },
-      {
-        id: "msg-3",
-        sender: "NightPulse",
-        content: "On ne veut pas de toi ici.",
-        time: formatTime("2026-04-17T14:11:00Z"),
-        mine: true,
-      },
-    ],
-  },
-  {
-    id: "rpt-002",
-    reporter: "LunaDeck",
-    targetUser: "ShadowMew",
-    reason: "Spam",
-    status: "reviewed",
-    createdAtLabel: formatDateLabel("2026-04-16T22:41:00Z"),
-    preview: "??????????????????",
-    messages: [
-      {
-        id: "msg-4",
-        sender: "LunaDeck",
-        content: "Stop le spam stp.",
-        time: formatTime("2026-04-16T22:38:00Z"),
-      },
-      {
-        id: "msg-5",
-        sender: "ShadowMew",
-        content: "??????????????????",
-        time: formatTime("2026-04-16T22:39:00Z"),
-        mine: true,
-      },
-      {
-        id: "msg-6",
-        sender: "ShadowMew",
-        content: "??????????????????",
-        time: formatTime("2026-04-16T22:40:00Z"),
-        mine: true,
-      },
-    ],
-  },
-  {
-    id: "rpt-003",
-    reporter: "EeveeFan",
-    targetUser: "StoneTrainer",
-    reason: "Comportement toxique",
-    status: "pending",
-    createdAtLabel: formatDateLabel("2026-04-15T09:17:00Z"),
-    preview: "Tu n'as aucun niveau.",
-    messages: [
-      {
-        id: "msg-7",
-        sender: "StoneTrainer",
-        content: "Tu n'as aucun niveau.",
-        time: formatTime("2026-04-15T09:16:00Z"),
-        mine: true,
-      },
-      {
-        id: "msg-8",
-        sender: "EeveeFan",
-        content: "Merci de rester respectueux.",
-        time: formatTime("2026-04-15T09:17:00Z"),
-      },
-    ],
-  },
-];
+// const HARD_CODED_REPORTS: ReportedConversation[] = [
+//   {
+//     id: "rpt-001",
+//     reporter: "KantoFox",
+//     targetUser: "NightPulse",
+//     reason: "Insultes repetees",
+//     status: "pending",
+//     createdAtLabel: formatDateLabel("2026-04-17T14:12:00Z"),
+//     preview: "Tu es nul, desinstalle le jeu.",
+//     messages: [
+//       {
+//         id: "msg-1",
+//         sender: "KantoFox",
+//         content: "Salut, tu peux eviter les insultes ?",
+//         time: formatTime("2026-04-17T14:09:00Z"),
+//       },
+//       {
+//         id: "msg-2",
+//         sender: "NightPulse",
+//         content: "Tu es nul, desinstalle le jeu.",
+//         time: formatTime("2026-04-17T14:10:00Z"),
+//         mine: true,
+//       },
+//       {
+//         id: "msg-3",
+//         sender: "NightPulse",
+//         content: "On ne veut pas de toi ici.",
+//         time: formatTime("2026-04-17T14:11:00Z"),
+//         mine: true,
+//       },
+//     ],
+//   },
+//   {
+//     id: "rpt-002",
+//     reporter: "LunaDeck",
+//     targetUser: "ShadowMew",
+//     reason: "Spam",
+//     status: "reviewed",
+//     createdAtLabel: formatDateLabel("2026-04-16T22:41:00Z"),
+//     preview: "??????????????????",
+//     messages: [
+//       {
+//         id: "msg-4",
+//         sender: "LunaDeck",
+//         content: "Stop le spam stp.",
+//         time: formatTime("2026-04-16T22:38:00Z"),
+//       },
+//       {
+//         id: "msg-5",
+//         sender: "ShadowMew",
+//         content: "??????????????????",
+//         time: formatTime("2026-04-16T22:39:00Z"),
+//         mine: true,
+//       },
+//       {
+//         id: "msg-6",
+//         sender: "ShadowMew",
+//         content: "??????????????????",
+//         time: formatTime("2026-04-16T22:40:00Z"),
+//         mine: true,
+//       },
+//     ],
+//   },
+//   {
+//     id: "rpt-003",
+//     reporter: "EeveeFan",
+//     targetUser: "StoneTrainer",
+//     reason: "Comportement toxique",
+//     status: "pending",
+//     createdAtLabel: formatDateLabel("2026-04-15T09:17:00Z"),
+//     preview: "Tu n'as aucun niveau.",
+//     messages: [
+//       {
+//         id: "msg-7",
+//         sender: "StoneTrainer",
+//         content: "Tu n'as aucun niveau.",
+//         time: formatTime("2026-04-15T09:16:00Z"),
+//         mine: true,
+//       },
+//       {
+//         id: "msg-8",
+//         sender: "EeveeFan",
+//         content: "Merci de rester respectueux.",
+//         time: formatTime("2026-04-15T09:17:00Z"),
+//       },
+//     ],
+//   },
+// ];
 
 export default function AdminPage() {
 
-  const [users, setUsers] = useState<User[]>([]);
-  
-  const reports = HARD_CODED_REPORTS;
+  const [users, setUsers] = useState<type.User[]>([]);
+  const [reports, setReports] = useState<type.ReportedConv[]>([]);
 
   const loadingUsers = false;
   const usersError = null;
@@ -130,15 +119,22 @@ export default function AdminPage() {
   const reportsError = null;
 
   const [userQuery, setUserQuery] = useState("");
-  const [selectedReportId, setSelectedReportId] = useState(HARD_CODED_REPORTS[0]?.id ?? "");
+  const [selectedReportId, setSelectedReportId] = useState("");
 
   useEffect(() => {
-    async function fetchUsers()
+    async function fetchUsersAndReports()
     {
-      const u = await manage.getUsers();
+      const [u, r] = await Promise.all([
+            manage.getUsers(),
+            manage.getReports(),
+      ])
       setUsers(u);
+      if (!r)
+        setReports([])
+      else
+        setReports(r);
     }
-    fetchUsers();
+    fetchUsersAndReports();
   }, []);
 
   const filteredUsers = useMemo(() => {
@@ -162,7 +158,7 @@ export default function AdminPage() {
           usersError={usersError}
           userQuery={userQuery}
           onUserQueryChange={setUserQuery}
-          pendingReportsCount={reports.filter((report) => report.status === "pending").length}
+          pendingReportsCount={reports.filter.length}
         />
 
         <ReportedConversationsPanel

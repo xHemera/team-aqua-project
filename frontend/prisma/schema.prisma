@@ -56,8 +56,10 @@ model Friends {
 model Reported_Conv {
   id                String    @id @default(cuid())
   inboxId           String    @unique
-  reportedPlayerId  String
+  reportedUser      String
+  reporter          String
   reason            String
+  createdAt         DateTime	@default(now())
   inbox             Inbox     @relation(fields: [inboxId], references: [id])
 }
 

@@ -13,3 +13,52 @@ export async function getUsers()
 		}
     });
 }
+
+export async function getReports()
+{
+    const reports = await prisma.reported_Conv.findMany({
+        select: {
+            id: true,
+            inbox: { select: { 
+                id: true, last_message: true, messages: { 
+                    select: { 
+                        id: true,
+                        message: true,
+                        user_id: true,
+                        createdAt: true
+                        } 
+                    } 
+                }
+            },
+            inboxId: true,
+            reportedUser: true,
+            reporter: true,
+            reason: true,
+            createdAt: true,
+        }
+    })
+    if (!reports)
+        return ;
+    return reports;
+}
+
+export async function getUsersByName(reporter: string, reported: string)
+{
+    const results: Record<string, string> = {};
+    const user1 = await prisma.user.findFirst({
+        where: { name: reporter },
+        select: {
+            id: true,
+        }
+    })
+    const user2 = await prisma.user.findFirst({
+        where: { name: reported },
+        select: {
+            id: true,
+        }
+    })
+    if (!user1 || !user2) throw Error("Users not found");
+    results[user1.id] = reporter;
+    results[user2.id] = reported;
+    return results;
+}
