@@ -88,29 +88,29 @@ export async function POST()
     data: [
       {
         opponent: "Hemera",
-        opponentDeck: "Lanssorien",
-        playedDeck: "Mega-Lucario",
+        opponentTeam: ["Knight", "Assassin", "Healer"],
+        playerTeam: ["Knight", "Assassin", "Healer"],
         result: "win",
         user_id: admin1.id
       },
       {
         opponent: "Xoco",
-        playedDeck: "Lanssorien",
-        opponentDeck: "Mega-Lucario",
+        playerTeam: ["Knight", "Assassin", "Healer"],
+        opponentTeam: ["Knight", "Assassin", "Healer"],
         result: "lose",
         user_id: admin2.id
       },
       {
         opponent: "Hemera",
-        opponentDeck: "Lanssorien",
-        playedDeck: "Mega-Lucario",
+        playerTeam: ["Knight", "Assassin", "Healer"],
+        opponentTeam: ["Knight", "Assassin", "Healer"],
         result: "lose",
         user_id: admin1.id
       },
       {
         opponent: "Xoco",
-        playedDeck: "Lanssorien",
-        opponentDeck: "Mega-Lucario",
+        playerTeam: ["Knight", "Assassin", "Healer"],
+        opponentTeam: ["Knight", "Assassin", "Healer"],
         result: "win",
         user_id: admin2.id
       }

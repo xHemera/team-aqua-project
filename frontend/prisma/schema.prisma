@@ -53,6 +53,14 @@ model Friends {
   @@id([userId, friendId])
 }
 
+model Reported_Conv {
+  id                String    @id @default(cuid())
+  inboxId           String    @unique
+  reportedPlayerId  String
+  reason            String
+  inbox             Inbox     @relation(fields: [inboxId], references: [id])
+}
+
 model Messages {
   id        String    @id @default(cuid())
   user_id   String
@@ -67,10 +75,12 @@ model Inbox {
 	id       			    String    @id @default(cuid())
 	last_message      String?
 	last_sent_user_id String?
+  report_id         String?
 	createdAt         DateTime  @default(now())
 	inboxUser					Inbox_users[]
 	messages          Messages[]
 	user              User?     @relation(fields: [last_sent_user_id], references: [id], onDelete: Cascade)
+  reported          Reported_Conv?
 }
 
 model Inbox_users {

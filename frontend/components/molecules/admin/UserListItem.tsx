@@ -1,6 +1,7 @@
 import Button from "@/components/atoms/Button";
 import Card from "@/components/atoms/Card";
 import type { User } from "@/app/admin/types";
+import { useEffect, useState } from "react";
 
 type UserListItemProps = {
   user: User;
@@ -14,10 +15,24 @@ const getBadgeLabel = (badges: string[]) => {
   return "User";
 };
 
+const changeRole = async (id: string, modo: boolean) =>
+{
+  const response = await fetch('api/admin/role', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json'},
+    body: JSON.stringify({user: id, isModo: modo})
+  });
+  if (!response.ok) {
+    throw new Error("Impossible de modifier les badges");
+  }
+}
+
+//AJOUTER UN CURRENT USER POUR DIFFERENCIER MODO D'ADMIN
+
 export default function UserListItem({ user, onViewProfile }: UserListItemProps) {
-  const badgeLabel = getBadgeLabel(user.badges);
-  const isAdmin = user.badges.includes("ADMIN");
-  const isModo = user.badges.includes("MODERATOR");
+  const [badgeLabel, setBadgeLabel] = useState<string[]>([getBadgeLabel(user.badges)]);
+  const [isAdmin, setIsAdmin] = useState(user.badges.includes("ADMIN"))
+  const [isModo, setIsModo] = useState(user.badges.includes("MODERATOR"))
 
   return (
     <Card className="flex items-center justify-between gap-3 rounded-xl bg-[#1c1827] p-3">
@@ -45,14 +60,14 @@ export default function UserListItem({ user, onViewProfile }: UserListItemProps)
           className="h-8 px-3 text-xs"
           onClick={() => onViewProfile(user.name)}
         >
-          Voir profil
+          See profile
         </Button>
         <Button
           type="button"
           size="sm"
           variant={isAdmin ? "secondary" : "primary"}
           className="h-8 px-3 text-xs"
-          onClick={() => {!isAdmin}}
+          onClick={() => {!isAdmin && changeRole(user.id, isModo); setIsModo(!isModo)}}
           title="Action de moderation a connecter a une API admin"
         >
           {isAdmin ? "is admin" : isModo ? "demote moderator" : "Promote to moderator"}

@@ -62,46 +62,6 @@ const defaultBanner = "https://www.katebackdrop.fr/cdn/shop/files/B4035519.jpg?v
 // HARDCODE: fallback app background value from frontend configuration.
 const defaultBackground = DEFAULT_SITE_BACKGROUND;
 
-// HARDCODE: temporary mocked match history while battle history API is pending.
-// const matchHistory = [
-//   {
-//     result: "Victoire",
-//     resultStyle: "bg-green-600",
-//     borderStyle: "border-green-500",
-//     date: "26 janv. 2026",
-//     playedDeck: "Flygon",
-//     opponentDeck: "Ceruledge",
-//     opponent: "SunMiaou",
-//   },
-//   {
-//     result: "Défaite",
-//     resultStyle: "bg-red-600",
-//     borderStyle: "border-red-500",
-//     date: "18 janv. 2026",
-//     playedDeck: "Zacian",
-//     opponentDeck: "Toxtricity",
-//     opponent: "Xoco",
-//   },
-//   {
-//     result: "Victoire",
-//     resultStyle: "bg-green-600",
-//     borderStyle: "border-green-500",
-//     date: "09 déc. 2025",
-//     playedDeck: "Ceruledge",
-//     opponentDeck: "Flygon",
-//     opponent: "Sauralt",
-//   },
-//   {
-//     result: "Victoire",
-//     resultStyle: "bg-green-600",
-//     borderStyle: "border-green-500",
-//     date: "22 nov. 2025",
-//     playedDeck: "Toxtricity",
-//     opponentDeck: "Zacian",
-//     opponent: "GeekMaster",
-//   },
-// ];
-
 const formatTime = (date: Date) =>
   date.toLocaleTimeString("fr-FR", {
     timeZone: "Europe/Paris",
