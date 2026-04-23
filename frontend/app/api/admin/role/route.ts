@@ -22,7 +22,7 @@ export async function PATCH(req: Request)
                 data: {
                     badges: { set: [] }
                 }
-            })
+            });
         }
         return Response.json({success: true}, {status: 201})
     }

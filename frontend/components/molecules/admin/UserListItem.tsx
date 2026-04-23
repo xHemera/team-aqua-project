@@ -2,10 +2,12 @@ import Button from "@/components/atoms/Button";
 import Card from "@/components/atoms/Card";
 import type { User } from "@/app/admin/types";
 import { useEffect, useState } from "react";
+import { socket } from "../../../socket"
 
 type UserListItemProps = {
   user: User;
   onViewProfile: (pseudo: string) => void;
+  currentRole: string;
 };
 
 const getBadgeLabel = (badges: string[]) => {
@@ -25,11 +27,13 @@ const changeRole = async (id: string, modo: boolean) =>
   if (!response.ok) {
     throw new Error("Impossible de modifier les badges");
   }
+  if (modo)
+    socket.emit("removeMod");
+  else
+    socket.emit("newMod");
 }
 
-//AJOUTER UN CURRENT USER POUR DIFFERENCIER MODO D'ADMIN
-
-export default function UserListItem({ user, onViewProfile }: UserListItemProps) {
+export default function UserListItem({ user, onViewProfile, currentRole }: UserListItemProps) {
   const [badgeLabel, setBadgeLabel] = useState<string[]>([getBadgeLabel(user.badges)]);
   const [isAdmin, setIsAdmin] = useState(user.badges.includes("ADMIN"))
   const [isModo, setIsModo] = useState(user.badges.includes("MODERATOR"))
@@ -67,10 +71,10 @@ export default function UserListItem({ user, onViewProfile }: UserListItemProps)
           size="sm"
           variant={isAdmin ? "secondary" : "primary"}
           className="h-8 px-3 text-xs"
-          onClick={() => {!isAdmin && changeRole(user.id, isModo); setIsModo(!isModo)}}
-          title="Action de moderation a connecter a une API admin"
+          onClick={() => {!isAdmin && currentRole === "ADMIN" && changeRole(user.id, isModo); currentRole === "ADMIN" && setIsModo(!isModo)}}
+          title="Action de moderation pour admin"
         >
-          {isAdmin ? "is admin" : isModo ? "demote moderator" : "Promote to moderator"}
+          {isAdmin ? "Admin" : isModo ? "demote moderator" : "Promote to moderator"}
         </Button>
       </div>
     </Card>

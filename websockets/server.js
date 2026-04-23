@@ -240,7 +240,6 @@ io.on("connect", (socket) => {
   });
 
   socket.on("removeMod", async (modo, removed) => {
-    const receiverSock = await redis.hGet("online_users", removed);
     io.emit("noMod", {
       modo,
       removed

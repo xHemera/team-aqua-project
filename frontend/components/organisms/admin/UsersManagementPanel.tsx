@@ -3,6 +3,8 @@ import Input from "@/components/atoms/Input";
 import UserListItem from "@/components/molecules/admin/UserListItem";
 import type { User } from "@/app/admin/types";
 import { useRouter } from "next/navigation";
+import { socket } from "../../../socket"
+import { useEffect, useState } from "react";
 
 type UsersManagementPanelProps = {
   users: User[];
@@ -12,6 +14,7 @@ type UsersManagementPanelProps = {
   userQuery: string;
   onUserQueryChange: (value: string) => void;
   pendingReportsCount: number;
+  currentRole: string;
 };
 
 export default function UsersManagementPanel({
@@ -22,12 +25,27 @@ export default function UsersManagementPanel({
   userQuery,
   onUserQueryChange,
   pendingReportsCount,
+  currentRole,
 }: UsersManagementPanelProps) {
   const router = useRouter();
+  const [nMod, setnMod] = useState(0);
 
+  useEffect(() => {
+    socket.on("newMod", async () => {
+      setnMod(users.filter((user) => user.badges.includes("ADMIN")).length
+      + users.filter((user) => user.badges.includes("MODERATOR")).length);
+    });
+    socket.on("noMod", async () => {
+      setnMod(users.filter((user) => user.badges.includes("ADMIN")).length
+      + users.filter((user) => user.badges.includes("MODERATOR")).length);
+    });
+    setnMod(users.filter((user) => user.badges.includes("ADMIN")).length
+    + users.filter((user) => user.badges.includes("MODERATOR")).length);
+  }, [users]);
+  
   function onViewProfile(user: string)
   {
-    router.push(`/profile/${user}`)
+    router.push(`/profile/${user}`);
   }
 
   return (
@@ -52,7 +70,7 @@ export default function UsersManagementPanel({
         <Card className="rounded-xl bg-[#1c1827] p-3">
           <p className="text-xs uppercase tracking-[0.12em] text-gray-400">Moderators</p>
           <p className="mt-2 text-2xl font-extrabold text-white">
-            {users.filter((user) => user.badges.includes("ADMIN")).length + users.filter((user) => user.badges.includes("MODERATOR")).length}
+            {nMod}
           </p>
         </Card>
 
@@ -89,7 +107,7 @@ export default function UsersManagementPanel({
         {!loadingUsers && !usersError && filteredUsers.length > 0 && (
           <div className="space-y-2">
             {filteredUsers.map((user) => (
-              <UserListItem key={user.id} user={user} onViewProfile={onViewProfile} />
+              <UserListItem key={user.id} user={user} onViewProfile={onViewProfile} currentRole={currentRole}/>
             ))}
           </div>
         )}

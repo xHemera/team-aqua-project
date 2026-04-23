@@ -22,6 +22,7 @@ export default function AdminPage() {
   const [userQuery, setUserQuery] = useState("");
   const [selectedReportId, setSelectedReportId] = useState("");
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
+  const [currentRole, setCurrentRole] = useState("");
 
   useEffect(() => {
     const getUserData = async () => {
@@ -47,6 +48,12 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
+    const cU = users.find(u => u.name === userPseudo);
+      if (cU && cU.badges.includes("ADMIN"))
+        setCurrentRole("ADMIN");
+  }, [userPseudo])
+
+  useEffect(() => {
     if (!userPseudo || socket.connected) return;
 
     socket.connect();
@@ -58,7 +65,7 @@ export default function AdminPage() {
     return () => {
       socket.off("online_users");
     };
-  });
+  }, []);
 
   useEffect(() => {
     socket.on("newUser", () => {
@@ -68,9 +75,17 @@ export default function AdminPage() {
       }
       fetchUsers();
     });
-    return () => {
-      socket.off("newUser");
-    };
+
+    socket.on("newReport", () => {
+      const fetchReports = async () => {
+        const r = await manage.getReports();
+        if (!r)
+          return ;
+        else
+          setReports(r);
+      }
+      fetchReports();
+    })
   }, []);
 
   const filteredUsers = useMemo(() => {
@@ -95,6 +110,7 @@ export default function AdminPage() {
           userQuery={userQuery}
           onUserQueryChange={setUserQuery}
           pendingReportsCount={reports.filter.length}
+          currentRole={currentRole}
         />
 
         <ReportedConversationsPanel
