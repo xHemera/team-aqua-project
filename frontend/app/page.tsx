@@ -120,6 +120,7 @@ export default function LoginPage() {
       if (error) {
         setMessage(error.message ?? "Registration error");
       } else {
+        socket.emit("creation");
         setMessage("Account created successfully! You can now sign in.");
         setIsRegisterMode(false);
         setPassword("");

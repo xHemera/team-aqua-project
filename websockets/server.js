@@ -207,14 +207,56 @@ io.on("connect", (socket) => {
         oUser
       });
     }
-  })
+  });
 
   //tells that they deleted their account
   socket.on("has_delete", async (sender) => {
     io.emit("deletion", {
       sender
     });
-  })
+  });
+
+  socket.on("modo", async (modo, newMod) => {
+    const receiverSock = await redis.hGet("online_users", newMod);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("modNotif", {
+        modo,
+        newMod
+      });
+    }
+  });
+
+  socket.on("creation", async () => {
+    io.emit("newUser");
+  });
+
+  socket.on("reported", async () => {
+    io.emit("newReport");
+  });
+
+  socket.on("addMod", async () => {
+    io.emit("newMod");
+  });
+
+  socket.on("removeMod", async (modo, removed) => {
+    const receiverSock = await redis.hGet("online_users", removed);
+    io.emit("noMod", {
+      modo,
+      removed
+    })
+  });
+
+  socket.on("banning", async (modo, banned) => {
+    const receiverSock = await redis.hGet("online_users", banned);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("banned", {
+        modo,
+        banned
+      });
+    }
+  });
 
   //delete the user's socket if he's disconnected
   socket.on("disconnect", async () => {

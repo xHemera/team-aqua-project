@@ -50,9 +50,9 @@ export default function UsersManagementPanel({
         </Card>
 
         <Card className="rounded-xl bg-[#1c1827] p-3">
-          <p className="text-xs uppercase tracking-[0.12em] text-gray-400">Admins</p>
+          <p className="text-xs uppercase tracking-[0.12em] text-gray-400">Moderators</p>
           <p className="mt-2 text-2xl font-extrabold text-white">
-            {users.filter((user) => user.badges.includes("ADMIN")).length}
+            {users.filter((user) => user.badges.includes("ADMIN")).length + users.filter((user) => user.badges.includes("MODERATOR")).length}
           </p>
         </Card>
 

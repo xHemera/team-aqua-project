@@ -5,7 +5,9 @@ import AppPageShell from "@/components/AppPageShell";
 import UsersManagementPanel from "@/components/organisms/admin/UsersManagementPanel";
 import ReportedConversationsPanel from "@/components/organisms/admin/ReportedConversationsPanel";
 import type { type } from "./index";
-import { manage }  from "./index"
+import { manage }  from "./index";
+import { socket } from "../../socket"
+import { authClient } from "@/lib/auth-client";
 
 export default function AdminPage() {
 
@@ -19,8 +21,16 @@ export default function AdminPage() {
 
   const [userQuery, setUserQuery] = useState("");
   const [selectedReportId, setSelectedReportId] = useState("");
+  const [userPseudo, setUserPseudo] = useState<string | null>(null);
 
   useEffect(() => {
+    const getUserData = async () => {
+      const { data } = await authClient.getSession();
+      if (data && data.user.name)
+        setUserPseudo(data.user.name);
+    };
+    getUserData();
+
     async function fetchUsersAndReports()
     {
       const [u, r] = await Promise.all([
@@ -34,6 +44,33 @@ export default function AdminPage() {
         setReports(r);
     }
     fetchUsersAndReports();
+  }, []);
+
+  useEffect(() => {
+    if (!userPseudo || socket.connected) return;
+
+    socket.connect();
+    socket.emit("login", userPseudo);
+
+    socket.on("online_users", (users) => {
+      console.log("Users from Redis:", users);
+    });
+    return () => {
+      socket.off("online_users");
+    };
+  });
+
+  useEffect(() => {
+    socket.on("newUser", () => {
+      const fetchUsers = async () => {
+        const u = await manage.getUsers();
+        setUsers(u);
+      }
+      fetchUsers();
+    });
+    return () => {
+      socket.off("newUser");
+    };
   }, []);
 
   const filteredUsers = useMemo(() => {

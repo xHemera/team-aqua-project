@@ -132,7 +132,7 @@ export default function Sidebar() {
 
       {NAV_ITEMS.map(({ href, icon, label }) => {
         // Hide Admin tab if user doesn't have ADMIN badge
-        if (href === "/admin" && !badges.includes("ADMIN")) {
+        if (href === "/admin" && !badges.includes("ADMIN") && !badges.includes("MODERATOR")) {
           return null;
         }
 
