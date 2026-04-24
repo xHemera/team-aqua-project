@@ -5,6 +5,7 @@ import ReportListItem from "@/components/molecules/admin/ReportListItem";
 import type { type } from "@/app/admin/index";
 import { manage }  from "@/app/admin/index"
 import { useEffect, useState } from "react";
+import { socket } from "../../../socket"
 
 type ReportedConversationsPanelProps = {
   reports: type.ReportedConv[];
@@ -32,8 +33,7 @@ export default function ReportedConversationsPanel({
   onSelectReportId,
 }: ReportedConversationsPanelProps) {
   const [users, setUsers] = useState<Record<string, string>>({});
-  const [reportList, setReportList] = useState(reports)
-  const selectedReport = reportList.find((report) => report.id === selectedReportId) ?? reportList[0] ?? null;
+  let selectedReport = reports.find((report) => report.id === selectedReportId) ?? reports[0] ?? null;
 
   useEffect(() => {
     async function fetchUsers()
@@ -51,7 +51,8 @@ export default function ReportedConversationsPanel({
     manage.deleteReport(selectedReport.reporter, selectedReport.reportedUser);
     const i = reports.findIndex((report) => report.id === selectedReport.id);
     reports.splice(i, 1);
-    setReportList(reports);
+    socket.emit("reviewed");
+    selectedReport = reports[0] ?? null;
   }
 
   async function banUser()
@@ -61,7 +62,8 @@ export default function ReportedConversationsPanel({
     manage.banUser(selectedReport.reportedUser);
     const i = reports.findIndex((report) => report.id === selectedReport.id);
     reports.splice(i, 1);
-    setReportList(reports);
+    socket.emit("reviewed");
+    selectedReport = reports[0] ?? null;
   }
 
   return (
@@ -81,13 +83,13 @@ export default function ReportedConversationsPanel({
             <Card className="rounded-xl border-red-400/50 bg-red-900/20 p-3 text-sm text-red-100">{reportsError}</Card>
           )}
 
-          {!loadingReports && !reportsError && reportList.length === 0 && (
+          {!loadingReports && !reportsError && reports.length === 0 && (
             <Card className="rounded-xl bg-[#1c1827] p-3 text-sm text-gray-300">No reported conversations available.</Card>
           )}
 
-          {!loadingReports && !reportsError && reportList.length > 0 && (
+          {!loadingReports && !reportsError && reports.length > 0 && (
             <div className="space-y-2">
-              {reportList.map((report) => (
+              {reports.map((report) => (
                 <ReportListItem
                   key={report.id}
                   report={report}

@@ -85,8 +85,20 @@ export default function AdminPage() {
           setReports(r);
       }
       fetchReports();
-    })
-  }, []);
+    });
+
+    socket.on("lessReports", () => {
+      const fetchReports = async () => {
+        const r = await manage.getReports();
+        if (!r)
+          return ;
+        else
+          setReports(r);
+      }
+      fetchReports();
+    });
+
+  }, [reports]);
 
   const filteredUsers = useMemo(() => {
     const normalizedQuery = userQuery.trim().toLowerCase();
@@ -101,6 +113,7 @@ export default function AdminPage() {
 
   return (
     <AppPageShell showSidebar containerClassName="min-h-0 flex-1">
+      {reports.length}
       <div className="flex min-h-0 w-full flex-col gap-4 lg:flex-row">
         <UsersManagementPanel
           users={users}

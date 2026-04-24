@@ -235,6 +235,10 @@ io.on("connect", (socket) => {
     io.emit("newReport");
   });
 
+  socket.on("reviewed", async () => {
+    io.emit("lessReports");
+  });
+
   socket.on("addMod", async () => {
     io.emit("newMod");
   });

@@ -72,6 +72,7 @@ export default function SocialPage() {
   const [typer, setTyper] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
   const [unread, setUnread] = useState(false);
+  const [reported, setReported] = useState(false);
 
   const MAX_MESSAGE_LENGTH = 500;
   const MAX_DISPLAY_LENGTH = 200;
@@ -407,6 +408,14 @@ export default function SocialPage() {
       return;
     }
     amIBlocked();
+
+    async function isItReported()
+    {
+      if (!currentUser || !selectedUser) return;
+      const r = await contact.getReport(currentUser.name, selectedUser);
+      setReported(r);
+    }
+    isItReported();
   }, [currentUser, selectedUser])
 
 	useEffect(() => {
@@ -660,6 +669,7 @@ export default function SocialPage() {
   const reportConv = async () => {
     if (!currentUser || !selectedUser) return ;
     contact.reported(currentUser.name, selectedUser);
+    socket.emit("reported");
   };
 
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -1009,7 +1019,7 @@ export default function SocialPage() {
 
                   {/*Bouton de signalement en attendant un vrai*/}
                   <button
-                    onClick={reportConv}
+                    onClick={() => {if(reported) reportConv}}
                     className="flex h-9 w-9 items-center justify-center rounded-full bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
                     aria-label="Report this conversation"
                   >
