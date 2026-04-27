@@ -8,6 +8,7 @@ import type { type } from "./index";
 import { manage }  from "./index";
 import { socket } from "../../socket"
 import { authClient } from "@/lib/auth-client";
+import NotificationToast from "@/components/organisms/home/NotificationToast";
 
 export default function AdminPage() {
 
@@ -23,6 +24,9 @@ export default function AdminPage() {
   const [selectedReportId, setSelectedReportId] = useState("");
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
   const [currentRole, setCurrentRole] = useState("");
+  const [notification, setNotification] = useState<string | null>(null);
+  const [showNotification, setShowNotification] = useState(true);
+  const [notifSender, setNotifSender] = useState<string | null>(null);
 
   useEffect(() => {
     const getUserData = async () => {
@@ -46,6 +50,15 @@ export default function AdminPage() {
     }
     fetchUsersAndReports();
   }, []);
+
+  useEffect(() => {
+    if (!userPseudo) return;
+    socket.on("received", async ({sender, receiver, msg}) => {
+      setNotification(msg);
+      setNotifSender(sender);
+      setShowNotification(true);
+    })
+  }, [userPseudo])
 
   useEffect(() => {
     const cU = users.find(u => u.name === userPseudo);
@@ -98,7 +111,23 @@ export default function AdminPage() {
       fetchReports();
     });
 
-  }, [reports]);
+    socket.on("newMod", async () => {
+      const fetchUsers = async () => {
+        const u = await manage.getUsers();
+        setUsers(u);
+      }
+      fetchUsers();
+    });
+
+    socket.on("noMod", async () => {
+      const fetchUsers = async () => {
+        const u = await manage.getUsers();
+        setUsers(u);
+      }
+      fetchUsers();
+    });
+
+  }, [users, reports]);
 
   const filteredUsers = useMemo(() => {
     const normalizedQuery = userQuery.trim().toLowerCase();
@@ -113,7 +142,7 @@ export default function AdminPage() {
 
   return (
     <AppPageShell showSidebar containerClassName="min-h-0 flex-1">
-      {reports.length}
+      {showNotification && notification && notifSender && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       <div className="flex min-h-0 w-full flex-col gap-4 lg:flex-row">
         <UsersManagementPanel
           users={users}
@@ -122,7 +151,7 @@ export default function AdminPage() {
           usersError={usersError}
           userQuery={userQuery}
           onUserQueryChange={setUserQuery}
-          pendingReportsCount={reports.filter.length}
+          pendingReportsCount={reports.length}
           currentRole={currentRole}
         />
 

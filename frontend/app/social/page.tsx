@@ -667,7 +667,8 @@ export default function SocialPage() {
   };
 
   const reportConv = async () => {
-    if (!currentUser || !selectedUser) return ;
+    if (!currentUser || !selectedUser || reported) return ;
+    setReported(true);
     contact.reported(currentUser.name, selectedUser);
     socket.emit("reported");
   };
@@ -1019,7 +1020,7 @@ export default function SocialPage() {
 
                   {/*Bouton de signalement en attendant un vrai*/}
                   <button
-                    onClick={() => {if(reported) reportConv}}
+                    onClick={reportConv}
                     className="flex h-9 w-9 items-center justify-center rounded-full bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
                     aria-label="Report this conversation"
                   >

@@ -155,6 +155,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
     socket.on("received", async ({sender, receiver, msg}) => {
       setNotifSender(sender);
       setNotification(msg);
+      setShowNotification(true);
     })
   }, [userPseudo]);
 

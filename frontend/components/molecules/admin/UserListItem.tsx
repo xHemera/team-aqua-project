@@ -30,7 +30,7 @@ const changeRole = async (id: string, modo: boolean) =>
   if (modo)
     socket.emit("removeMod");
   else
-    socket.emit("newMod");
+    socket.emit("addMod");
 }
 
 export default function UserListItem({ user, onViewProfile, currentRole }: UserListItemProps) {

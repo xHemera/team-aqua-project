@@ -31,14 +31,6 @@ export default function UsersManagementPanel({
   const [nMod, setnMod] = useState(0);
 
   useEffect(() => {
-    socket.on("newMod", async () => {
-      setnMod(users.filter((user) => user.badges.includes("ADMIN")).length
-      + users.filter((user) => user.badges.includes("MODERATOR")).length);
-    });
-    socket.on("noMod", async () => {
-      setnMod(users.filter((user) => user.badges.includes("ADMIN")).length
-      + users.filter((user) => user.badges.includes("MODERATOR")).length);
-    });
     setnMod(users.filter((user) => user.badges.includes("ADMIN")).length
     + users.filter((user) => user.badges.includes("MODERATOR")).length);
   }, [users]);

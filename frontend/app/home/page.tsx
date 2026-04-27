@@ -1,11 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState} from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import AppPageShell from "@/components/AppPageShell";
-import DeckSelector from "@/components/organisms/home/DeckSelector";
 import MatchmakingModal from "@/components/organisms/home/MatchmakingModal";
 import NotificationToast from "@/components/organisms/home/NotificationToast";
 import PlayCta from "@/components/organisms/home/PlayCta";
@@ -22,15 +21,8 @@ export default function Home() {
   const [notification, setNotification] = useState<string | null>(null);
   const [notifSender, setNotifSender] = useState<string | null>(null);
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
-  const [selectedDeck, setSelectedDeck] = useState<string>("");
   const avatar = useAvatarPreference(DEFAULT_PROFILE_ICON.url);
 
-  // Persist selected deck to localStorage
-  useEffect(() => {
-    if (selectedDeck) {
-      localStorage.setItem("selectedDeck", selectedDeck);
-    }
-  }, [selectedDeck]);
   useEffect(() => {
     const getUserData = async () => {
       const { data } = await authClient.getSession();
@@ -58,6 +50,7 @@ export default function Home() {
     socket.on("received", async ({sender, receiver, msg}) => {
       setNotification(msg);
       setNotifSender(sender);
+      setShowNotification(true);
     })
   }, [userPseudo])
 
