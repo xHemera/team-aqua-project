@@ -30,43 +30,48 @@ export default function LoginPage() {
 
   useEffect(() => {
     const fetchUsers = async () => {
-      const response = await fetch("/api/users", {
-        method: "GET"
-      })
-      const data: unknown = await response.json();
-      if (!response.ok) {
-      const errorMessage =
-        typeof data === "object" && data !== null && "error" in data
-          ? String((data as { error?: string }).error ?? "Impossible de charger les utilisateurs")
-          : "Impossible de charger les utilisateurs";
-        throw new Error(errorMessage);
-      }
-      const users = data as User[];
-      if (users.length === 0)
-      {
-          try {
-            await authClient.signUp.email({
-              name: "Xoco",
-              email: "Xoco@gmail.com",
-              password: "12345678",
-            });
-            await authClient.signUp.email({
-              name: "Hemera",
-              email: "hemera@gmail.com",
-              password: "12345678",
-            });
-        }
-
-        catch {
-          setMessage("Registration error");
-          return;
-        }
-        setIsRegisterMode(false);
-        setPassword("");
-        setName("");
-        await fetch("/api/users", {
-          method: "POST",
+      try {
+        const response = await fetch("/api/users", {
+          method: "GET"
         })
+        const data: unknown = await response.json();
+        if (!response.ok) {
+        const errorMessage =
+          typeof data === "object" && data !== null && "error" in data
+            ? String((data as { error?: string }).error ?? "Impossible de charger les utilisateurs")
+            : "Impossible de charger les utilisateurs";
+          throw new Error(errorMessage);
+        }
+        const users = data as User[];
+        if (users.length === 0)
+        {
+            try {
+              await authClient.signUp.email({
+                name: "Xoco",
+                email: "Xoco@gmail.com",
+                password: "12345678",
+              });
+              await authClient.signUp.email({
+                name: "Hemera",
+                email: "hemera@gmail.com",
+                password: "12345678",
+              });
+          }
+
+          catch {
+            setMessage("Registration error");
+            return;
+          }
+          setIsRegisterMode(false);
+          setPassword("");
+          setName("");
+          await fetch("/api/users", {
+            method: "POST",
+          })
+        }
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        setMessage("Impossible de charger les utilisateurs");
       }
     }
     fetchUsers();
