@@ -261,10 +261,8 @@ export async function getUnreadNotif(currentUser: string)
         select: {
             id: true,
             name: true,
-
         }
     });
-    if (!users) return results;
     await Promise.all(
         users.map(async (user) => {
             const iU = await prisma.inbox_users.findFirst({
