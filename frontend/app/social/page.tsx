@@ -116,13 +116,10 @@ export default function SocialPage() {
     setInboxes(i);
     }
     fetchUsers();
-  }, [userPseudo]);
 
-  //reconnect socket in case of a page refresh
-  useEffect(() => {
-		if (!userPseudo || socket.connected) return;
-
-		socket.connect();
+    //connect the socket
+    if (socket.connected) return;
+    socket.connect();
 		socket.emit("login", userPseudo);
 
 		socket.on("online_users", (users) => {
@@ -132,7 +129,7 @@ export default function SocialPage() {
 		return () => {
 			socket.off("online_users");
 		};
-	}, [userPseudo]);
+  }, [userPseudo]);
 
   //render messages sent by other users
   useEffect(() => {
@@ -179,7 +176,7 @@ export default function SocialPage() {
     return () => {
       socket.off("received", handler);
     }
-  }, [selectedUser, userPseudo]);
+  }, [selectedUser, userPseudo, notification, notifSender]);
 
   useEffect(() => {
     if (!userPseudo) return;
@@ -299,9 +296,17 @@ export default function SocialPage() {
 
   }, [userPseudo, selectedUser]);
 
-	//fetch the conversation
-	useEffect(() => {
-		async function fetchmessages()
+  //scroll the conversation to last message
+  useEffect(() => {
+  messageListRef.current?.scrollTo({
+			top: messageListRef.current.scrollHeight,
+			behavior: "smooth",
+		});
+	}, [currentMessages.length])
+
+  //sets waiting status
+  useEffect(() => {
+    async function fetchmessages()
 		{
 			if (!currentUser || !selectedUser) return;
 			const newMessages = await contact.getMsg(currentUser.name, selectedUser);
@@ -311,26 +316,10 @@ export default function SocialPage() {
       fetchUnread();
 		}
 		fetchmessages();
-    socket.emit("has_read", {
-      user: userPseudo,
-      oUser: selectedUser,
-    });
-		messageListRef.current?.scrollTo({
-			top: messageListRef.current.scrollHeight,
-			behavior: "smooth",
-		});
-	}, [selectedUser]);
-
-  //scroll the conversation to last message
-  useEffect(() => {
-  messageListRef.current?.scrollTo({
-			top: messageListRef.current.scrollHeight,
-			behavior: "smooth",
-		});
-	}, [selectedUser, currentMessages.length])
-
-  //sets waiting status
-  useEffect(() => {
+      socket.emit("has_read", {
+        user: userPseudo,
+        oUser: selectedUser,
+      });
     async function isWaiting()
     {
       if (!currentUser || !selectedUser) return;
@@ -791,7 +780,8 @@ export default function SocialPage() {
                       key={user.name}
                       onClick={() => {
                           setSelectedUser(user.name);
-                          setShowNotification(false);
+                          if (user.name == notifSender)
+                            setShowNotification(false);
                         }
                       }
                       className={`relative flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 transition-colors ${
