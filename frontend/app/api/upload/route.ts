@@ -18,11 +18,13 @@ export async function POST(req: Request)
 
             const bytes = await file.arrayBuffer();
             const buffer = Buffer.from(bytes);
-            const fileName = `${Date.now()}-${file.name}`;
+            const safeName = file.name.replace(/\s+/g, "-");
+            const fileName = `${Date.now()}-${safeName}`;
             const filePath = path.join(process.cwd(), "public/images", fileName);
             await writeFile(filePath, buffer);
 
             return Response.json({
+                name: fileName,
                 status: 200
             });
         }

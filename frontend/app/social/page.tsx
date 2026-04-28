@@ -26,15 +26,6 @@ const toSizeLabel = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
 };
 
-//creation d'un fichier a partager
-const buildAttachmentFromFile = (file: File): type.Attachment => ({
-  id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
-  name: `${Date.now()}-${file.name}`,
-  sizeLabel: toSizeLabel(file.size),
-  type: file.type,
-  previewUrl: URL.createObjectURL(file),
-});
-
 export default function SocialPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -569,33 +560,41 @@ export default function SocialPage() {
       formData.append("file", file);
     });
 
-    const result = await fetch("/api/upload", {
+    const response = await fetch("/api/upload", {
       method: "POST",
       body: formData,
     });
 
-    if (!result.ok)
+    if (!response.ok)
       throw Error("Images could not be uploaded")
+    const data = await response.json();
+    const fileName = data.name;
 
     for (const file of files)
     {
-      await contact.addAttachments(file);
+      const id = await contact.addAttachments(file, fileName);
+      const buildAttachmentFromFile = (file: File): type.Attachment => ({
+        id: id,
+        name: `${Date.now()}-${file.name}`,
+        sizeLabel: toSizeLabel(file.size),
+        type: file.type,
+        previewUrl: URL.createObjectURL(file),
+      });
+      const nextAttachments = files.map(buildAttachmentFromFile);
+      setDraftAttachments((prevAttachments) => [...prevAttachments, ...nextAttachments]);
     }
-
-    const nextAttachments = files.map(buildAttachmentFromFile);
-    setDraftAttachments((prevAttachments) => [...prevAttachments, ...nextAttachments]);
 
     event.target.value = "";
   };
 
-  const removeDraftAttachment = async (attachmentName: string) => {
-    await contact.removeAttachment(attachmentName);
+  const removeDraftAttachment = async (attachmentId: string) => {
+    await contact.removeAttachment(attachmentId);
     setDraftAttachments((prevAttachments) => {
-      const target = prevAttachments.find((item) => item.name === attachmentName);
+      const target = prevAttachments.find((item) => item.id === attachmentId);
       if (target) {
         URL.revokeObjectURL(target.previewUrl);
       }
-      return prevAttachments.filter((item) => item.name !== attachmentName);
+      return prevAttachments.filter((item) => item.id !== attachmentId);
     });
   };
 
@@ -604,9 +603,9 @@ export default function SocialPage() {
     const cleanMessage = message.trim();
     if (!cleanMessage && draftAttachments.length === 0) return;
     if (isBlocked || hasBlocked) return;
-    const draftNames = draftAttachments.map(draft => draft.name);
+    const draftIds = draftAttachments.map(draft => draft.id);
 
-    contact.addMsg(cleanMessage, currentUser.name, selectedUser, draftNames);
+    contact.addMsg(cleanMessage, currentUser.name, selectedUser, draftIds);
 
     //fetch messages between users
 		const newMessages = await contact.getMsg(currentUser.name, selectedUser);
@@ -929,8 +928,6 @@ export default function SocialPage() {
                     {msg.attachments.length > 0 && (
                       <div className={`mt-2 grid gap-2 ${msg.attachments.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
                         {msg.attachments.map((attachment) => {
-                          const isImage = attachment.type.startsWith("image/");
-
                           return (
                             <div
                               key={attachment.id}
@@ -940,19 +937,15 @@ export default function SocialPage() {
                                   : "border-[#3c3650] bg-[#15131d]"
                               }`}
                             >
-                              {isImage ? (
+                              {(
                                 <Image
-                                  src={attachment.previewUrl}
+                                  src={`${attachment.previewUrl}`}
                                   alt={attachment.name}
                                   width={320}
                                   height={220}
                                   className="h-28 w-full rounded-md object-cover"
                                   unoptimized
                                 />
-                              ) : (
-                                <div className="mb-2 flex h-28 items-center justify-center rounded-md bg-black/20 text-3xl">
-                                  <i className="fa-regular fa-file-lines" />
-                                </div>
                               )}
                               <p className="mt-2 truncate text-xs font-semibold">{attachment.name}</p>
                               <p className="text-[11px] opacity-75">{attachment.sizeLabel}</p>

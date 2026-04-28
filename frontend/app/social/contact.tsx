@@ -131,7 +131,7 @@ export async function getAvatar (userName: string)
 }
 
 //adds a message written by the first user
-export async function addMsg(msg: string, sender: string, receiver: string, draftName: string[])
+export async function addMsg(msg: string, sender: string, receiver: string, draftIds: string[])
 {
     const user1 = await prisma.user.findFirst({
         where: { name: sender },
@@ -177,10 +177,10 @@ export async function addMsg(msg: string, sender: string, receiver: string, draf
         }
 	});
 
-    for (const name of draftName)
+    for (const id of draftIds)
     {
-        await prisma.attachment.updateMany({
-            where: { name: name },
+        await prisma.attachment.update({
+            where: { id: id },
             data: {
                 msg_id: message.id
             }
@@ -653,7 +653,7 @@ export async function getReport(currentUser: string, otherUser: string)
     return true;
 }
 
-export async function addAttachments(file: File)
+export async function addAttachments(file: File, url: string)
 {
     const toSizeLabel = (bytes: number) => {
         if (bytes < 1024) return `${bytes} o`;
@@ -661,25 +661,27 @@ export async function addAttachments(file: File)
         return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
     };
 
-    await prisma.attachment.create({
+    const a = await prisma.attachment.create({
         data: {
             name: `${Date.now()}-${file.name}`,
             sizeLabel: toSizeLabel(file.size),
             type: file.type,
-            previewUrl: `/public/images/${Date.now()}-${file.name}`
+            previewUrl: `/images/${url}`
         }
     });
+    if (!a) throw Error("Error creating attachment");
+    return a.id;
 }
 
-export async function removeAttachment(attachmentName: string)
+export async function removeAttachment(attachmentId: string)
 {
     try {
-        await prisma.attachment.deleteMany({
-            where: { name: attachmentName }
+        await prisma.attachment.delete({
+            where: { id: attachmentId }
         })
     }
     catch(error)
     {
-        throw Error(attachmentName);
+        throw Error(attachmentId);
     }
 }
