@@ -32,6 +32,11 @@ const io = new Server(httpServer, {
 //On connect, logs and maps the user to a socket
 io.on("connect", (socket) => {
   socket.on("login", async (user) => {
+    if (typeof user !== 'string' || !user.trim())
+    {
+      console.error("Invaid user in login: ", user);
+      return ;
+    }
     await redis.hSet("online_users", user, socket.id);
     const users = await redis.hGetAll("online_users");
     console.log("Client connected: ", users);
@@ -216,40 +221,35 @@ io.on("connect", (socket) => {
     });
   });
 
-  socket.on("modo", async (modo, newMod) => {
-    const receiverSock = await redis.hGet("online_users", newMod);
-    if (receiverSock)
-    {
-      io.to(receiverSock).emit("modNotif", {
-        modo,
-        newMod
-      });
-    }
-  });
-
+  //tells that a new user has been created
   socket.on("creation", async () => {
     io.emit("newUser");
   });
 
+  //tells that someone reported someone else
   socket.on("reported", async () => {
     io.emit("newReport");
   });
 
+  //tells that someone reviewed the report
   socket.on("reviewed", async () => {
     io.emit("lessReports");
   });
 
+  //tells that a user has been promoted
   socket.on("addMod", async () => {
     io.emit("newMod");
   });
 
+  //tells that a mod has been removed
   socket.on("removeMod", async (modo, removed) => {
     io.emit("noMod", {
       modo,
       removed
-    })
+    });
   });
 
+  //tells that you have been banned
   socket.on("banning", async (modo, banned) => {
     const receiverSock = await redis.hGet("online_users", banned);
     if (receiverSock)
