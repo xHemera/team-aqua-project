@@ -108,11 +108,12 @@ export default function SocialPage() {
   useEffect(() => {
     async function fetchUsers() {
     if (!userPseudo) return;
-      const [u, cU, i] = await Promise.all([
+      const [u, i] = await Promise.all([
       contact.getUsers(),
-      contact.getCurrentUser(userPseudo),
       contact.getInboxes(userPseudo),
     ]);
+    const cU = u.find(user => user.name === userPseudo);
+    if (!cU) return ;
     setCurrentUser(cU);
     setUsers(u);
     setInboxes(i);

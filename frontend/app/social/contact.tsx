@@ -16,25 +16,6 @@ export async function getUsers()
     });
 }
 
-//get the current user and their relations
-export async function getCurrentUser(current: string)
-{
-    const user = await prisma.user.findFirst({
-        where: { name: current },
-        select: {
-			id: true,
-			name: true,
-			badges: true,
-			blockedUsers: true,
-			avatar: true,
-            online: true,
-		}
-    });
-    if (!user)
-        throw new Error("User not found");
-    return user;
-}
-
 //get a user and their relations by name
 export async function getUser(name: string)
 {

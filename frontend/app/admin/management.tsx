@@ -76,7 +76,9 @@ export async function deleteReport(reporter: string, reported: string)
 export async function banUser(username: string)
 {
     const user = await prisma.user.updateMany({
-        where: { name: username },
+        where: { name: username,
+            NOT: { badges: { has: "ADMIN" } }
+         },
         data: { banned: true }
     });
 }
