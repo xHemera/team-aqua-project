@@ -26,7 +26,7 @@ export async function GET() {
       badges: user.badges ?? [],
     }));
 
-    return Response.json({result}, {status: 200});
+    return Response.json(result, {status: 200});
   } catch (error) {
     console.error("Error fetching users:", error);
     return Response.json(
@@ -60,7 +60,7 @@ export async function POST()
       }
     });
 
-    if (!admin1 || !admin2) return Response.json({error: "Users not found"}, {status: 404});
+    if (!admin1 || !admin2) return Response.json({error: "admins not created"}, {status: 500});
 
     await prisma.user.updateMany({
       where: { name: { in: ["Xoco", "Hemera"] } },
@@ -120,6 +120,6 @@ export async function POST()
   }
   catch (error)
   {
-    return Response.json({error: "failed creating admins"}, {status: 500})
+    return Response.json({error: "admins not created"}, {status: 500});
   }
 }

@@ -98,6 +98,8 @@ export default function SocialPage() {
       const { data } = await authClient.getSession();
       if (data && data.user.name)
         setUserPseudo(data.user.name);
+      else
+        router.push("/not-connected");
     };
     getUserData();
   }, []);
