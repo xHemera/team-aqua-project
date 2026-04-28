@@ -4,7 +4,7 @@ export type Messages = {
   inbox_id:   string;
   message:    string | null;
   createdAt:  Date;
-  images?:    Array<{ id: string; name: string; data: string }>;
+  attachments: Attachment[]
 }
 
 export type Inbox_users = {

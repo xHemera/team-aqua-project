@@ -131,7 +131,7 @@ export async function getAvatar (userName: string)
 }
 
 //adds a message written by the first user
-export async function addMsg(msg: string, sender: string, receiver: string)
+export async function addMsg(msg: string, sender: string, receiver: string, draftName: string[])
 {
     const user1 = await prisma.user.findFirst({
         where: { name: sender },
@@ -161,7 +161,7 @@ export async function addMsg(msg: string, sender: string, receiver: string)
 	if (!inbox)
 		throw Error("No discussion found or created prior");
 
-	const messages = await prisma.messages.create({
+	const message = await prisma.messages.create({
 		data: {
 			message: msg,
 			user: {
@@ -170,8 +170,22 @@ export async function addMsg(msg: string, sender: string, receiver: string)
 			inbox: {
 				connect: { id: inbox.id }
 			}
-		}
+		},
+        select: {
+            attachments: true,
+            id: true
+        }
 	});
+
+    for (const name of draftName)
+    {
+        await prisma.attachment.updateMany({
+            where: { name: name },
+            data: {
+                msg_id: message.id
+            }
+        })
+    }
 
     await prisma.inbox_users.updateMany({
         where: {
@@ -183,7 +197,7 @@ export async function addMsg(msg: string, sender: string, receiver: string)
         }
     })
 
-	if (!messages)
+	if (!message)
 		throw Error("Could not create the message");
 }
 
@@ -212,7 +226,7 @@ export async function getMsg(user: string, otherUser: string)
 				}
 			}
 		},
-		select: {messages: true}
+		select: {messages: { include: { attachments: true } } }
 	})
 	if (!msgs) throw new Error("Could not fetch messages");
 	return msgs.messages;
@@ -637,4 +651,35 @@ export async function getReport(currentUser: string, otherUser: string)
     });
     if (!inbox || !inbox.report_id) return false;
     return true;
+}
+
+export async function addAttachments(file: File)
+{
+    const toSizeLabel = (bytes: number) => {
+        if (bytes < 1024) return `${bytes} o`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+    };
+
+    await prisma.attachment.create({
+        data: {
+            name: `${Date.now()}-${file.name}`,
+            sizeLabel: toSizeLabel(file.size),
+            type: file.type,
+            previewUrl: `/public/images/${Date.now()}-${file.name}`
+        }
+    });
+}
+
+export async function removeAttachment(attachmentName: string)
+{
+    try {
+        await prisma.attachment.deleteMany({
+            where: { name: attachmentName }
+        })
+    }
+    catch(error)
+    {
+        throw Error(attachmentName);
+    }
 }

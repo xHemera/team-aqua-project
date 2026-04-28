@@ -1,16 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { socket } from "../../socket"
 import { authClient } from "@/lib/auth-client";
 import AppPageShell from "@/components/AppPageShell";
-import { DEFAULT_PROFILE_ICON, PROFILE_ICONS } from "@/lib/profile-icons";
+import { DEFAULT_PROFILE_ICON } from "@/lib/profile-icons";
 import { contact }  from "./index"
 import NotificationToast from "@/components/organisms/home/NotificationToast";
 import ProfileViewerModal from "@/components/organisms/social/ProfileViewer";
-import Validate from "@/components/organisms/Validate";
 import {type} from "./index"
 
 
@@ -30,7 +29,7 @@ const toSizeLabel = (bytes: number) => {
 //creation d'un fichier a partager
 const buildAttachmentFromFile = (file: File): type.Attachment => ({
   id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
-  name: file.name,
+  name: `${Date.now()}-${file.name}`,
   sizeLabel: toSizeLabel(file.size),
   type: file.type,
   previewUrl: URL.createObjectURL(file),
@@ -556,12 +555,32 @@ export default function SocialPage() {
   }
 
   const handlePickAttachments = () => {
-    fileInputRef.current?.click();
+    if (fileInputRef.current)
+      fileInputRef.current.click();
   };
 
-  const handleFilesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFilesChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    event.preventDefault();
     const files = Array.from(event.target.files ?? []);
     if (files.length === 0) return;
+
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append("file", file);
+    });
+
+    const result = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!result.ok)
+      throw Error("Images could not be uploaded")
+
+    for (const file of files)
+    {
+      await contact.addAttachments(file);
+    }
 
     const nextAttachments = files.map(buildAttachmentFromFile);
     setDraftAttachments((prevAttachments) => [...prevAttachments, ...nextAttachments]);
@@ -569,13 +588,14 @@ export default function SocialPage() {
     event.target.value = "";
   };
 
-  const removeDraftAttachment = (attachmentId: string) => {
+  const removeDraftAttachment = async (attachmentName: string) => {
+    await contact.removeAttachment(attachmentName);
     setDraftAttachments((prevAttachments) => {
-      const target = prevAttachments.find((item) => item.id === attachmentId);
+      const target = prevAttachments.find((item) => item.name === attachmentName);
       if (target) {
         URL.revokeObjectURL(target.previewUrl);
       }
-      return prevAttachments.filter((item) => item.id !== attachmentId);
+      return prevAttachments.filter((item) => item.name !== attachmentName);
     });
   };
 
@@ -584,48 +604,14 @@ export default function SocialPage() {
     const cleanMessage = message.trim();
     if (!cleanMessage && draftAttachments.length === 0) return;
     if (isBlocked || hasBlocked) return;
+    const draftNames = draftAttachments.map(draft => draft.name);
 
-    contact.addMsg(cleanMessage, currentUser.name, selectedUser);
+    contact.addMsg(cleanMessage, currentUser.name, selectedUser, draftNames);
 
     //fetch messages between users
 		const newMessages = await contact.getMsg(currentUser.name, selectedUser);
     contact.getUnreadNotif(currentUser.name);
 		if (!newMessages) return;
-
-    // Prepare images from attachments
-    const images = await Promise.all(
-      draftAttachments
-        .filter(att => att.type.startsWith("image/"))
-        .map((attachment) => 
-          new Promise<{ id: string; name: string; data: string }>((resolve) => {
-            fetch(attachment.previewUrl)
-              .then(res => res.blob())
-              .then(blob => {
-                const reader = new FileReader();
-                reader.onload = () => {
-                  resolve({
-                    id: attachment.id,
-                    name: attachment.name,
-                    data: reader.result as string,
-                  });
-                };
-                reader.readAsDataURL(blob);
-              })
-              .catch(() => resolve({ id: attachment.id, name: attachment.name, data: "" }));
-          })
-        )
-    );
-
-    // Get the last message ID
-    const lastMessageId = newMessages.length > 0 ? newMessages[newMessages.length - 1].id : null;
-
-    // Store images locally for the sent message
-    if (images.length > 0 && lastMessageId) {
-      setMessageImages((prev) => ({
-        ...prev,
-        [lastMessageId]: images,
-      }));
-    }
 
     setCurrentMessages(newMessages);
 
@@ -641,8 +627,6 @@ export default function SocialPage() {
       sender: currentUser.name,
       receiver: selectedUser,
       msg: cleanMessage,
-      images: images.length > 0 ? images : undefined,
-      messageId: lastMessageId,
     });
 
     setMessage("");
@@ -942,7 +926,7 @@ export default function SocialPage() {
                       </div>
                     )}
 
-                    {/* {msg.attachments.length > 0 && (
+                    {msg.attachments.length > 0 && (
                       <div className={`mt-2 grid gap-2 ${msg.attachments.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
                         {msg.attachments.map((attachment) => {
                           const isImage = attachment.type.startsWith("image/");
@@ -976,7 +960,7 @@ export default function SocialPage() {
                           );
                         })}
                       </div>
-                    )} */}
+                    )}
                   </article>
                 </div>
                 ))
@@ -991,25 +975,25 @@ export default function SocialPage() {
                     className="hidden"
                     multiple
                     onChange={handleFilesChange}
-                    accept="image/*,.pdf,.txt,.doc,.docx"
+                    accept="image/*,.pdf,.txt,.doc,.docx,.png"
                   />
                 {/*Bouton pour attachments*/}
-                {/* <button
+                <button
                     onClick={handlePickAttachments}
                     className="flex h-9 w-9 items-center justify-center rounded-full bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
                     aria-label="Ajouter des pièces jointes"
                   >
                     <i className="fa-solid fa-paperclip" />
-                  </button> */}
+                  </button>
 
                   {/*Bouton de signalement en attendant un vrai*/}
-                  <button
+                  {/* <button
                     onClick={reportConv}
                     className="flex h-9 w-9 items-center justify-center rounded-full bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
                     aria-label="Report this conversation"
                   >
                     <i className="fa-solid fa-paperclip" />
-                  </button>
+                  </button> */}
 
                   <input
                     type="text"

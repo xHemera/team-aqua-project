@@ -63,14 +63,25 @@ model Reported_Conv {
   inbox             Inbox     @relation(fields: [inboxId], references: [id])
 }
 
+model Attachment {
+  id          String    @id @default(cuid())
+  msg_id      String?
+  name        String
+  sizeLabel   String
+  type        String
+  previewUrl  String
+  message     Messages? @relation(fields: [msg_id], references: [id], onDelete: Cascade)
+}
+
 model Messages {
-  id        String    @id @default(cuid())
-  user_id   String
-  inbox_id  String
-  message   String?
-  createdAt DateTime	@default(now())
-  user      User?			@relation(fields: [user_id], references: [id], onDelete: Cascade)
-  inbox     Inbox?		@relation(fields: [inbox_id], references: [id], onDelete: Cascade)
+  id            String    @id @default(cuid())
+  user_id       String
+  inbox_id      String
+  message       String?
+  attachments   Attachment[]
+  createdAt     DateTime	@default(now())
+  user          User?			@relation(fields: [user_id], references: [id], onDelete: Cascade)
+  inbox         Inbox?		@relation(fields: [inbox_id], references: [id], onDelete: Cascade)
 }
 
 model Inbox {

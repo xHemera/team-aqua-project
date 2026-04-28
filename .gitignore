@@ -19,3 +19,6 @@ frontend/.next/
 # OS / editor
 .DS_Store
 .vscode/
+
+#useless
+frontend/public/images
