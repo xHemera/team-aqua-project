@@ -65,6 +65,8 @@ const defaultBackground = DEFAULT_SITE_BACKGROUND;
 const formatTime = (date: Date) =>
   date.toLocaleTimeString("fr-FR", {
     timeZone: "Europe/Paris",
+    minute: "2-digit",
+    hour: "2-digit",
     day: "2-digit",
     month: "2-digit",
     year: "numeric"
@@ -80,15 +82,13 @@ const RESULT_STYLES: Record<string, string> = {
   lose: "bg-red-600"
 };
 
-const greenRes = "bg-green-600";
-const redRes = "bg-red-600";
-
 // HARDCODE: static deck icon map used for history presentation.
 const deckpublic: Record<string, string> = {
-  Flygon: "/decks/flygon-icon.png",
-  Ceruledge: "/decks/ceruledge-icon.png",
-  Toxtricity: "/decks/toxtricity-icon.png",
-  Zacian: "/decks/zacian-icon.png",
+  Knight: "/heroes/Avatar_Sorel.webp",
+  Assassin: "/heroes/Avatar_Wanda.webp",
+  Healer: "/heroes/Avatar_Tulu.webp",
+  Archer: "/heroes/Avatar_Uvhash.webp",
+  Mage: "/heroes/Avatar_Thais.webp"
 };
 
 const normalizeBackgroundValue = (value: string) => normalizeImageValue(value, defaultBackground);
@@ -132,7 +132,7 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
   useEffect(() => {
     const getUserData = async () => {
       const { data } = await authClient.getSession();
-      if (data?.user?.name) {
+      if (data && data.user.name) {
         setUserPseudo(data.user.name);
       }
     };
@@ -435,40 +435,40 @@ export default function ProfileClientView({ profileName, initialAvatar, isOwnPro
 
                         <div className="grid gap-3 sm:grid-cols-2 md:col-span-6">
                           <div className="rounded-lg bg-black/20 px-3 py-2.5">
-                            <p className="mb-1 text-xs uppercase tracking-wide text-gray-400">Deck joué</p>
+                            <p className="mb-1 text-xs uppercase tracking-wide text-gray-400">Team played</p>
                             <div className="inline-flex items-center gap-2.5">
                               {match.playerTeam.map((member) => 
                                 <Image
-                                  src={deckpublic[member] || deckpublic.Flygon}
+                                  key={member}
+                                  src={deckpublic[member] || deckpublic.Knight}
                                   alt={member}
                                   width={24}
                                   height={24}
                                   className="h-6 w-6"
                                 />
                               )}
-                              <span className="text-base font-semibold text-white">{match.playerTeam}</span>
                             </div>
                           </div>
 
                           <div className="rounded-lg bg-black/20 px-3 py-2.5">
-                            <p className="mb-1 text-xs uppercase tracking-wide text-gray-400">Deck affronté</p>
+                            <p className="mb-1 text-xs uppercase tracking-wide text-gray-400">Team fought</p>
                             <div className="inline-flex items-center gap-2.5">
                               {match.opponentTeam.map((member) => 
                                 <Image
-                                  src={deckpublic[member] || deckpublic.Flygon}
+                                  key={member}
+                                  src={deckpublic[member] || deckpublic.Knight}
                                   alt={member}
                                   width={24}
                                   height={24}
                                   className="h-6 w-6"
                                 />
                               )}
-                              <span className="text-base font-semibold text-white">{match.opponentTeam}</span>
                             </div>
                           </div>
                         </div>
 
                         <div className="md:col-span-3 md:text-right">
-                          <p className="text-xs uppercase tracking-wide text-gray-400">Joueur affronté</p>
+                          <p className="text-xs uppercase tracking-wide text-gray-400">Opponent</p>
                           <p className="text-base font-medium text-gray-200">{match.opponent}</p>
                         </div>
                       </div>
