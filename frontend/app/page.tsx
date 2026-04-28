@@ -37,7 +37,7 @@ export default function LoginPage() {
       if (!response.ok) {
       const errorMessage =
         typeof data === "object" && data !== null && "error" in data
-          ? String((data as { error?: string }).error ?? "Impossible de charger les utilisateurs")
+          ? String((data as { error: string }).error ?? "Impossible de charger les utilisateurs")
           : "Impossible de charger les utilisateurs";
         throw new Error(errorMessage);
       }
@@ -77,7 +77,7 @@ export default function LoginPage() {
     const checkSession = async () => {
       try {
         const session = await authClient.getSession();
-        if (session?.data?.session) {
+        if (session && session.data && session.data.session) {
           router.push("/home");
         }
       } catch {
@@ -137,20 +137,29 @@ export default function LoginPage() {
         setMessage(error.message ?? "Sign-in error");
       }
       else {
-        setMessage("Signed in successfully!");
-        setPseudo(data.user.name || "user");
         const response = await fetch("/api/user", {
           method: "PUT"
         })
         const user: unknown = await response.json();
         if (!response.ok) {
+          if (response.status === 403)
+          {
+            setMessage("This account has been banned");
+            await authClient.signOut();
+            setLoading(false);
+            return;
+          }
         const errorMessage =
           typeof user === "object" && user !== null && "error" in user
             ? String((user as { error: string }).error ?? "Impossible de charger l'utilisateur")
             : "Impossible de charger l'utilisateur";
           throw new Error(errorMessage);
         }
-        setTimeout(() => router.push(`/profile/${data.user.name}`), 500);
+        else {
+          setMessage("Signed in successfully!");
+          setPseudo(data.user.name || "user");
+          setTimeout(() => router.push(`/profile/${data.user.name}`), 500);
+        }
       }
     }
     setLoading(false);
