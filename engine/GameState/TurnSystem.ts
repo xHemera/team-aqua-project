@@ -41,17 +41,17 @@ export function advanceTurn(state: GameState): GameState {
     const character = findCharacter(state, current.characterUid);
     const speed     = character?.character.stats.speed ?? 1;
 
+    const decremented = rest.map(entry => ({
+        ...entry,
+        charge: entry.charge - current.charge,
+    }));
+
     const requeued: TurnEntry = {
         ...current,
         charge: TURN_THRESHOLD - speed,
     };
 
-    const updated = rest.map(entry => ({
-        ...entry,
-        charge: entry.charge - requeued.charge,
-    }));
-
-    const newQueue = sortQueue([...updated, { ...requeued, charge: requeued.charge }]);
+    const newQueue = sortQueue([...decremented, requeued]);
 
     return {
         ...state,

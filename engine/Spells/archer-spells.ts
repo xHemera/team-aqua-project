@@ -27,3 +27,25 @@ export class PiercingShot extends Spell {
         return resolvePhyDamage(raw, idUser, idTarget, reducedRes);
     }
 }
+
+export class RainOfArrows extends Spell {
+
+	constructor() {
+		super();
+		this.id = "s2";
+		this.name = "Rain of Arrows";
+		this.mpCost = 12;
+		this.level = 1;
+	}
+
+	dealDamage(idUser: CharacterInstance, idTargets: CharacterInstance[]): number[] {
+		const stats = idUser.character.stats;
+		const skillLevel = idUser.character.skills.find(s => s.id == "s2")?.level ?? 1;
+
+		const raw = stats.physicalDamage * 0.8 + skillLevel * 15;
+
+		return idTargets.map(target => resolvePhyDamage(raw, idUser, target));
+	}
+	
+}
+
