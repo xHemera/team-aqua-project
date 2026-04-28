@@ -6,14 +6,16 @@ export interface ModEntry {
 }
 
 export class CharacterInstance {
-    uid:		string;
-    character:	CharacterData;
-    owner:		number;
-    phyMod:		ModEntry[] = [];
-    magMod:		ModEntry[] = [];
-    phyResMod:	ModEntry[] = [];
-    magResMod:	ModEntry[] = [];
-    spdMod:		ModEntry[] = [];
+    uid:			string;
+    character:		CharacterData;
+    owner:			number;
+    phyMod:			ModEntry[] = [];
+    magMod:			ModEntry[] = [];
+    phyResMod:		ModEntry[] = [];
+    magResMod:		ModEntry[] = [];
+	critChanceMod:	ModEntry[] = [];
+	critDamageMod:	ModEntry[] = [];
+    spdMod:			ModEntry[] = [];
 
     constructor(uid: string, character: CharacterData, owner: number) {
         this.uid       = uid;
@@ -28,4 +30,14 @@ export class CharacterInstance {
     get magRes(): number {
         return this.character.stats.magicalResistance;
     }
+
+	get critChance(): number {
+		return this.character.stats.critChance
+			+ this.critChanceMod.reduce((acc, { value }) => acc + value, 0);
+	}
+
+	get critDamage(): number {
+		return this.character.stats.critDamage
+			+ this.critDamageMod.reduce((acc, { value }) => acc + value, 0);
+	}
 }
