@@ -57,7 +57,7 @@ export async function GET() {
         accent: avatarMeta.accent,
         accentHover: avatarMeta.accentHover,
       },
-    });
+    }, {status: 200});
   } catch (error) {
     console.error("Error fetching profile:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
@@ -157,7 +157,7 @@ export async function PATCH(request: Request) {
         accent: avatarMeta.accent,
         accentHover: avatarMeta.accentHover,
       },
-    });
+    }, {status: 201});
   } catch (error) {
     console.error("Error updating profile:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });

@@ -64,9 +64,11 @@ export default function LoginPage() {
         setIsRegisterMode(false);
         setPassword("");
         setName("");
-        await fetch("/api/users", {
+        const response = await fetch("/api/users", {
           method: "POST",
-        })
+        });
+        if (!response.ok)
+          throw Error("Could not create admins");
       }
     }
     fetchUsers();

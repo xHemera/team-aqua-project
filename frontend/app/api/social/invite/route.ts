@@ -9,7 +9,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = (await request.json()) as { username?: string };
+    const body = (await request.json()) as { username: string };
     const username = body.username?.trim();
 
     if (!username) {
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
         avatarUrl: targetUser.image ?? targetUser.avatar?.url,
         badges: targetUser.badges ?? [],
       },
-    });
+    }, {status: 200});
   } catch (error) {
     console.error("Error inviting user:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });

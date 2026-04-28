@@ -16,7 +16,7 @@ export async function GET() {
 
     const totalUnread = rows.reduce((sum, row) => sum + (row.unread_messages ?? 0), 0);
 
-    return Response.json({ totalUnread });
+    return Response.json({ totalUnread }, {status: 200});
   } catch (error) {
     console.error("Error fetching social unread count:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });

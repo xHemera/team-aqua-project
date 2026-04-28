@@ -137,13 +137,11 @@ export default function SocialPage() {
     const handler = async ({ sender,
       receiver,
       msg,
-      images,
-      messageId }: {
+      }: {
       sender: string,
       receiver: string,
       msg: string,
-      images: string,
-      messageId: string }) => {
+      }) => {
 
       if (selectedUser && selectedUser === sender)
       {
@@ -155,14 +153,6 @@ export default function SocialPage() {
           user: userPseudo,
           oUser: selectedUser,
         });
-        
-        //Store images for this message ID
-        // if (images && images.length > 0 && messageId) {
-        //   setMessageImages((prev) => ({
-        //     ...prev,
-        //     [messageId]: images,
-        //   }));
-        // }
       }
       else //set variables to send a notification
       {
