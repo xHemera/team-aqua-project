@@ -355,6 +355,7 @@ export default function SocialPage() {
       if (friend.request_sent == true) 
       {
         setRequest(true);
+        setFriendRequestSender(selectedUser);
       } else {
         setRequest(false);
         setFriendRequestSender(null);
