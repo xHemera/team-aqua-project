@@ -1054,10 +1054,10 @@ export default function SocialPage() {
                     </article>
                     {isLastUserMessage && (
                       <div>
-                        {messageReadStatus[msg.id] ? (
-                          <span className="text-emerald-400 text-sm"><i className="fa-solid fa-check-double"></i></span>
-                        ) : (
+                        {unread ? (
                           <span className="text-gray-500 text-sm"><i className="fa-solid fa-check"></i></span>
+                        ) : (
+                          <span className="text-emerald-400 text-sm"><i className="fa-solid fa-check-double"></i></span>
                         )}
                       </div>
                     )}
