@@ -176,17 +176,17 @@ io.on("connect", (socket) => {
   });
 
   //tells that a new user has been created
-  socket.on("creation", async () => {
+  socket.on("creation", () => {
     io.emit("newUser");
   });
 
   //tells that someone reported someone else
-  socket.on("reported", async () => {
+  socket.on("reported", () => {
     io.emit("newReport");
   });
 
   //tells that someone reviewed the report
-  socket.on("reviewed", async () => {
+  socket.on("reviewed", () => {
     io.emit("lessReports");
   });
 
@@ -207,16 +207,16 @@ io.on("connect", (socket) => {
 
   //tells that someone has been unbanned
   socket.on("unbanning", async (banned) => {
-    io.emit("unban");
+    io.emit("unban", banned);
   });
 
   //tells everyone that they are connected
-  socket.on("connecting", async () => {
+  socket.on("connecting", () => {
     io.emit("online");
   });
 
   //tells everyone that they are disconnected
-  socket.on("disconnecting", async () => {
+  socket.on("disconnecting",() => {
     io.emit("offline");
   });
 

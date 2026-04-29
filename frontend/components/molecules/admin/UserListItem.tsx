@@ -20,13 +20,19 @@ const getBadgeLabel = (badges: string[]) => {
 
 export default function UserListItem({ user, onViewProfile, currentRole }: UserListItemProps) {
   const [badgeLabel, setBadgeLabel] = useState<string[]>([getBadgeLabel(user.badges)]);
-  const [isAdmin, setIsAdmin] = useState(user.badges.includes("ADMIN"));
-  const [isModo, setIsModo] = useState(user.badges.includes("MODERATOR"));
-  const [banned, setBanned] = useState(user.banned);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isModo, setIsModo] = useState(false);
+  const [banned, setBanned] = useState(false);
+
+  useEffect(() => {
+    setIsAdmin(user.badges.includes("ADMIN"));
+    setIsModo(user.badges.includes("MODERATOR"));
+    setBanned(user.banned);
+  }, [user])
 
   async function banUser()
   {
-    manage.banUser(user.name);
+    await manage.banUser(user.name);
     socket.emit("reviewed");
     socket.emit("banning", {
       banned: user.name
@@ -36,7 +42,7 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
 
   async function unbanUser()
   {
-    manage.unbanUser(user.name);
+    await manage.unbanUser(user.name);
     socket.emit("unbanning");
     return ;
   }
@@ -49,7 +55,9 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
         removed: user.name
     });
     else
-      socket.emit("addMod");
+      socket.emit("addMod", {
+        added: user.name
+    });
   }
 
   return (
@@ -110,7 +118,7 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
                 unbanUser()
               else
                 banUser(); 
-              setBanned(!banned)
+              setBanned(!banned);
             }
           }
           title="Ban"
