@@ -43,7 +43,7 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
 
   const changeRole = async (id: string, modo: boolean) =>
   {
-    await manage.changeRole(id, modo)
+    await manage.changeRole(id, modo);
     if (modo)
       socket.emit("removeMod", {
         removed: user.name
