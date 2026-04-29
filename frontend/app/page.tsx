@@ -76,7 +76,8 @@ export default function LoginPage() {
               : "Impossible de charger les utilisateurs";
             throw new Error(errorMessage);
         }
-        const data: unknown = await response.json();
+        //cette ligne et soit necessaire, soit elle casse tout
+        //const data: unknown = await response.json();
         const users = data as User[];
         if (users.length === 0)
         {
