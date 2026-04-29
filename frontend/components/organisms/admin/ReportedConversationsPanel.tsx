@@ -53,6 +53,9 @@ export default function ReportedConversationsPanel({
     reports.splice(i, 1);
     socket.emit("reviewed");
     selectedReport = reports[0] ?? null;
+    socket.emit("banning", {
+      banned: selectedReport.reportedUser
+    });
   }
 
   async function banUser()

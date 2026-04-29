@@ -90,3 +90,25 @@ export async function unbanUser(username: string)
         data: { banned: false }
     })
 }
+
+export async function changeRole(user: string, isModo: boolean)
+{
+    if (!isModo)
+    {
+        await prisma.user.update({
+            where: { id: user },
+            data: {
+                badges: { push: "MODERATOR" }
+            }
+        });
+    }
+    else
+    {
+        await prisma.user.update({
+            where: { id: user },
+            data: {
+                badges: { set: [] }
+            }
+        });
+    }
+}

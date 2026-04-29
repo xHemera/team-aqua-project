@@ -111,21 +111,30 @@ export default function AdminPage() {
       fetchReports();
     });
 
-    socket.on("newMod", async () => {
-      const fetchUsers = async () => {
-        const u = await manage.getUsers();
-        setUsers(u);
-      }
-      fetchUsers();
-    });
+    const fetchUsers = async () => {
+      const u = await manage.getUsers();
+      setUsers(u);
+    };
 
-    socket.on("noMod", async () => {
-      const fetchUsers = async () => {
-        const u = await manage.getUsers();
-        setUsers(u);
-      }
-      fetchUsers();
-    });
+    const modFetch = () => fetchUsers();
+    const noModFetch = () => fetchUsers();
+    const banFetch = () => fetchUsers();
+    const unbanFetch = () => fetchUsers();
+
+    socket.on("newMod", modFetch);
+    socket.on("noMod", noModFetch);
+    socket.on("ban", banFetch);
+    socket.on("unban", unbanFetch);
+    return () => {
+      socket.off("newUser");
+      socket.off("lessUser");
+      socket.off("newReport");
+      socket.off("lessReports");
+      socket.off("newMod", modFetch);
+      socket.off("noMods", noModFetch);
+      socket.off("ban", banFetch);
+      socket.off("unban");
+    }
 
   }, [users, reports]);
 
