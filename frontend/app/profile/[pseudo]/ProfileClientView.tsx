@@ -565,9 +565,31 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
                   {customAvatar && (
                     <Button
                       type="button"
-                      onClick={() => {
-                        setCustomAvatar(null);
-                        localStorage.removeItem("profileCustomAvatar");
+                      onClick={async () => {
+                        try {
+                          // Remove from database
+                          const response = await fetch("/api/profile", {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ imageUrl: "/profile-icons/default-avatar.svg" }),
+                          });
+
+                          if (!response.ok) {
+                            throw new Error("Failed to remove profile picture from database");
+                          }
+
+                          setCustomAvatar(null);
+                          setDisplayAvatar(null);
+                          localStorage.removeItem("profileCustomAvatar");
+
+                          // Notify other users about avatar removal
+                          socket.emit("avatar_updated", {
+                            userName: profileName,
+                            imageUrl: "/profile-icons/default-avatar.svg"
+                          });
+                        } catch (error) {
+                          console.error("Error removing profile picture:", error);
+                        }
                       }}
                       variant="ghost"
                       className="h-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-red-400 hover:text-red-300"

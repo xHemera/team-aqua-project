@@ -131,7 +131,7 @@ model User {
   name              String
   email             String
   emailVerified     Boolean   @default(false)
-  image             String?
+  image             String?   @default("/profile-icons/default-avatar.svg")
   badges            String[]  @default([])
   blockedUsers      String[]  @default([])
 	banned						Boolean		@default(false)
