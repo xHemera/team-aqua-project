@@ -20,8 +20,7 @@ type User = {
   name:          			string;
   badges:             string[];
   blockedUsers:       string[];
-  avatar:        			Avatar | null;
-};
+  avatar:        			Avatar | null;  image?:        				string | null;};
 
 type ProfileViewerModalProps = {
   open: boolean;
@@ -271,7 +270,7 @@ export default function ProfileViewerModal({
   const displayedUser = inputUser;
 
   const displayedPseudo = displayedUser?.name ?? pseudo;
-  const displayedAvatarUrl = displayedUser?.avatar?.url ?? avatarUrl;
+  const displayedAvatarUrl = (displayedUser?.image || displayedUser?.avatar?.url) ?? avatarUrl;
   const displayedBadges = displayedUser?.badges ?? badges;
 
   if (!open) {

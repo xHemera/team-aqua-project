@@ -38,6 +38,7 @@ type ProfileClientViewProps = {
   profileName: string;
   profileUserId: string;
   initialAvatar: string;
+  initialBackground?: string;
   isOwnProfile: boolean;
   profileBadges: string[];
   matchHistory: Match_history[];
@@ -97,9 +98,9 @@ const defaultBackground = DEFAULT_SITE_BACKGROUND;
 const normalizeBackgroundValue = (value: string) => normalizeImageValue(value, defaultBackground);
 const normalizeBannerValue = (value: string) => value; // Banner normalization preserved only
 
-export default function ProfileClientView({ profileName, profileUserId, initialAvatar, isOwnProfile, profileBadges, matchHistory }: ProfileClientViewProps) {
+export default function ProfileClientView({ profileName, profileUserId, initialAvatar, initialBackground, isOwnProfile, profileBadges, matchHistory }: ProfileClientViewProps) {
   const router = useRouter();
-  const [profileBackground, setProfileBackground] = useState(defaultBackground);
+  const [profileBackground, setProfileBackground] = useState(initialBackground || defaultBackground);
   const [profileBanner, setProfileBanner] = useState(defaultBanner);
   const [showCustomizationPanel, setShowCustomizationPanel] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
@@ -109,9 +110,10 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
   const [notifSender, setNotifSender] = useState<string | null>(null);
   const bgUploadRef = useRef<HTMLInputElement>(null);
   const avatarUploadRef = useRef<HTMLInputElement>(null);
-  const [draftBackground, setDraftBackground] = useState(defaultBackground);
+  const [draftBackground, setDraftBackground] = useState(initialBackground || defaultBackground);
   const [draftBanner, setDraftBanner] = useState(defaultBanner);
   const [customAvatar, setCustomAvatar] = useState<string | null>(null);
+  const [displayAvatar, setDisplayAvatar] = useState(initialAvatar);
   
   // Default avatar for all users
   const defaultAvatar = DEFAULT_PROFILE_ICON.url;
@@ -138,6 +140,13 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
       setCustomAvatar(savedAvatar);
     }
   }, [isOwnProfile]);
+  
+  // Update displayAvatar when profileName changes (for other profiles)
+  useEffect(() => {
+    if (!isOwnProfile) {
+      setDisplayAvatar(initialAvatar);
+    }
+  }, [initialAvatar, isOwnProfile]);
   useEffect(() => {
     const getUserData = async () => {
       const { data } = await authClient.getSession();
@@ -168,6 +177,19 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
     })
   }, [userPseudo]);
 
+  // Listen for avatar updates for other profiles
+  useEffect(() => {
+    if (isOwnProfile) return;
+    socket.on("avatar_updated", ({ userName, imageUrl }) => {
+      if (userName === profileName) {
+        setDisplayAvatar(imageUrl);
+      }
+    });
+    return () => {
+      socket.off("avatar_updated");
+    };
+  }, [profileName, isOwnProfile]);
+
   useEffect(() => {
     const icon = resolveProfileIcon({ url: DEFAULT_PROFILE_ICON.url });
     applyAccentPalette(icon);
@@ -175,25 +197,18 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
 
   useEffect(() => {
     if (!isOwnProfile) return;
-
     const initOwnProfile = async () => {
-      const savedBackground =
-        localStorage.getItem("profileBackground") ||
-        localStorage.getItem("background") ||
-        localStorage.getItem("wallpaper") ||
-        localStorage.getItem("customBackground");
-
-      // Background personalization for profile page
-      if (savedBackground) {
-        const nextSavedBackground = normalizeBackgroundValue(savedBackground);
-        setProfileBackground(nextSavedBackground);
-        setDraftBackground(nextSavedBackground);
-        applyBackgroundPreferenceToDocument(nextSavedBackground, defaultBackground);
+      // Use initialBackground from server if available
+      if (initialBackground) {
+        const nextBackground = normalizeBackgroundValue(initialBackground);
+        setProfileBackground(nextBackground);
+        setDraftBackground(nextBackground);
+        applyBackgroundPreferenceToDocument(nextBackground, defaultBackground);
       }
     };
 
     initOwnProfile();
-  }, [isOwnProfile]);
+  }, [isOwnProfile, initialBackground]);
 
 
 
@@ -294,12 +309,20 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
   };
 
   const bannerStyle = buildBackgroundStyle(profileBanner, defaultBanner);
+  const profileBackgroundStyle = buildBackgroundStyle(profileBackground, defaultBackground);
   const totalMatches = matchHistory.length;
   const totalWins = matchHistory.filter((match) => match.result.toLowerCase() === "win").length;
   const totalLosses = totalMatches - totalWins;
 
   return (
-    <AppPageShell showSidebar containerClassName="min-h-0 flex-1">
+    <AppPageShell 
+      showSidebar 
+      containerClassName="min-h-0 flex-1"
+      mainStyle={{
+        ...profileBackgroundStyle,
+        backgroundAttachment: "fixed"
+      }}
+    >
       {showNotification && notification && notifSender && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       <div className="mx-auto flex h-full w-full max-w-[88rem] flex-col overflow-y-auto pr-1">
         <header className="mb-5 flex items-center justify-end gap-3">
@@ -346,9 +369,9 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
             <div className="mb-6 shrink-0 flex flex-wrap items-end justify-between gap-5">
               <div className="flex items-end gap-4">
                 <div className="relative">
-                  {customAvatar ? (
+                  {(customAvatar || displayAvatar) ? (
                     <Image
-                      src={customAvatar}
+                      src={customAvatar || displayAvatar}
                       alt={`Avatar de ${profileName}`}
                       width={176}
                       height={176}
@@ -501,8 +524,27 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
                         
                         const data = await response.json();
                         const imageUrl = `/profiles/${data.name}`;
+                        
+                        // Save to database
+                        const profileUpdateResponse = await fetch("/api/profile", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ imageUrl }),
+                        });
+                        
+                        if (!profileUpdateResponse.ok) {
+                          throw new Error("Failed to save profile picture to database");
+                        }
+                        
                         setCustomAvatar(imageUrl);
                         localStorage.setItem("profileCustomAvatar", imageUrl);
+                        setDisplayAvatar(imageUrl);
+                        
+                        // Notify other users about avatar change
+                        socket.emit("avatar_updated", {
+                          userName: profileName,
+                          imageUrl: imageUrl
+                        });
                       } catch (error) {
                         console.error("Error uploading profile picture:", error);
                       }
@@ -537,7 +579,7 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
                 </div>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-200">Site Background</label>
+                <label className="mb-2 block text-sm font-medium text-gray-200">Site Background</label>
                 <input
                   ref={bgUploadRef}
                   type="file"
@@ -545,19 +587,74 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
                   className="hidden"
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
-                    if (file) setDraftBackground(await fileToDataUrl(file));
+                    if (file) {
+                      try {
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        formData.append("type", "background");
+                        
+                        const response = await fetch("/api/upload", {
+                          method: "POST",
+                          body: formData,
+                        });
+                        
+                        if (!response.ok) {
+                          throw new Error("Failed to upload background");
+                        }
+                        
+                        const data = await response.json();
+                        const backgroundUrl = `/backgrounds/${data.name}`;
+                        setDraftBackground(backgroundUrl);
+                      } catch (error) {
+                        console.error("Error uploading background:", error);
+                      }
+                    }
                     e.target.value = "";
                   }}
                 />
-                <Button
-                  type="button"
-                  onClick={() => bgUploadRef.current?.click()}
-                  variant="ghost"
-                  className="h-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-200"
-                >
-                  <i className="fa-solid fa-upload text-xs" />
-                  Upload Background
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={() => bgUploadRef.current?.click()}
+                    variant="ghost"
+                    className="h-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-200"
+                  >
+                    <i className="fa-solid fa-upload text-xs" />
+                    Upload Background
+                  </Button>
+                  {profileBackground !== defaultBackground && (
+                    <Button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const patchBody: ProfilePatchPayload = {
+                            profileBackground: null as any,
+                            profileBanner: draftBanner,
+                          };
+
+                          const res = await fetch("/api/profile", {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(patchBody),
+                          });
+
+                          if (res.ok) {
+                            setProfileBackground(defaultBackground);
+                            setDraftBackground(defaultBackground);
+                            applyBackgroundPreferenceToDocument(defaultBackground, defaultBackground);
+                          }
+                        } catch (error) {
+                          console.error("Error removing background:", error);
+                        }
+                      }}
+                      variant="ghost"
+                      className="h-auto flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-red-400 hover:text-red-300"
+                    >
+                      <i className="fa-solid fa-trash text-xs" />
+                      Remove
+                    </Button>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-1">

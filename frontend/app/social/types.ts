@@ -29,6 +29,7 @@ export type User = {
   badges:       string[];
   blockedUsers: string[];
   avatar:       Avatar | null;
+  image:        string | null;
   online:       boolean;
 };
 

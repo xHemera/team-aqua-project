@@ -88,10 +88,11 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
-    const { avatarId, profileBackground, profileBanner } = body as {
-      avatarId: string;
+    const { avatarId, profileBackground, profileBanner, imageUrl } = body as {
+      avatarId?: string;
       profileBackground?: string | null;
-      profileBanner: string | null;
+      profileBanner?: string | null;
+      imageUrl?: string;
     };
 
     // Validate and find avatar if provided
@@ -116,6 +117,9 @@ export async function PATCH(request: Request) {
     if (avatarId && nextAvatar) {
       updateData.avatar = { connect: { id: nextAvatar.id } };
       updateData.image = nextAvatar.url;
+    }
+    if (imageUrl) {
+      updateData.image = imageUrl;
     }
     if (profileBackground !== undefined) {
       updateData.profileBackground = profileBackground;

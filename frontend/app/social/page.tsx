@@ -859,7 +859,7 @@ export default function SocialPage() {
                     >
                       <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-visible">
                         <Image
-                          src={user.name === userPseudo && customUserAvatar ? customUserAvatar : user.avatar?.url ?? DEFAULT_PROFILE_ICON.url}
+                          src={user.name === userPseudo && customUserAvatar ? customUserAvatar : (user.image || (user.avatar?.url ?? DEFAULT_PROFILE_ICON.url))}
                           alt={user.name}
                           width={32}
                           height={32}
@@ -980,7 +980,7 @@ export default function SocialPage() {
                       src={
                         msg.user_id === currentUser.id
                           ? customUserAvatar || (currentUser.avatar?.url ?? DEFAULT_PROFILE_ICON.url)
-                          : users.find(u => u.name === selectedUser)?.avatar?.url ?? DEFAULT_PROFILE_ICON.url
+                          : (users.find(u => u.name === selectedUser)?.image || (users.find(u => u.name === selectedUser)?.avatar?.url ?? DEFAULT_PROFILE_ICON.url))
                       }
                       alt="Avatar"
                       width={20}

@@ -42,3 +42,8 @@ bun-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# User uploaded files
+/public/profiles/*
+!/public/profiles/.gitkeep
+/public/backgrounds/*
+!/public/backgrounds/.gitkeep

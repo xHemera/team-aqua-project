@@ -1,6 +1,6 @@
 // HARDCODE: fallback visual used when no persisted/user background is available.
 export const DEFAULT_SITE_BACKGROUND =
-  "https://p4.wallpaperbetter.com/wallpaper/162/64/1018/gengar-ghastly-ghosts-haunter-wallpaper-preview.jpg";
+  "#000000";
 
 // HARDCODE: accepted file extensions for direct video backgrounds.
 const DIRECT_VIDEO_EXTENSIONS = [".mp4", ".webm", ".ogg", ".mov", ".m4v"];
