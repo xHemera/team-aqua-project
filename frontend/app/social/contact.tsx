@@ -16,25 +16,6 @@ export async function getUsers()
     });
 }
 
-//get the current user and their relations
-export async function getCurrentUser(current: string)
-{
-    const user = await prisma.user.findFirst({
-        where: { name: current },
-        select: {
-			id: true,
-			name: true,
-			badges: true,
-			blockedUsers: true,
-			avatar: true,
-            online: true,
-		}
-    });
-    if (!user)
-        throw new Error("User not found");
-    return user;
-}
-
 //get a user and their relations by name
 export async function getUser(name: string)
 {
@@ -150,7 +131,7 @@ export async function getAvatar (userName: string)
 }
 
 //adds a message written by the first user
-export async function addMsg(msg: string, sender: string, receiver: string)
+export async function addMsg(msg: string, sender: string, receiver: string, draftIds: string[])
 {
     const user1 = await prisma.user.findFirst({
         where: { name: sender },
@@ -180,7 +161,7 @@ export async function addMsg(msg: string, sender: string, receiver: string)
 	if (!inbox)
 		throw Error("No discussion found or created prior");
 
-	const messages = await prisma.messages.create({
+	const message = await prisma.messages.create({
 		data: {
 			message: msg,
 			user: {
@@ -189,8 +170,22 @@ export async function addMsg(msg: string, sender: string, receiver: string)
 			inbox: {
 				connect: { id: inbox.id }
 			}
-		}
+		},
+        select: {
+            attachments: true,
+            id: true
+        }
 	});
+
+    for (const id of draftIds)
+    {
+        await prisma.attachment.update({
+            where: { id: id },
+            data: {
+                msg_id: message.id
+            }
+        })
+    }
 
     await prisma.inbox_users.updateMany({
         where: {
@@ -202,7 +197,7 @@ export async function addMsg(msg: string, sender: string, receiver: string)
         }
     })
 
-	if (!messages)
+	if (!message)
 		throw Error("Could not create the message");
 }
 
@@ -231,7 +226,7 @@ export async function getMsg(user: string, otherUser: string)
 				}
 			}
 		},
-		select: {messages: true}
+		select: {messages: { include: { attachments: true } } }
 	})
 	if (!msgs) throw new Error("Could not fetch messages");
 	return msgs.messages;
@@ -261,10 +256,8 @@ export async function getUnreadNotif(currentUser: string)
         select: {
             id: true,
             name: true,
-
         }
     });
-    if (!users) return results;
     await Promise.all(
         users.map(async (user) => {
             const iU = await prisma.inbox_users.findFirst({
@@ -585,5 +578,110 @@ export async function unblockUser(currentUser: string, otherUser: string)
                 set: cUser.blockedUsers.filter(id => id !== oUser.id),
             }
         }
-    })
+    });
+}
+
+export async function reported(user: string, reportedUser: string)
+{
+    const cUser = await prisma.user.findFirst({
+        where: { name: user },
+        select: {
+            id: true,
+        }
+    });
+    const rUser = await prisma.user.findFirst({
+        where: { name: reportedUser },
+        select: {
+            id: true,
+        }
+    });
+    if (!cUser || !rUser) throw Error("Users not found");
+    
+    const inbox = await prisma.inbox.findFirst({
+        where: {
+            inboxUser: {
+                some: {user_id: cUser.id }
+            },
+            AND: {
+                inboxUser: {
+                    some: { user_id: rUser.id }
+                }
+            }
+        },
+        select: {
+            id: true,
+        }
+    });
+    if (!inbox) throw Error("Inbox not found");
+
+    await prisma.reported_Conv.create({
+        data: {
+            inboxId: inbox.id,
+            reporter: user,
+            reportedUser: reportedUser,
+            reason: "placeholder",
+        }
+    });
+}
+
+export async function getReport(currentUser: string, otherUser: string)
+{
+    const cUser = await prisma.user.findFirst({
+        where: {name: currentUser},
+        select: {id: true}
+    });
+    const oUser = await prisma.user.findFirst({
+        where: {name: otherUser},
+        select: {id: true}
+    });
+    if (!cUser || !oUser) throw Error("Users not found");
+
+    const inbox = await prisma.inbox.findFirst({
+        where: {
+            inboxUser: {
+                some: {user_id: cUser.id}
+            },
+            AND: {
+                inboxUser: {
+                    some: {user_id: oUser.id}
+                }
+            }
+        },
+        select: {report_id: true}
+    });
+    if (!inbox || !inbox.report_id) return false;
+    return true;
+}
+
+export async function addAttachments(file: File, url: string)
+{
+    const toSizeLabel = (bytes: number) => {
+        if (bytes < 1024) return `${bytes} o`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+    };
+
+    const a = await prisma.attachment.create({
+        data: {
+            name: `${Date.now()}-${file.name}`,
+            sizeLabel: toSizeLabel(file.size),
+            type: file.type,
+            previewUrl: `/images/${url}`
+        }
+    });
+    if (!a) throw Error("Error creating attachment");
+    return a.id;
+}
+
+export async function removeAttachment(attachmentId: string)
+{
+    try {
+        await prisma.attachment.delete({
+            where: { id: attachmentId }
+        })
+    }
+    catch(error)
+    {
+        throw Error(attachmentId);
+    }
 }

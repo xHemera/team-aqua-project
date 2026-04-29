@@ -1,17 +1,20 @@
 import Card from "@/components/atoms/Card";
 import Input from "@/components/atoms/Input";
 import UserListItem from "@/components/molecules/admin/UserListItem";
-import type { AdminUser } from "@/app/admin/types";
+import type { User } from "@/app/admin/types";
+import { useRouter } from "next/navigation";
+import { socket } from "../../../socket"
+import { useEffect, useState } from "react";
 
 type UsersManagementPanelProps = {
-  users: AdminUser[];
-  filteredUsers: AdminUser[];
+  users: User[];
+  filteredUsers: User[];
   loadingUsers: boolean;
   usersError: string | null;
   userQuery: string;
   onUserQueryChange: (value: string) => void;
-  onViewProfile: (pseudo: string) => void;
   pendingReportsCount: number;
+  currentRole: string;
 };
 
 export default function UsersManagementPanel({
@@ -21,9 +24,22 @@ export default function UsersManagementPanel({
   usersError,
   userQuery,
   onUserQueryChange,
-  onViewProfile,
   pendingReportsCount,
+  currentRole,
 }: UsersManagementPanelProps) {
+  const router = useRouter();
+  const [nMod, setnMod] = useState(0);
+
+  useEffect(() => {
+    setnMod(users.filter((user) => user.badges.includes("ADMIN")).length
+    + users.filter((user) => user.badges.includes("MODERATOR")).length);
+  }, [users]);
+  
+  function onViewProfile(user: string)
+  {
+    router.push(`/profile/${user}`);
+  }
+
   return (
     <Card className="flex min-h-0 w-full flex-col p-4 lg:w-[56%] lg:p-5">
       <div className="flex items-center justify-between gap-3 pb-4">
@@ -44,9 +60,9 @@ export default function UsersManagementPanel({
         </Card>
 
         <Card className="rounded-xl bg-[#1c1827] p-3">
-          <p className="text-xs uppercase tracking-[0.12em] text-gray-400">Admins</p>
+          <p className="text-xs uppercase tracking-[0.12em] text-gray-400">Moderators</p>
           <p className="mt-2 text-2xl font-extrabold text-white">
-            {users.filter((user) => user.badges.includes("ADMIN")).length}
+            {nMod}
           </p>
         </Card>
 
@@ -83,7 +99,7 @@ export default function UsersManagementPanel({
         {!loadingUsers && !usersError && filteredUsers.length > 0 && (
           <div className="space-y-2">
             {filteredUsers.map((user) => (
-              <UserListItem key={user.id} user={user} onViewProfile={onViewProfile} />
+              <UserListItem key={user.id} user={user} onViewProfile={onViewProfile} currentRole={currentRole}/>
             ))}
           </div>
         )}

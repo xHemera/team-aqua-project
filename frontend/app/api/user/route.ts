@@ -9,12 +9,21 @@ if (!session || !session.user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
 }
 
-    const user = await prisma.user.update({
+    const user = await prisma.user.findFirst({
+        where: {
+            id: session.user.id
+        },
+        select: { banned: true }
+    })
+    if (!user) return Response.json({error: "User not found"}, {status: 404});
+    if (user.banned === true) return Response.json({error: "Forbidden"}, {status: 403});
+
+    const userUpdate = await prisma.user.update({
         where: { id: session.user.id },
         data: {
             online: true
         }
     });
-    if (user) return Response.json(null, {status: 201});
+    if (userUpdate) return Response.json(null, {status: 201});
     return Response.json({error: "Unprocessable entity"}, {status: 422});
 }

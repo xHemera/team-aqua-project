@@ -1,14 +1,22 @@
 "use client";
 
 import Image from "next/image";
+
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
-import { authClient } from "@/lib/auth-client";
 import FeatureActionTile from "@/components/atoms/home/FeatureActionTile";
 import PvpMatchmakingModal from "@/components/organisms/home/PvpMatchmakingModal";
 import ExpeditionModal from "@/components/organisms/home/ExpeditionModal";
+import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
+import AppPageShell from "@/components/AppPageShell";
+import MatchmakingModal from "@/components/organisms/home/MatchmakingModal";
+import NotificationToast from "@/components/organisms/home/NotificationToast";
+import PlayCta from "@/components/organisms/home/PlayCta";
+import { DEFAULT_PROFILE_ICON } from "@/lib/profile-icons";
 import Button from "@/components/atoms/Button";
 import { CHARACTERS, PLAYER_RESOURCES } from "@/app/characters/characters-data";
 import Sidebar from "@/components/Sidebar";
+import {socket} from "../../socket"
 
 type ActiveExpedition = {
   characterId: string;
@@ -65,6 +73,7 @@ const formatTimer = (totalSeconds: number) => {
 
 // Page Home: hub de progression front-only (Mine, PvP, Expedition, Team Builder).
 export default function Home() {
+
   const roster = useMemo(
     () => CHARACTERS.slice(0, 6).map((character) => ({
       id: character.id,
@@ -97,6 +106,12 @@ export default function Home() {
   const pendingDragRef = useRef<PendingTeamDragState | null>(null);
   const activeDragRef = useRef<TeamDragState | null>(null);
   const suppressClickForIdRef = useRef<string | null>(null);
+  const router = useRouter();
+  const [showMatchmaking, setShowMatchmaking] = useState(false);
+  const [showNotification, setShowNotification] = useState(true);
+  const [notification, setNotification] = useState<string | null>(null);
+  const [notifSender, setNotifSender] = useState<string | null>(null);
+  const [userPseudo, setUserPseudo] = useState<string | null>(null);
 
   useEffect(() => {
     const getUserData = async () => {
@@ -109,18 +124,34 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+      if (!userPseudo || socket.connected) return;
+  
+      socket.connect();
+      socket.emit("login", userPseudo);
+      return () => {
+        socket.off("online_users");
+      };
+    }, [userPseudo]);
+    
+  //render messages sent by other users
+  useEffect(() => {
+    if (!userPseudo) return;
     const storedRuby = localStorage.getItem(STORAGE_KEYS.ruby);
     const storedGold = localStorage.getItem(STORAGE_KEYS.gold);
     const storedTeam = localStorage.getItem(STORAGE_KEYS.team);
 
+    socket.on("received", async ({sender, receiver, msg}) => {
+      setNotification(msg);
+      setNotifSender(sender);
+      setShowNotification(true);
+    });
+
     if (storedRuby && !Number.isNaN(Number(storedRuby))) {
       setRuby(Number(storedRuby));
     }
-
     if (storedGold && !Number.isNaN(Number(storedGold))) {
       setGold(Number(storedGold));
     }
-
     if (storedTeam) {
       try {
         const parsed = JSON.parse(storedTeam) as Array<string | null>;
@@ -131,7 +162,7 @@ export default function Home() {
         // Ignore malformed storage value.
       }
     }
-  }, []);
+  }, [userPseudo]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.ruby, String(ruby));

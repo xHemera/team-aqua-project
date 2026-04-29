@@ -19,8 +19,8 @@ type Match_history = {
   id:           string;
   result:       string;
   createdAt:    Date;
-  playedDeck:   string;
-  opponentDeck: string;
+  playerTeam:   string[];
+  opponentTeam: string[];
   opponent:     string;
   user_id:      string;
 }
@@ -62,49 +62,11 @@ type ProfilePatchPayload = {
 const defaultBanner = "https://www.katebackdrop.fr/cdn/shop/files/B4035519.jpg?v=1710741683&width=600";
 
 
-// HARDCODE: temporary mocked match history while battle history API is pending.
-// const matchHistory = [
-//   {
-//     result: "Victoire",
-//     resultStyle: "bg-green-600",
-//     borderStyle: "border-green-500",
-//     date: "26 janv. 2026",
-//     playedDeck: "Flygon",
-//     opponentDeck: "Ceruledge",
-//     opponent: "SunMiaou",
-//   },
-//   {
-//     result: "Défaite",
-//     resultStyle: "bg-red-600",
-//     borderStyle: "border-red-500",
-//     date: "18 janv. 2026",
-//     playedDeck: "Zacian",
-//     opponentDeck: "Toxtricity",
-//     opponent: "Xoco",
-//   },
-//   {
-//     result: "Victoire",
-//     resultStyle: "bg-green-600",
-//     borderStyle: "border-green-500",
-//     date: "09 déc. 2025",
-//     playedDeck: "Ceruledge",
-//     opponentDeck: "Flygon",
-//     opponent: "Sauralt",
-//   },
-//   {
-//     result: "Victoire",
-//     resultStyle: "bg-green-600",
-//     borderStyle: "border-green-500",
-//     date: "22 nov. 2025",
-//     playedDeck: "Toxtricity",
-//     opponentDeck: "Zacian",
-//     opponent: "GeekMaster",
-//   },
-// ];
-
 const formatTime = (date: Date) =>
   date.toLocaleTimeString("fr-FR", {
     timeZone: "Europe/Paris",
+    minute: "2-digit",
+    hour: "2-digit",
     day: "2-digit",
     month: "2-digit",
     year: "numeric"
@@ -120,15 +82,13 @@ const RESULT_STYLES: Record<string, string> = {
   lose: "bg-red-600"
 };
 
-const greenRes = "bg-green-600";
-const redRes = "bg-red-600";
-
 // HARDCODE: static deck icon map used for history presentation.
 const deckpublic: Record<string, string> = {
-  Flygon: "/decks/flygon-icon.png",
-  Ceruledge: "/decks/ceruledge-icon.png",
-  Toxtricity: "/decks/toxtricity-icon.png",
-  Zacian: "/decks/zacian-icon.png",
+  Knight: "/heroes/Avatar_Sorel.webp",
+  Assassin: "/heroes/Avatar_Wanda.webp",
+  Healer: "/heroes/Avatar_Tulu.webp",
+  Archer: "/heroes/Avatar_Uvhash.webp",
+  Mage: "/heroes/Avatar_Thais.webp"
 };
 
 // HARDCODE: fallback app background value from frontend configuration.
@@ -181,7 +141,7 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
   useEffect(() => {
     const getUserData = async () => {
       const { data } = await authClient.getSession();
-      if (data?.user?.name) {
+      if (data && data.user.name) {
         setUserPseudo(data.user.name);
       }
     };
@@ -204,6 +164,7 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
     socket.on("received", async ({sender, receiver, msg}) => {
       setNotifSender(sender);
       setNotification(msg);
+      setShowNotification(true);
     })
   }, [userPseudo]);
 
@@ -321,6 +282,9 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
           : "Impossible de charger l'utilisateur";
         throw new Error(errorMessage);
       }
+    socket.emit("has_delete", {
+      sender: userPseudo
+    });
     socket.disconnect();
     router.push("/");
   }
@@ -406,7 +370,7 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
                 </div>
               </div>
               <div className="flex items-center gap-2 pb-3">
-                {profileBadges.map((badge, index) => (
+                {profileBadges.map((badge) => (
                   <span key={badge} className="rounded-md border border-yellow-500/50 bg-yellow-600/90 px-3 py-1 text-xs font-bold">{badge}</span>
                 )
                 )}
@@ -442,36 +406,40 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
 
                         <div className="grid gap-3 sm:grid-cols-2 md:col-span-6">
                           <div className="rounded-lg bg-black/20 px-3 py-2.5">
-                            <p className="mb-1 text-xs uppercase tracking-wide text-gray-400">Deck joué</p>
+                            <p className="mb-1 text-xs uppercase tracking-wide text-gray-400">Team played</p>
                             <div className="inline-flex items-center gap-2.5">
-                              <Image
-                                src={deckpublic[match.playedDeck] || deckpublic.Flygon}
-                                alt={match.playedDeck}
-                                width={24}
-                                height={24}
-                                className="h-6 w-6"
-                              />
-                              <span className="text-base font-semibold text-white">{match.playedDeck}</span>
+                              {match.playerTeam.map((member) => 
+                                <Image
+                                  key={member}
+                                  src={deckpublic[member] || deckpublic.Knight}
+                                  alt={member}
+                                  width={24}
+                                  height={24}
+                                  className="h-6 w-6"
+                                />
+                              )}
                             </div>
                           </div>
 
                           <div className="rounded-lg bg-black/20 px-3 py-2.5">
-                            <p className="mb-1 text-xs uppercase tracking-wide text-gray-400">Deck affronté</p>
+                            <p className="mb-1 text-xs uppercase tracking-wide text-gray-400">Team fought</p>
                             <div className="inline-flex items-center gap-2.5">
-                              <Image
-                                src={deckpublic[match.opponentDeck] || deckpublic.Flygon}
-                                alt={match.opponentDeck}
-                                width={24}
-                                height={24}
-                                className="h-6 w-6"
-                              />
-                              <span className="text-base font-semibold text-white">{match.opponentDeck}</span>
+                              {match.opponentTeam.map((member) => 
+                                <Image
+                                  key={member}
+                                  src={deckpublic[member] || deckpublic.Knight}
+                                  alt={member}
+                                  width={24}
+                                  height={24}
+                                  className="h-6 w-6"
+                                />
+                              )}
                             </div>
                           </div>
                         </div>
 
                         <div className="md:col-span-3 md:text-right">
-                          <p className="text-xs uppercase tracking-wide text-gray-400">Joueur affronté</p>
+                          <p className="text-xs uppercase tracking-wide text-gray-400">Opponent</p>
                           <p className="text-base font-medium text-gray-200">{match.opponent}</p>
                         </div>
                       </div>

@@ -15,7 +15,7 @@ model Spell {
   effect      Int
   mpCost      Int
   level       Int
-  character   Character @relation(fields: [characterId], references: [id])
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
 }
 
 model Character {
@@ -32,7 +32,7 @@ model Character {
   dBoost      Int
   nturnEffect Int
   spells      Spell[]
-  gameState   GameState @relation(fields: [gameStateId], references: [id])
+  gameState   GameState @relation(fields: [gameStateId], references: [id], onDelete: Cascade)
 }
 
 model GameState {
@@ -41,7 +41,7 @@ model GameState {
   rubis       Int
   gold        Int
   characters  Character[]
-  user        User      @relation(fields: [user_id], references: [id])
+  user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model Friends {
@@ -49,28 +49,51 @@ model Friends {
   userId        String
   request_sent  Boolean
   created_at    DateTime    @default(now())
-  user          User        @relation(fields: [userId], references: [id])
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@id([userId, friendId])
 }
 
+model Reported_Conv {
+  id                String    @id @default(cuid())
+  inboxId           String    @unique
+  reportedUser      String
+  reporter          String
+  reason            String
+  createdAt         DateTime	@default(now())
+  inbox             Inbox     @relation(fields: [inboxId], references: [id])
+}
+
+model Attachment {
+  id          String    @id @default(cuid())
+  msg_id      String?
+  name        String
+  sizeLabel   String
+  type        String
+  previewUrl  String
+  message     Messages? @relation(fields: [msg_id], references: [id], onDelete: Cascade)
+}
+
 model Messages {
-  id        String    @id @default(cuid())
-  user_id   String
-  inbox_id  String
-  message   String?
-  createdAt DateTime	@default(now())
-  user      User?			@relation(fields: [user_id], references: [id])
-  inbox     Inbox?		@relation(fields: [inbox_id], references: [id])
+  id            String    @id @default(cuid())
+  user_id       String
+  inbox_id      String
+  message       String?
+  attachments   Attachment[]
+  createdAt     DateTime	@default(now())
+  user          User?			@relation(fields: [user_id], references: [id], onDelete: Cascade)
+  inbox         Inbox?		@relation(fields: [inbox_id], references: [id], onDelete: Cascade)
 }
 
 model Inbox {
 	id       			    String    @id @default(cuid())
 	last_message      String?
 	last_sent_user_id String?
+  report_id         String?
 	createdAt         DateTime  @default(now())
 	inboxUser					Inbox_users[]
 	messages          Messages[]
-	user              User?     @relation(fields: [last_sent_user_id], references: [id])
+	user              User?     @relation(fields: [last_sent_user_id], references: [id], onDelete: Cascade)
+  reported          Reported_Conv?
 }
 
 model Inbox_users {
@@ -78,8 +101,8 @@ model Inbox_users {
   inbox_id	      String
   user_id         String
   unread_messages Int?
-  user		        User?			@relation(fields: [user_id], references: [id])
-  inbox		        Inbox?		@relation(fields: [inbox_id], references: [id])
+  user		        User?			@relation(fields: [user_id], references: [id], onDelete: Cascade)
+  inbox		        Inbox?		@relation(fields: [inbox_id], references: [id], onDelete: Cascade)
 }
 
 model Avatar {
@@ -96,11 +119,11 @@ model Match_history {
   id            String    @id @default(cuid())
   result        String
   createdAt     DateTime  @default(now())
-  playedDeck    String
-  opponentDeck  String
+  playerTeam    String[]
+  opponentTeam  String[]
   opponent      String
   user_id       String
-  user          User?     @relation(fields: [user_id], references: [id])
+  user          User?     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model User {
@@ -111,14 +134,15 @@ model User {
   image             String?
   badges            String[]  @default([])
   blockedUsers      String[]  @default([])
+	banned						Boolean		@default(false)
   profileBackground String?
   profileBanner     String?
   online            Boolean   @default(false)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   avatarId          String?
-  avatar            Avatar?   @relation(fields: [avatarId], references: [id])
   banner            ProfileBanner?
+  avatar            Avatar?   @relation(fields: [avatarId], references: [id], onDelete: Cascade)
   sessions          Session[]
   accounts          Account[]
   friends           Friends[]

@@ -26,7 +26,7 @@ export async function GET() {
       badges: user.badges ?? [],
     }));
 
-    return Response.json(result);
+    return Response.json(result, {status: 200});
   } catch (error) {
     console.error("Error fetching users:", error);
     return Response.json(
@@ -42,78 +42,84 @@ export async function GET() {
 
 export async function POST()
 {
-  const admin1 = await prisma.user.findFirst({
-    where: {
-      name: "Xoco"
-    },
-    select: {
-      id: true
-    }
-  })
-  const admin2 = await prisma.user.findFirst({
-    where: {
-      name: "Hemera"
-    },
-    select: {
-      id: true
-    }
-  });
-
-  if (!admin1 || !admin2) throw Error ("Admins not created");
-
-  await prisma.user.updateMany({
-    where: { name: { in: ["Xoco", "Hemera"] } },
-    data: {
-      badges: {
-        set: [...new Set(["ADMIN"])]
+  try {
+    const admin1 = await prisma.user.findFirst({
+      where: {
+        name: "Xoco"
+      },
+      select: {
+        id: true
       }
-    }
-  });
+    })
+    const admin2 = await prisma.user.findFirst({
+      where: {
+        name: "Hemera"
+      },
+      select: {
+        id: true
+      }
+    });
 
-  await prisma.friends.createMany({
-    data: [
-      {
-        userId: admin1.id,
-        friendId: admin2.id,
-        request_sent: false,
-      },
-      {
-        userId: admin2.id,
-        friendId: admin1.id,
-        request_sent: false,
+    if (!admin1 || !admin2) return Response.json({error: "admins not created"}, {status: 500});
+
+    await prisma.user.updateMany({
+      where: { name: { in: ["Xoco", "Hemera"] } },
+      data: {
+        badges: {
+          set: [...new Set(["ADMIN"])]
+        }
       }
-    ]
-  });
-  await prisma.match_history.createMany({
-    data: [
-      {
-        opponent: "Hemera",
-        opponentDeck: "Lanssorien",
-        playedDeck: "Mega-Lucario",
-        result: "win",
-        user_id: admin1.id
-      },
-      {
-        opponent: "Xoco",
-        playedDeck: "Lanssorien",
-        opponentDeck: "Mega-Lucario",
-        result: "lose",
-        user_id: admin2.id
-      },
-      {
-        opponent: "Hemera",
-        opponentDeck: "Lanssorien",
-        playedDeck: "Mega-Lucario",
-        result: "lose",
-        user_id: admin1.id
-      },
-      {
-        opponent: "Xoco",
-        playedDeck: "Lanssorien",
-        opponentDeck: "Mega-Lucario",
-        result: "win",
-        user_id: admin2.id
-      }
-    ]
-  });
+    });
+
+    await prisma.friends.createMany({
+      data: [
+        {
+          userId: admin1.id,
+          friendId: admin2.id,
+          request_sent: false,
+        },
+        {
+          userId: admin2.id,
+          friendId: admin1.id,
+          request_sent: false,
+        }
+      ]
+    });
+    await prisma.match_history.createMany({
+      data: [
+        {
+          opponent: "Hemera",
+          opponentTeam: ["Knight", "Assassin", "Healer"],
+          playerTeam: ["Knight", "Assassin", "Healer"],
+          result: "win",
+          user_id: admin1.id
+        },
+        {
+          opponent: "Xoco",
+          playerTeam: ["Knight", "Assassin", "Healer"],
+          opponentTeam: ["Knight", "Assassin", "Healer"],
+          result: "lose",
+          user_id: admin2.id
+        },
+        {
+          opponent: "Hemera",
+          playerTeam: ["Knight", "Assassin", "Healer"],
+          opponentTeam: ["Knight", "Assassin", "Healer"],
+          result: "lose",
+          user_id: admin1.id
+        },
+        {
+          opponent: "Xoco",
+          playerTeam: ["Knight", "Assassin", "Healer"],
+          opponentTeam: ["Knight", "Assassin", "Healer"],
+          result: "win",
+          user_id: admin2.id
+        }
+      ]
+    });
+  }
+  catch (error)
+  {
+    return Response.json({error: "admins not created"}, {status: 500});
+  }
 }

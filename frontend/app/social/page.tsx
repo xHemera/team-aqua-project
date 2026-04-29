@@ -1,63 +1,18 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { socket } from "../../socket"
 import { authClient } from "@/lib/auth-client";
 import AppPageShell from "@/components/AppPageShell";
-import { DEFAULT_PROFILE_ICON, PROFILE_ICONS } from "@/lib/profile-icons";
+import { DEFAULT_PROFILE_ICON } from "@/lib/profile-icons";
 import { contact }  from "./index"
 import NotificationToast from "@/components/organisms/home/NotificationToast";
 import ProfileViewerModal from "@/components/organisms/social/ProfileViewer";
-import Validate from "@/components/organisms/Validate";
+import {type} from "./index"
 
-type Messages = {
-  id:         string;
-  user_id:    string;
-  inbox_id:   string;
-  message:    string | null;
-  createdAt:  Date;
-  images?:    Array<{ id: string; name: string; data: string }>;
-}
 
-type Inbox_users = {
-	id:								string;
-	inbox_id:					string;
-	user_id:					string;
-	unread_messages:	number | null;
-};
-
-type Inbox = {
-  id: 								string;
-  inboxUser:  				Inbox_users[];
-};
-
-type Avatar = {
-  url:					string;
-};
-
-type User = {
-  id:           string;
-  name:         string;
-  badges:       string[];
-  blockedUsers: string[];
-  avatar:       Avatar | null;
-  online:       boolean;
-};
-
-type Attachment = {
-  id: 				string;
-  name: 			string;
-  sizeLabel:	string;
-  type: 			string;
-  previewUrl: string;
-};
-
-type InviteNotification = {
-  type: "success" | "error";
-  message: string;
-};
 
 const formatTime = (date: Date) =>
   date.toLocaleTimeString("fr-FR", {
@@ -71,15 +26,6 @@ const toSizeLabel = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
 };
 
-//creation d'un fichier a partager
-const buildAttachmentFromFile = (file: File): Attachment => ({
-  id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
-  name: file.name,
-  sizeLabel: toSizeLabel(file.size),
-  type: file.type,
-  previewUrl: URL.createObjectURL(file),
-});
-
 export default function SocialPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -87,22 +33,22 @@ export default function SocialPage() {
 
   const [selectedUser, setSelectedUser] = useState("");
   const [message, setMessage] = useState("");
-  const [draftAttachments, setDraftAttachments] = useState<Attachment[]>([]);
-  const [inviteNotification, setInviteNotification] = useState<InviteNotification | null>(null);
+  const [draftAttachments, setDraftAttachments] = useState<type.Attachment[]>([]);
+  const [inviteNotification, setInviteNotification] = useState<type.InviteNotification | null>(null);
   const [isInviting, setIsInviting] = useState(false);
   const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
   const [inviteUsername, setInviteUsername] = useState("");
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
-  const [currentMessages, setCurrentMessages] = useState<Messages[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [inboxes, setInboxes] = useState<Inbox[]>([]);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentMessages, setCurrentMessages] = useState<type.Messages[]>([]);
+  const [users, setUsers] = useState<type.User[]>([]);
+  const [inboxes, setInboxes] = useState<type.Inbox[]>([]);
+  const [currentUser, setCurrentUser] = useState<type.User | null>(null);
 	const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
   const [showNotification, setShowNotification] = useState(true);
   const [notification, setNotification] = useState<string | null>(null);
   const [notifSender, setNotifSender] = useState<string | null>(null);
   const [showProfileViewer, setShowProfileViewer] = useState(false);
-  const [profileViewerUser, setProfileViewerUser] = useState<User | null>(null);
+  const [profileViewerUser, setProfileViewerUser] = useState<type.User | null>(null);
   const [request, setRequest] = useState(false);
   const [friendRequestSender, setFriendRequestSender] = useState<string | null>(null);
   const [waiting, setWaiting] = useState(false);
@@ -118,6 +64,7 @@ export default function SocialPage() {
   const [unread, setUnread] = useState(false);
   const [messageReadStatus, setMessageReadStatus] = useState<Record<string, boolean>>({});
   const [customUserAvatar, setCustomUserAvatar] = useState<string | null>(null);
+  const [reported, setReported] = useState(false);
 
   const MAX_MESSAGE_LENGTH = 500;
   const MAX_DISPLAY_LENGTH = 200;
@@ -170,6 +117,8 @@ export default function SocialPage() {
       const { data } = await authClient.getSession();
       if (data && data.user.name)
         setUserPseudo(data.user.name);
+      else
+        router.push("/not-connected");
     };
     getUserData();
   }, []);
@@ -191,23 +140,21 @@ export default function SocialPage() {
   useEffect(() => {
     async function fetchUsers() {
     if (!userPseudo) return;
-      const [u, cU, i] = await Promise.all([
+      const [u, i] = await Promise.all([
       contact.getUsers(),
-      contact.getCurrentUser(userPseudo),
       contact.getInboxes(userPseudo),
     ]);
+    const cU = u.find(user => user.name === userPseudo);
+    if (!cU) return ;
     setCurrentUser(cU);
     setUsers(u);
     setInboxes(i);
     }
     fetchUsers();
-  }, [userPseudo]);
 
-  //reconnect socket in case of a page refresh
-  useEffect(() => {
-		if (!userPseudo || socket.connected) return;
-
-		socket.connect();
+    //connect the socket
+    if (socket.connected) return;
+    socket.connect();
 		socket.emit("login", userPseudo);
 
 		socket.on("online_users", (users) => {
@@ -217,7 +164,7 @@ export default function SocialPage() {
 		return () => {
 			socket.off("online_users");
 		};
-	}, [userPseudo]);
+  }, [userPseudo]);
 
   //render messages sent by other users
   useEffect(() => {
@@ -225,13 +172,11 @@ export default function SocialPage() {
     const handler = async ({ sender,
       receiver,
       msg,
-      images,
-      messageId }: {
+      }: {
       sender: string,
       receiver: string,
       msg: string,
-      images: string,
-      messageId: string }) => {
+      }) => {
 
       if (selectedUser && selectedUser === sender)
       {
@@ -243,14 +188,6 @@ export default function SocialPage() {
           user: userPseudo,
           oUser: selectedUser,
         });
-        
-        //Store images for this message ID
-        // if (images && images.length > 0 && messageId) {
-        //   setMessageImages((prev) => ({
-        //     ...prev,
-        //     [messageId]: images,
-        //   }));
-        // }
       }
       else //set variables to send a notification
       {
@@ -264,7 +201,7 @@ export default function SocialPage() {
     return () => {
       socket.off("received", handler);
     }
-  });
+  }, [selectedUser, userPseudo, notification, notifSender]);
 
   useEffect(() => {
     if (!userPseudo) return;
@@ -343,6 +280,7 @@ export default function SocialPage() {
         setHasBlocked(false);
     });
 
+    //prompt the challenge request
     socket.on("challenge", async({sender, receiver}) => {
       if (receiver == userPseudo)
       {
@@ -353,6 +291,7 @@ export default function SocialPage() {
         setWaiting(true);
     })
 
+    //send to the game if duel is accepted
     socket.on("accept", async ({user, oUser}) => {
       if (oUser == userPseudo)
       {
@@ -361,11 +300,13 @@ export default function SocialPage() {
       }
     })
 
+    //stops the waiting status if duel is refused
     socket.on("refuse", async ({user, oUser}) => {
       if (oUser == userPseudo)
         setWaiting(false);
     })
 
+    //sets unread to read if message is read
     socket.on("read", async ({user, oUser}) => {
       if (oUser == userPseudo) {
         setUnread(false);
@@ -380,11 +321,25 @@ export default function SocialPage() {
         });
       }
     })
-  }, [userPseudo, selectedUser, currentMessages, currentUser]);
+    //reloads inboxes and exits the conversation
+    socket.on("deletion", async (sender) => {
+      const i = await contact.getInboxes(userPseudo);
+      setInboxes(i);
+      setSelectedUser("");
+    })
+  }, [userPseudo, selectedUser]);
 
-	//fetch the conversation
-	useEffect(() => {
-		async function fetchmessages()
+  //scroll the conversation to last message
+  useEffect(() => {
+  messageListRef.current?.scrollTo({
+			top: messageListRef.current.scrollHeight,
+			behavior: "smooth",
+		});
+	}, [currentMessages.length])
+
+  //sets waiting status
+  useEffect(() => {
+    async function fetchmessages()
 		{
 			if (!currentUser || !selectedUser) return;
 			const newMessages = await contact.getMsg(currentUser.name, selectedUser);
@@ -406,26 +361,10 @@ export default function SocialPage() {
       saveReadStatusToStorage(newStatus);
 		}
 		fetchmessages();
-    socket.emit("has_read", {
-      user: userPseudo,
-      oUser: selectedUser,
-    });
-		messageListRef.current?.scrollTo({
-			top: messageListRef.current.scrollHeight,
-			behavior: "smooth",
-		});
-	}, [selectedUser]);
-
-  //scroll the conversation to last message
-  useEffect(() => {
-  messageListRef.current?.scrollTo({
-			top: messageListRef.current.scrollHeight,
-			behavior: "smooth",
-		});
-	}, [selectedUser, currentMessages.length])
-
-  //sets waiting status
-  useEffect(() => {
+      socket.emit("has_read", {
+        user: userPseudo,
+        oUser: selectedUser,
+      });
     async function isWaiting()
     {
       if (!currentUser || !selectedUser) return;
@@ -441,10 +380,7 @@ export default function SocialPage() {
       return;
     }
     isWaiting();
-  }, [currentUser, selectedUser])
 
-  //sets friend status
-  useEffect(() => {
     async function isFriend()
     {
       if (!currentUser || !selectedUser) return;
@@ -458,10 +394,7 @@ export default function SocialPage() {
       return;
     }
     isFriend();
-  }, [currentUser, selectedUser])
 
-  //sets request status
-  useEffect(() => {
     async function isRequesting()
     {
       if (!currentUser || !selectedUser) return;
@@ -474,6 +407,7 @@ export default function SocialPage() {
       if (friend.request_sent == true) 
       {
         setRequest(true);
+        setFriendRequestSender(selectedUser);
       } else {
         setRequest(false);
         setFriendRequestSender(null);
@@ -481,10 +415,7 @@ export default function SocialPage() {
       return;
     }
     isRequesting();
-  }, [currentUser, selectedUser])
 
-  //sets blocked status
-  useEffect(() => {
     async function isBlockedByMe()
     {
       if (!currentUser || !selectedUser) return;
@@ -498,10 +429,7 @@ export default function SocialPage() {
       return;
     }
     isBlockedByMe();
-  }, [currentUser, selectedUser])
 
-  //sets blocked status from user
-  useEffect(() => {
     async function amIBlocked()
     {
       if (!currentUser || !selectedUser) return;
@@ -515,6 +443,14 @@ export default function SocialPage() {
       return;
     }
     amIBlocked();
+
+    async function isItReported()
+    {
+      if (!currentUser || !selectedUser) return;
+      const r = await contact.getReport(currentUser.name, selectedUser);
+      setReported(r);
+    }
+    isItReported();
   }, [currentUser, selectedUser])
 
 	useEffect(() => {
@@ -672,20 +608,49 @@ export default function SocialPage() {
   }
 
   const handlePickAttachments = () => {
-    fileInputRef.current?.click();
+    if (fileInputRef.current)
+      fileInputRef.current.click();
   };
 
-  const handleFilesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFilesChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    event.preventDefault();
     const files = Array.from(event.target.files ?? []);
     if (files.length === 0) return;
 
-    const nextAttachments = files.map(buildAttachmentFromFile);
-    setDraftAttachments((prevAttachments) => [...prevAttachments, ...nextAttachments]);
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append("file", file);
+    });
+
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok)
+      throw Error("Images could not be uploaded")
+    const data = await response.json();
+    const fileName = data.name;
+
+    for (const file of files)
+    {
+      const id = await contact.addAttachments(file, fileName);
+      const buildAttachmentFromFile = (file: File): type.Attachment => ({
+        id: id,
+        name: `${Date.now()}-${file.name}`,
+        sizeLabel: toSizeLabel(file.size),
+        type: file.type,
+        previewUrl: URL.createObjectURL(file),
+      });
+      const nextAttachments = files.map(buildAttachmentFromFile);
+      setDraftAttachments((prevAttachments) => [...prevAttachments, ...nextAttachments]);
+    }
 
     event.target.value = "";
   };
 
-  const removeDraftAttachment = (attachmentId: string) => {
+  const removeDraftAttachment = async (attachmentId: string) => {
+    await contact.removeAttachment(attachmentId);
     setDraftAttachments((prevAttachments) => {
       const target = prevAttachments.find((item) => item.id === attachmentId);
       if (target) {
@@ -700,8 +665,9 @@ export default function SocialPage() {
     const cleanMessage = message.trim();
     if (!cleanMessage && draftAttachments.length === 0) return;
     if (isBlocked || hasBlocked) return;
+    const draftIds = draftAttachments.map(draft => draft.id);
 
-    contact.addMsg(cleanMessage, currentUser.name, selectedUser);
+    contact.addMsg(cleanMessage, currentUser.name, selectedUser, draftIds);
 
     //fetch messages between users
 		const newMessages = await contact.getMsg(currentUser.name, selectedUser);
@@ -721,41 +687,6 @@ export default function SocialPage() {
       });
     }
 
-    // Prepare images from attachments
-    const images = await Promise.all(
-      draftAttachments
-        .filter(att => att.type.startsWith("image/"))
-        .map((attachment) => 
-          new Promise<{ id: string; name: string; data: string }>((resolve) => {
-            fetch(attachment.previewUrl)
-              .then(res => res.blob())
-              .then(blob => {
-                const reader = new FileReader();
-                reader.onload = () => {
-                  resolve({
-                    id: attachment.id,
-                    name: attachment.name,
-                    data: reader.result as string,
-                  });
-                };
-                reader.readAsDataURL(blob);
-              })
-              .catch(() => resolve({ id: attachment.id, name: attachment.name, data: "" }));
-          })
-        )
-    );
-
-    // Get the last message ID
-    const lastMessageId = newMessages.length > 0 ? newMessages[newMessages.length - 1].id : null;
-
-    // Store images locally for the sent message
-    if (images.length > 0 && lastMessageId) {
-      setMessageImages((prev) => ({
-        ...prev,
-        [lastMessageId]: images,
-      }));
-    }
-
     setCurrentMessages(newMessages);
 
     socket.emit("notTyping", {
@@ -770,12 +701,17 @@ export default function SocialPage() {
       sender: currentUser.name,
       receiver: selectedUser,
       msg: cleanMessage,
-      images: images.length > 0 ? images : undefined,
-      messageId: lastMessageId,
     });
 
     setMessage("");
     setDraftAttachments([]);
+  };
+
+  const reportConv = async () => {
+    if (!currentUser || !selectedUser || reported) return ;
+    setReported(true);
+    contact.reported(currentUser.name, selectedUser);
+    socket.emit("reported");
   };
 
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -911,7 +847,8 @@ export default function SocialPage() {
                       key={user.name}
                       onClick={() => {
                           setSelectedUser(user.name);
-                          setShowNotification(false);
+                          if (user.name == notifSender)
+                            setShowNotification(false);
                         }
                       }
                       className={`relative flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 transition-colors ${
@@ -994,7 +931,7 @@ export default function SocialPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-semibold text-gray-300">
-                        <span className="text-[var(--accent-color)]">{friendRequestSender}</span> wants to du-du-du-du-du-du-duel !
+                        <span className="text-[var(--accent-color)]">{opponent}</span> wants to du-du-du-du-du-du-duel !
                       </p>
                       <p className="mt-1 text-xs text-gray-400">Do you want to accept this request?</p>
                     </div>
@@ -1085,11 +1022,9 @@ export default function SocialPage() {
                     )}
 
 
-                    {/* {msg.attachments.length > 0 && (
+                    {msg.attachments.length > 0 && (
                       <div className={`mt-2 grid gap-2 ${msg.attachments.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
                         {msg.attachments.map((attachment) => {
-                          const isImage = attachment.type.startsWith("image/");
-
                           return (
                             <div
                               key={attachment.id}
@@ -1099,19 +1034,15 @@ export default function SocialPage() {
                                   : "border-[#c9a227]/30 bg-[#15131d]"
                               }`}
                             >
-                              {isImage ? (
+                              {(
                                 <Image
-                                  src={attachment.previewUrl}
+                                  src={`${attachment.previewUrl}`}
                                   alt={attachment.name}
                                   width={320}
                                   height={220}
                                   className="h-28 w-full rounded-md object-cover"
                                   unoptimized
                                 />
-                              ) : (
-                                <div className="mb-2 flex h-28 items-center justify-center rounded-md bg-black/20 text-3xl">
-                                  <i className="fa-regular fa-file-lines" />
-                                </div>
                               )}
                               <p className="mt-2 truncate text-xs font-semibold">{attachment.name}</p>
                               <p className="text-[11px] opacity-75">{attachment.sizeLabel}</p>
@@ -1119,7 +1050,7 @@ export default function SocialPage() {
                           );
                         })}
                       </div>
-                    )} */}
+                    )}
                     </article>
                     {isLastUserMessage && (
                       <div>
@@ -1174,9 +1105,9 @@ export default function SocialPage() {
                     className="hidden"
                     multiple
                     onChange={handleFilesChange}
-                    accept="image/*,.pdf,.txt,.doc,.docx"
+                    accept="image/*,.pdf,.txt,.doc,.docx,.png"
                   />
-
+                {/*Bouton pour attachments*/}
                 <button
                     onClick={handlePickAttachments}
                     className="flex h-9 w-9 items-center justify-center rounded-full bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
@@ -1184,6 +1115,15 @@ export default function SocialPage() {
                   >
                     <i className="fa-solid fa-paperclip" />
                   </button>
+
+                  {/*Bouton de signalement en attendant un vrai*/}
+                  {/* <button
+                    onClick={reportConv}
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
+                    aria-label="Report this conversation"
+                  >
+                    <i className="fa-solid fa-paperclip" />
+                  </button> */}
 
                   <input
                     type="text"

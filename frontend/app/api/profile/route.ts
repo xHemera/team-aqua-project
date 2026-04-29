@@ -57,7 +57,7 @@ export async function GET() {
         accent: avatarMeta.accent,
         accentHover: avatarMeta.accentHover,
       },
-    });
+    }, {status: 200});
   } catch (error) {
     console.error("Error fetching profile:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
@@ -157,7 +157,7 @@ export async function PATCH(request: Request) {
         accent: avatarMeta.accent,
         accentHover: avatarMeta.accentHover,
       },
-    });
+    }, {status: 201});
   } catch (error) {
     console.error("Error updating profile:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
@@ -174,13 +174,9 @@ export async function DELETE() {
     const userId = session.user.id;
 
     await prisma.$transaction(async (tx) => {
-      await tx.messages.deleteMany({ where: { user_id: userId } });
-      //await tx.inbox.deleteMany({ where: { inboxUser: {some : {user_id: userId } } } });
-      await tx.inbox_users.deleteMany({ where: { user_id: userId } });
-      await tx.friends.deleteMany({ where: { userId: userId } });
+      await tx.inbox.deleteMany({ where: { inboxUser: {some : {user_id: userId } } } });
       await tx.session.deleteMany({ where: { userId: userId } });
       await tx.account.deleteMany({ where: { userId: userId } });
-      await tx.match_history.deleteMany({ where: { user_id: userId } });
 
       await tx.user.delete({ where: { id: userId } });
     });

@@ -25,7 +25,7 @@ export async function GET() {
       });
     }
 
-    return Response.json(avatars);
+    return Response.json(avatars, {status: 200});
   } catch (error) {
     console.error("Error fetching avatars:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });

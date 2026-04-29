@@ -32,6 +32,11 @@ const io = new Server(httpServer, {
 //On connect, logs and maps the user to a socket
 io.on("connect", (socket) => {
   socket.on("login", async (user) => {
+    if (typeof user !== 'string' || !user.trim())
+    {
+      console.error("Invaid user in login: ", user);
+      return ;
+    }
     await redis.hSet("online_users", user, socket.id);
     const users = await redis.hGetAll("online_users");
     console.log("Client connected: ", users);
@@ -51,6 +56,7 @@ io.on("connect", (socket) => {
     }
   })
 
+  //tells that a new conv is made
   socket.on("new_conv", async ({sender, receiver}) => {
     const receiverSock = await redis.hGet("online_users", receiver);
     if (receiverSock)
@@ -59,6 +65,7 @@ io.on("connect", (socket) => {
     }
   })
 
+  //tells that there is a friend request waiting
   socket.on("friend_request", async ({user, oUser}) => {
     const receiverSock = await redis.hGet("online_users", oUser);
     if (receiverSock)
@@ -70,6 +77,7 @@ io.on("connect", (socket) => {
     }
   })
 
+  //tells that the friend request has been accepted
   socket.on("friend_added", async ({user, friend}) => {
     const receiverSock = await redis.hGet("online_users", friend);
     if (receiverSock)
@@ -85,6 +93,7 @@ io.on("connect", (socket) => {
     });
   })
 
+  //tells that the friend request has been refused
   socket.on("friend_denied", async ({user, friend}) => {
     const receiverSock = await redis.hGet("online_users", friend);
     if (receiverSock)
@@ -96,6 +105,7 @@ io.on("connect", (socket) => {
     }
   })
 
+  //tells that the other user has been blocked by the user
   socket.on("friend_or_user_blocked", async ({user, oUser}) => {
     const receiverSock = await redis.hGet("online_users", oUser);
     if (receiverSock)
@@ -107,10 +117,12 @@ io.on("connect", (socket) => {
     }
   })
 
+  //shows that they blocked the other user
   socket.on("blocking_friend_or_user", async () => {
     io.to(socket.id).emit("blocking");
   })
 
+  //tells and shows that the other user has been unblocked
   socket.on("user_unblocked", async ({user, oUser}) => {
     const receiverSock = await redis.hGet("online_users", oUser);
     if (receiverSock)
@@ -126,6 +138,7 @@ io.on("connect", (socket) => {
     })
   })
 
+  //tells that a challenge has been sent
   socket.on("challenge_sent", async ({sender, receiver}) => {
     const receiverSock = await redis.hGet("online_users", receiver);
     if (receiverSock)
@@ -141,6 +154,7 @@ io.on("connect", (socket) => {
     });
   })
 
+  //tells that they are typing
   socket.on("typing", async ({sender, receiver}) => {
     const receiverSock = await redis.hGet("online_users", receiver);
     if (receiverSock)
@@ -152,6 +166,7 @@ io.on("connect", (socket) => {
     }
   })
 
+  //tells that they are not typing
   socket.on("notTyping", async ({sender, receiver}) => {
     const receiverSock = await redis.hGet("online_users", receiver);
     if (receiverSock)
@@ -163,6 +178,7 @@ io.on("connect", (socket) => {
     }
   })
 
+  //tells that the duel has been accepted
   socket.on("duel_accepted", async ({user, oUser}) => {
     const receiverSock = await redis.hGet("online_users", oUser);
     if (receiverSock)
@@ -174,6 +190,7 @@ io.on("connect", (socket) => {
     }
   })
 
+  //tells that the duel has been refused
   socket.on("duel_refused", async ({user, oUser}) => {
     const receiverSock = await redis.hGet("online_users", oUser);
     if (receiverSock)
@@ -185,6 +202,7 @@ io.on("connect", (socket) => {
     }
   })
 
+  //tells that the message has been read
   socket.on("has_read", async ({user, oUser}) => {
     const receiverSock = await redis.hGet("online_users", oUser);
     if (receiverSock)
@@ -194,7 +212,54 @@ io.on("connect", (socket) => {
         oUser
       });
     }
-  })
+  });
+
+  //tells that they deleted their account
+  socket.on("has_delete", async (sender) => {
+    io.emit("deletion", {
+      sender
+    });
+  });
+
+  //tells that a new user has been created
+  socket.on("creation", async () => {
+    io.emit("newUser");
+  });
+
+  //tells that someone reported someone else
+  socket.on("reported", async () => {
+    io.emit("newReport");
+  });
+
+  //tells that someone reviewed the report
+  socket.on("reviewed", async () => {
+    io.emit("lessReports");
+  });
+
+  //tells that a user has been promoted
+  socket.on("addMod", async () => {
+    io.emit("newMod");
+  });
+
+  //tells that a mod has been removed
+  socket.on("removeMod", async (modo, removed) => {
+    io.emit("noMod", {
+      modo,
+      removed
+    });
+  });
+
+  //tells that you have been banned
+  socket.on("banning", async (modo, banned) => {
+    const receiverSock = await redis.hGet("online_users", banned);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("banned", {
+        modo,
+        banned
+      });
+    }
+  });
 
   //delete the user's socket if he's disconnected
   socket.on("disconnect", async () => {
