@@ -82,7 +82,7 @@ const RESULT_STYLES: Record<string, string> = {
   lose: "bg-red-600"
 };
 
-// HARDCODE: static deck icon map used for history presentation.
+// HARDCODE: static heroes icon map used for history presentation.
 const deckpublic: Record<string, string> = {
   Knight: "/heroes/Avatar_Sorel.webp",
   Assassin: "/heroes/Avatar_Wanda.webp",
@@ -485,9 +485,27 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      const dataUrl = await fileToDataUrl(file);
-                      setCustomAvatar(dataUrl);
-                      localStorage.setItem("profileCustomAvatar", dataUrl);
+                      try {
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        formData.append("type", "profile");
+                        
+                        const response = await fetch("/api/upload", {
+                          method: "POST",
+                          body: formData,
+                        });
+                        
+                        if (!response.ok) {
+                          throw new Error("Failed to upload profile picture");
+                        }
+                        
+                        const data = await response.json();
+                        const imageUrl = `/profiles/${data.name}`;
+                        setCustomAvatar(imageUrl);
+                        localStorage.setItem("profileCustomAvatar", imageUrl);
+                      } catch (error) {
+                        console.error("Error uploading profile picture:", error);
+                      }
                     }
                     e.target.value = "";
                   }}

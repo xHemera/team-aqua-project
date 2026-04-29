@@ -6,11 +6,13 @@ export async function POST(req: Request)
     try {
         const formData = await req.formData();
         const files = formData.getAll("file");
+        const type = formData.get("type") as string | null;
 
         if (!files) {
         return new Response("No file uploaded", { status: 400 });
         }
         
+        const uploadDir = type === "profile" ? "public/profiles" : "public/images";
 
         for (const file of files)
         {
@@ -20,7 +22,7 @@ export async function POST(req: Request)
             const buffer = Buffer.from(bytes);
             const safeName = file.name.replace(/\s+/g, "-");
             const fileName = `${Date.now()}-${safeName}`;
-            const filePath = path.join(process.cwd(), "public/images", fileName);
+            const filePath = path.join(process.cwd(), uploadDir, fileName);
             await writeFile(filePath, buffer);
 
             return Response.json({

@@ -34,14 +34,15 @@ export default function LoginPage() {
       const response = await fetch("/api/users", {
         method: "GET"
       })
-      const data: unknown = await response.json();
       if (!response.ok) {
-      const errorMessage =
-        typeof data === "object" && data !== null && "error" in data
-          ? String((data as { error: string }).error ?? "Impossible de charger les utilisateurs")
-          : "Impossible de charger les utilisateurs";
+        const data: unknown = await response.json();
+        const errorMessage =
+          typeof data === "object" && data !== null && "error" in data
+            ? String((data as { error: string }).error ?? "Impossible de charger les utilisateurs")
+            : "Impossible de charger les utilisateurs";
         throw new Error(errorMessage);
       }
+      const data: unknown = await response.json();
       const users = data as User[];
       if (users.length === 0)
       {
@@ -65,17 +66,18 @@ export default function LoginPage() {
         setIsRegisterMode(false);
         setPassword("");
         setName("");
-        await fetch("/api/users", {
+        const response = await fetch("/api/users", {
           method: "POST",
         })
-        const data: unknown = await response.json();
         if (!response.ok) {
-        const errorMessage =
-          typeof data === "object" && data !== null && "error" in data
-            ? String((data as { error?: string }).error ?? "Impossible de charger les utilisateurs")
-            : "Impossible de charger les utilisateurs";
+          const data: unknown = await response.json();
+          const errorMessage =
+            typeof data === "object" && data !== null && "error" in data
+              ? String((data as { error?: string }).error ?? "Impossible de charger les utilisateurs")
+              : "Impossible de charger les utilisateurs";
           throw new Error(errorMessage);
         }
+        const data: unknown = await response.json();
         const users = data as User[];
         if (users.length === 0)
         {
