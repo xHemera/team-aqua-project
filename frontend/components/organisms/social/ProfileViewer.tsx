@@ -378,6 +378,20 @@ export default function ProfileViewerModal({
               <i className={`fa-solid ${hasBlocked ? "fa-circle-check" : "fa-ban"} text-lg`} />
             </IconButton>
 
+            <IconButton
+              type="button"
+              size="lg"
+              title="Report user"
+              aria-label="Report user"
+              className="border-orange-500/70 bg-orange-900/20 text-orange-200 hover:bg-orange-900/35"
+              onClick={() => {
+                // TODO: Implement report functionality
+                alert("Report functionality coming soon");
+              }}
+            >
+              <i className="fa-solid fa-flag text-lg" />
+            </IconButton>
+
             {friend && <IconButton
               onClick={sendChallenge}
               className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)]"
