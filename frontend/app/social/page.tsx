@@ -55,14 +55,12 @@ export default function SocialPage() {
   const [friend, setFriend] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [hasBlocked, setHasBlocked] = useState(false);
-  const [messageImages, setMessageImages] = useState<Record<string, Array<{ id: string; name: string; data: string }>>>({});
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [challenge, setChallenge] = useState(false);
   const [opponent, setOpponent] = useState<string | null>(null);
   const [typer, setTyper] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
   const [unread, setUnread] = useState(false);
-  const [messageReadStatus, setMessageReadStatus] = useState<Record<string, boolean>>({});
   const [customUserAvatar, setCustomUserAvatar] = useState<string | null>(null);
   const [reported, setReported] = useState(false);
 
@@ -310,15 +308,6 @@ export default function SocialPage() {
     socket.on("read", async ({user, oUser}) => {
       if (oUser == userPseudo) {
         setUnread(false);
-        setMessageReadStatus((prev) => {
-          const lastMessageId = currentMessages.findLast((m) => m.user_id === currentUser?.id)?.id;
-          if (lastMessageId) {
-            const updated = { ...prev, [lastMessageId]: true };
-            saveReadStatusToStorage(updated);
-            return updated;
-          }
-          return prev;
-        });
       }
     })
     //reloads inboxes and exits the conversation
@@ -331,10 +320,13 @@ export default function SocialPage() {
 
   //scroll the conversation to last message
   useEffect(() => {
-  messageListRef.current?.scrollTo({
-			top: messageListRef.current.scrollHeight,
-			behavior: "smooth",
-		});
+    if (messageListRef.current)
+    {
+      messageListRef.current.scrollTo({
+		    top: messageListRef.current.scrollHeight,
+		    behavior: "smooth",
+		  });
+    }
 	}, [currentMessages.length])
 
   //sets waiting status
@@ -357,7 +349,6 @@ export default function SocialPage() {
           newStatus[msg.id] = storedStatus[msg.id] ?? false;
         }
       });
-      setMessageReadStatus(newStatus);
       saveReadStatusToStorage(newStatus);
 		}
 		fetchmessages();
@@ -674,19 +665,6 @@ export default function SocialPage() {
     contact.getUnreadNotif(currentUser.name);
 		if (!newMessages) return;
     
-    //Initialize read status for new message as unread
-    const lastMessage = newMessages[newMessages.length - 1];
-    if (lastMessage) {
-      setMessageReadStatus((prev) => {
-        const updated = {
-          ...prev,
-          [lastMessage.id]: false,
-        };
-        saveReadStatusToStorage(updated);
-        return updated;
-      });
-    }
-
     setCurrentMessages(newMessages);
 
     socket.emit("notTyping", {

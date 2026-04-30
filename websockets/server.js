@@ -53,7 +53,7 @@ io.on("connection", (socket) => {
     const receiverSock = await redis.hGet("online_users", receiver);
     if (receiverSock)
     {
-      io.to(receiverSock).emit("received", sender, receiver, msg);
+      io.to(receiverSock).emit("received", {sender, receiver, msg});
     }
   })
 
@@ -71,7 +71,7 @@ io.on("connection", (socket) => {
     const receiverSock = await redis.hGet("online_users", oUser);
     if (receiverSock)
     {
-      io.to(receiverSock).emit("request", user, oUser);
+      io.to(receiverSock).emit("request", {user, oUser});
     }
   })
 
@@ -82,7 +82,7 @@ io.on("connection", (socket) => {
     {
       io.to(receiverSock).emit("adding", user, friend);
     }
-    io.to(socket.id).emit("adding", user, friend);
+    io.to(socket.id).emit("adding", {user, friend});
   })
 
   //tells that the friend request has been refused
@@ -90,7 +90,7 @@ io.on("connection", (socket) => {
     const receiverSock = await redis.hGet("online_users", friend);
     if (receiverSock)
     {
-      io.to(receiverSock).emit("refusing", user, friend);
+      io.to(receiverSock).emit("refusing", {user, friend});
     }
   })
 
@@ -99,7 +99,7 @@ io.on("connection", (socket) => {
     const receiverSock = await redis.hGet("online_users", oUser);
     if (receiverSock)
     {
-      io.to(receiverSock).emit("blocked", user, oUser);
+      io.to(receiverSock).emit("blocked", {user, oUser});
     }
   })
 
@@ -113,9 +113,9 @@ io.on("connection", (socket) => {
     const receiverSock = await redis.hGet("online_users", oUser);
     if (receiverSock)
     {
-      io.to(receiverSock).emit("unblocking", user, oUser);
+      io.to(receiverSock).emit("unblocking", {user, oUser});
     }
-    io.to(socket.id).emit("unblocking", user, oUser)
+    io.to(socket.id).emit("unblocking", {user, oUser})
   })
 
   //tells that a challenge has been sent
@@ -123,9 +123,9 @@ io.on("connection", (socket) => {
     const receiverSock = await redis.hGet("online_users", receiver);
     if (receiverSock)
     {
-      io.to(receiverSock).emit("challenge", sender, receiver);
+      io.to(receiverSock).emit("challenge", {sender, receiver});
     }
-    io.to(socket.id).emit("challenge", sender, receiver);
+    io.to(socket.id).emit("challenge", {sender, receiver});
   })
 
   //tells that they are typing
@@ -133,7 +133,7 @@ io.on("connection", (socket) => {
     const receiverSock = await redis.hGet("online_users", receiver);
     if (receiverSock)
     {
-      io.to(receiverSock).emit("isTyping", sender, receiver);
+      io.to(receiverSock).emit("isTyping", {sender, receiver});
     }
   })
 
@@ -142,7 +142,7 @@ io.on("connection", (socket) => {
     const receiverSock = await redis.hGet("online_users", receiver);
     if (receiverSock)
     {
-      io.to(receiverSock).emit("isNotTyping", sender, receiver);
+      io.to(receiverSock).emit("isNotTyping", {sender, receiver});
     }
   })
 
@@ -151,7 +151,7 @@ io.on("connection", (socket) => {
     const receiverSock = await redis.hGet("online_users", oUser);
     if (receiverSock)
     {
-      io.to(receiverSock).emit("accept", user, oUser);
+      io.to(receiverSock).emit("accept", {user, oUser});
     }
   })
 
@@ -160,7 +160,7 @@ io.on("connection", (socket) => {
     const receiverSock = await redis.hGet("online_users", oUser);
     if (receiverSock)
     {
-      io.to(receiverSock).emit("refuse", user, oUser);
+      io.to(receiverSock).emit("refuse", {user, oUser});
     }
   })
 
@@ -169,7 +169,7 @@ io.on("connection", (socket) => {
     const receiverSock = await redis.hGet("online_users", oUser);
     if (receiverSock)
     {
-      io.to(receiverSock).emit("read", user, oUser);
+      io.to(receiverSock).emit("read", {user, oUser});
     }
   });
 
