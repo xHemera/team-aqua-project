@@ -167,6 +167,14 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
       };
     }, [userPseudo]);
     
+  useEffect(() => {
+    if (!userPseudo) return;
+    socket.on("ban", (banned) => {
+      if (banned === userPseudo)
+        handleLogout();
+    });
+  }, [])
+
   //render messages sent by other users
   useEffect(() => {
     if (!userPseudo) return;
@@ -280,6 +288,7 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
           : "Impossible de charger l'utilisateur";
         throw new Error(errorMessage);
       }
+    socket.emit("isdisconnecting");
     socket.disconnect();
     await authClient.signOut();
     router.push("/");
@@ -579,7 +588,7 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
                           }
 
                           setCustomAvatar(null);
-                          setDisplayAvatar(null);
+                          setDisplayAvatar("");
                           localStorage.removeItem("profileCustomAvatar");
 
                           // Notify other users about avatar removal

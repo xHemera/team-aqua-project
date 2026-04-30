@@ -55,14 +55,12 @@ export default function SocialPage() {
   const [friend, setFriend] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [hasBlocked, setHasBlocked] = useState(false);
-  const [messageImages, setMessageImages] = useState<Record<string, Array<{ id: string; name: string; data: string }>>>({});
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [challenge, setChallenge] = useState(false);
   const [opponent, setOpponent] = useState<string | null>(null);
   const [typer, setTyper] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
   const [unread, setUnread] = useState(false);
-  const [messageReadStatus, setMessageReadStatus] = useState<Record<string, boolean>>({});
   const [customUserAvatar, setCustomUserAvatar] = useState<string | null>(null);
   const [reported, setReported] = useState(false);
 
@@ -134,6 +132,15 @@ export default function SocialPage() {
     } catch {
       // Silent fail
     }
+    socket.on("online", async () => {
+      const u = await contact.getUsers();
+      setUsers(u);
+    })
+
+    socket.on("offline", async () => {
+      const u = await contact.getUsers();
+      setUsers(u);
+    })
   }, []);
 
   //fetch users and their inboxes
@@ -172,7 +179,7 @@ export default function SocialPage() {
     const handler = async ({ sender,
       receiver,
       msg,
-      }: {
+      } : {
       sender: string,
       receiver: string,
       msg: string,
@@ -270,7 +277,7 @@ export default function SocialPage() {
     socket.on("blocking", async () => {
       setHasBlocked(true);
       setFriend(false);
-    })
+    });
 
     //resets status dynamically
     socket.on("unblocking", async ({user, oUser}) => {
@@ -278,7 +285,7 @@ export default function SocialPage() {
         setIsBlocked(false);
       if (user == userPseudo)
         setHasBlocked(false);
-    });
+    });;
 
     //prompt the challenge request
     socket.on("challenge", async({sender, receiver}) => {
@@ -289,7 +296,7 @@ export default function SocialPage() {
       }
       if (sender == userPseudo)
         setWaiting(true);
-    })
+    });
 
     //send to the game if duel is accepted
     socket.on("accept", async ({user, oUser}) => {
@@ -298,43 +305,38 @@ export default function SocialPage() {
         setWaiting(false);
         router.push("game");
       }
-    })
+    });
 
     //stops the waiting status if duel is refused
     socket.on("refuse", async ({user, oUser}) => {
       if (oUser == userPseudo)
         setWaiting(false);
-    })
+    });
 
     //sets unread to read if message is read
     socket.on("read", async ({user, oUser}) => {
       if (oUser == userPseudo) {
         setUnread(false);
-        setMessageReadStatus((prev) => {
-          const lastMessageId = currentMessages.findLast((m) => m.user_id === currentUser?.id)?.id;
-          if (lastMessageId) {
-            const updated = { ...prev, [lastMessageId]: true };
-            saveReadStatusToStorage(updated);
-            return updated;
-          }
-          return prev;
-        });
       }
-    })
+    });
     //reloads inboxes and exits the conversation
     socket.on("deletion", async (sender) => {
       const i = await contact.getInboxes(userPseudo);
       setInboxes(i);
       setSelectedUser("");
-    })
+    });
+
   }, [userPseudo, selectedUser]);
 
   //scroll the conversation to last message
   useEffect(() => {
-  messageListRef.current?.scrollTo({
-			top: messageListRef.current.scrollHeight,
-			behavior: "smooth",
-		});
+    if (messageListRef.current)
+    {
+      messageListRef.current.scrollTo({
+		    top: messageListRef.current.scrollHeight,
+		    behavior: "smooth",
+		  });
+    }
 	}, [currentMessages.length])
 
   //sets waiting status
@@ -357,7 +359,6 @@ export default function SocialPage() {
           newStatus[msg.id] = storedStatus[msg.id] ?? false;
         }
       });
-      setMessageReadStatus(newStatus);
       saveReadStatusToStorage(newStatus);
 		}
 		fetchmessages();
@@ -674,19 +675,6 @@ export default function SocialPage() {
     contact.getUnreadNotif(currentUser.name);
 		if (!newMessages) return;
     
-    //Initialize read status for new message as unread
-    const lastMessage = newMessages[newMessages.length - 1];
-    if (lastMessage) {
-      setMessageReadStatus((prev) => {
-        const updated = {
-          ...prev,
-          [lastMessage.id]: false,
-        };
-        saveReadStatusToStorage(updated);
-        return updated;
-      });
-    }
-
     setCurrentMessages(newMessages);
 
     socket.emit("notTyping", {
@@ -744,19 +732,22 @@ export default function SocialPage() {
   }
 
   const isTyping = async () => {
+    let typingTimeout;
+
     if (!selectedUser || !currentUser)
       return ;
-    if (message.length === 0)
-    {
-      socket.emit("notTyping", {
-        sender : currentUser.name,
-        receiver: selectedUser,
-      });
-    }
     socket.emit("typing", {
       sender : currentUser.name,
       receiver: selectedUser,
     });
+    clearTimeout(typingTimeout);
+
+    typingTimeout = setTimeout(() => {
+      socket.emit("notTyping", {
+        sender: currentUser.name,
+        receiver: selectedUser,
+      });
+    }, 1000);
   }
 
   return (

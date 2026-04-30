@@ -81,53 +81,46 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    socket.on("newUser", () => {
-      const fetchUsers = async () => {
-        const u = await manage.getUsers();
-        setUsers(u);
-      }
-      fetchUsers();
-    });
+    const fetchUsers = async () => {
+      const u = await manage.getUsers();
+      setUsers(u);
+    };
 
-    socket.on("newReport", () => {
-      const fetchReports = async () => {
-        const r = await manage.getReports();
-        if (!r)
-          return ;
-        else
-          setReports(r);
-      }
-      fetchReports();
-    });
+    const fetchReports = async () => {
+      const r = await manage.getReports();
+      if (!r)
+        return ;
+      else
+        setReports(r);
+    }
 
-    socket.on("lessReports", () => {
-      const fetchReports = async () => {
-        const r = await manage.getReports();
-        if (!r)
-          return ;
-        else
-          setReports(r);
-      }
-      fetchReports();
-    });
+    const modFetch = () => fetchUsers();
+    const noModFetch = () => fetchUsers();
+    const banFetch = () => fetchUsers();
+    const unbanFetch = () => fetchUsers();
+    const handleNewUser = () => fetchUsers();
+    const handleNewReport = () => fetchReports();
+    const handleLessReports = () => fetchReports();
+  
+    socket.on("newUser", handleNewUser);
+    socket.on("newReport", handleNewReport);
+    socket.on("lessReports", handleLessReports);
+    socket.on("newMod", modFetch);
+    socket.on("noMod", noModFetch);
+    socket.on("ban", banFetch);
+    socket.on("unban", unbanFetch);
 
-    socket.on("newMod", async () => {
-      const fetchUsers = async () => {
-        const u = await manage.getUsers();
-        setUsers(u);
-      }
-      fetchUsers();
-    });
+    return () => {
+      socket.off("newUser", handleNewUser);
+      socket.off("newReport", handleNewReport);
+      socket.off("lessReports", handleLessReports);
+      socket.off("newMod", modFetch);
+      socket.off("noMod", noModFetch);
+      socket.off("ban", banFetch);
+      socket.off("unban", unbanFetch);
+    }
 
-    socket.on("noMod", async () => {
-      const fetchUsers = async () => {
-        const u = await manage.getUsers();
-        setUsers(u);
-      }
-      fetchUsers();
-    });
-
-  }, [users, reports]);
+  }, []);
 
   const filteredUsers = useMemo(() => {
     const normalizedQuery = userQuery.trim().toLowerCase();

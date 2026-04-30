@@ -194,6 +194,7 @@ export default function LoginPage() {
           throw new Error(errorMessage);
         }
         else {
+          socket.emit("isconnecting");
           setMessage("Signed in successfully!");
           setPseudo(data.user.name || "user");
           setTimeout(() => router.push(`/profile/${data.user.name}`), 500);
