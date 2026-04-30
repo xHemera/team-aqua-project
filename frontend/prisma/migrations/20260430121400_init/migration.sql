@@ -136,7 +136,7 @@ CREATE TABLE "user" (
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "emailVerified" BOOLEAN NOT NULL DEFAULT false,
-    "image" TEXT,
+    "image" TEXT DEFAULT '/profile-icons/default-avatar.svg',
     "badges" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "blockedUsers" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "banned" BOOLEAN NOT NULL DEFAULT false,

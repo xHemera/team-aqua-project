@@ -1116,15 +1116,6 @@ export default function SocialPage() {
                     <i className="fa-solid fa-paperclip" />
                   </button>
 
-                  {/*Bouton de signalement en attendant un vrai*/}
-                  {/* <button
-                    onClick={reportConv}
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
-                    aria-label="Report this conversation"
-                  >
-                    <i className="fa-solid fa-paperclip" />
-                  </button> */}
-
                   <input
                     type="text"
                     placeholder={hasBlocked ? "You have blocked this user" : isBlocked ? "You are blocked by this user" : `Send a message to @${selectedUser}`}

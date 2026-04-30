@@ -54,6 +54,7 @@ export default function ProfileViewerModal({
   const [notification, setNotification] = useState<string | null>(null);
   const [notifSender, setNotifSender] = useState<string | null>(null);
   const [openRemove, setOpenRemove] = useState(false);
+  const [reportNotification, setReportNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
     if (!currentUser || !inputUser) return;
@@ -273,11 +274,33 @@ export default function ProfileViewerModal({
   const displayedAvatarUrl = (displayedUser?.image || displayedUser?.avatar?.url) ?? avatarUrl;
   const displayedBadges = displayedUser?.badges ?? badges;
 
+  useEffect(() => {
+    if (!reportNotification) return;
+    const timeoutId = setTimeout(() => {
+      setReportNotification(null);
+    }, 3000);
+    return () => clearTimeout(timeoutId);
+  }, [reportNotification]);
+
   if (!open) {
     return null;
   }
 
   return (
+    <>
+      {reportNotification && (
+        <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
+          <div
+            className={`rounded-xl border px-4 py-2 text-sm font-semibold shadow-lg ${
+              reportNotification.type === "success"
+                ? "border-emerald-400/50 bg-emerald-500/90 text-white"
+                : "border-red-400/50 bg-red-500/90 text-white"
+            }`}
+          >
+            {reportNotification.message}
+          </div>
+        </div>
+      )}
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={onClose}>
       {inputUser && showNotification && notification && notifSender && (notifSender !== inputUser.name) && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       <Card
@@ -378,6 +401,32 @@ export default function ProfileViewerModal({
               <i className={`fa-solid ${hasBlocked ? "fa-circle-check" : "fa-ban"} text-lg`} />
             </IconButton>
 
+            <IconButton
+              type="button"
+              size="lg"
+              title="Report user"
+              aria-label="Report user"
+              className="border-orange-500/70 bg-orange-900/20 text-orange-200 hover:bg-orange-900/35"
+              onClick={async () => {
+                if (!currentUser || !inputUser) return;
+                try {
+                  await contact.reported(currentUser.name, inputUser.name);
+                  setReportNotification({
+                    type: "success",
+                    message: "User reported successfully",
+                  });
+                  socket.emit("reported");
+                } catch (error) {
+                  setReportNotification({
+                    type: "error",
+                    message: "you can't report this user before he gets reviewed",
+                  });
+                }
+              }}
+            >
+              <i className="fa-solid fa-flag text-lg" />
+            </IconButton>
+
             {friend && <IconButton
               onClick={sendChallenge}
               className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)]"
@@ -389,5 +438,6 @@ export default function ProfileViewerModal({
         </div>
       </Card>
     </div>
+    </>
   );
 }
