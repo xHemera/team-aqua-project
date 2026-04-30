@@ -132,6 +132,15 @@ export default function SocialPage() {
     } catch {
       // Silent fail
     }
+    socket.on("online", async () => {
+      const u = await contact.getUsers();
+      setUsers(u);
+    })
+
+    socket.on("offline", async () => {
+      const u = await contact.getUsers();
+      setUsers(u);
+    })
   }, []);
 
   //fetch users and their inboxes
@@ -268,7 +277,7 @@ export default function SocialPage() {
     socket.on("blocking", async () => {
       setHasBlocked(true);
       setFriend(false);
-    })
+    });
 
     //resets status dynamically
     socket.on("unblocking", async ({user, oUser}) => {
@@ -276,7 +285,7 @@ export default function SocialPage() {
         setIsBlocked(false);
       if (user == userPseudo)
         setHasBlocked(false);
-    });
+    });;
 
     //prompt the challenge request
     socket.on("challenge", async({sender, receiver}) => {
@@ -287,7 +296,7 @@ export default function SocialPage() {
       }
       if (sender == userPseudo)
         setWaiting(true);
-    })
+    });
 
     //send to the game if duel is accepted
     socket.on("accept", async ({user, oUser}) => {
@@ -296,26 +305,27 @@ export default function SocialPage() {
         setWaiting(false);
         router.push("game");
       }
-    })
+    });
 
     //stops the waiting status if duel is refused
     socket.on("refuse", async ({user, oUser}) => {
       if (oUser == userPseudo)
         setWaiting(false);
-    })
+    });
 
     //sets unread to read if message is read
     socket.on("read", async ({user, oUser}) => {
       if (oUser == userPseudo) {
         setUnread(false);
       }
-    })
+    });
     //reloads inboxes and exits the conversation
     socket.on("deletion", async (sender) => {
       const i = await contact.getInboxes(userPseudo);
       setInboxes(i);
       setSelectedUser("");
-    })
+    });
+
   }, [userPseudo, selectedUser]);
 
   //scroll the conversation to last message

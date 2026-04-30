@@ -19,7 +19,7 @@ const getBadgeLabel = (badges: string[]) => {
 };
 
 export default function UserListItem({ user, onViewProfile, currentRole }: UserListItemProps) {
-  const [badgeLabel, setBadgeLabel] = useState<string[]>([getBadgeLabel(user.badges)]);
+  const [badgeLabel, setBadgeLabel] = useState<string[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isModo, setIsModo] = useState(false);
   const [banned, setBanned] = useState(false);
@@ -28,6 +28,7 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
     setIsAdmin(user.badges.includes("ADMIN"));
     setIsModo(user.badges.includes("MODERATOR"));
     setBanned(user.banned);
+    setBadgeLabel([getBadgeLabel(user.badges)]);
   }, [user])
 
   async function banUser()
@@ -123,7 +124,7 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
           }
           title="Ban"
         >
-          {isAdmin ? "Admin" : banned ? "Ban" : "Unban"}
+          {isAdmin ? "Admin" : !banned ? "Ban" : "Unban"}
         </Button>
       </div>
     </Card>

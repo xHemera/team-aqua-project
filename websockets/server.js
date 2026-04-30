@@ -216,12 +216,12 @@ io.on("connection", (socket) => {
   });
 
   //tells everyone that they are connected
-  socket.on("connecting", () => {
+  socket.on("isconnecting", () => {
     io.emit("online");
   });
 
   //tells everyone that they are disconnected
-  socket.on("disconnecting",() => {
+  socket.on("isdisconnecting",() => {
     io.emit("offline");
   });
 
