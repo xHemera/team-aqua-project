@@ -579,7 +579,7 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
                           }
 
                           setCustomAvatar(null);
-                          setDisplayAvatar(null);
+                          setDisplayAvatar("");
                           localStorage.removeItem("profileCustomAvatar");
 
                           // Notify other users about avatar removal
