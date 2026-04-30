@@ -12,7 +12,10 @@ export async function POST(req: Request)
         return new Response("No file uploaded", { status: 400 });
         }
         
-        const uploadDir = type === "profile" ? "public/profiles" : "public/images";
+        const uploadDir = 
+          type === "profile" ? "public/profiles" :
+          type === "background" ? "public/backgrounds" :
+          "public/images";
 
         for (const file of files)
         {

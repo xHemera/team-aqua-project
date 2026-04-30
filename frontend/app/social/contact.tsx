@@ -11,6 +11,7 @@ export async function getUsers()
 			badges: true,
 			blockedUsers: true,
 			avatar: true,
+			image: true,
             online: true,
 		}
     });
@@ -27,6 +28,7 @@ export async function getUser(name: string)
 			badges: true,
 			blockedUsers: true,
 			avatar: true,
+			image: true,
             online: true,
 		}
     });

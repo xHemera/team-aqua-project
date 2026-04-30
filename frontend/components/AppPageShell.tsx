@@ -1,11 +1,12 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, CSSProperties } from "react";
 import Sidebar from "./Sidebar";
 
 type AppPageShellProps = {
   children: ReactNode;
   mainClassName?: string;
+  mainStyle?: CSSProperties;
   containerClassName?: string;
   showSidebar?: boolean;
 };
@@ -16,11 +17,15 @@ const joinClasses = (...values: Array<string | undefined | false>) =>
 export default function AppPageShell({
   children,
   mainClassName,
+  mainStyle,
   containerClassName,
   showSidebar = false,
 }: AppPageShellProps) {
   return (
-    <main className={joinClasses("relative isolate min-h-screen overflow-hidden text-white bg-black/40", mainClassName)}>
+    <main 
+      className={joinClasses("relative isolate min-h-screen overflow-hidden text-white bg-black/40", mainClassName)}
+      style={mainStyle}
+    >
 
       {showSidebar ? (
         <div className="relative z-10 flex h-screen w-full gap-4 overflow-hidden px-4 py-4 sm:px-8 sm:py-6">

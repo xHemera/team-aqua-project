@@ -850,7 +850,7 @@ export default function SocialPage() {
                     >
                       <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-visible">
                         <Image
-                          src={user.name === userPseudo && customUserAvatar ? customUserAvatar : user.avatar?.url ?? DEFAULT_PROFILE_ICON.url}
+                          src={user.name === userPseudo && customUserAvatar ? customUserAvatar : (user.image || (user.avatar?.url ?? DEFAULT_PROFILE_ICON.url))}
                           alt={user.name}
                           width={32}
                           height={32}
@@ -971,7 +971,7 @@ export default function SocialPage() {
                       src={
                         msg.user_id === currentUser.id
                           ? customUserAvatar || (currentUser.avatar?.url ?? DEFAULT_PROFILE_ICON.url)
-                          : users.find(u => u.name === selectedUser)?.avatar?.url ?? DEFAULT_PROFILE_ICON.url
+                          : (users.find(u => u.name === selectedUser)?.image || (users.find(u => u.name === selectedUser)?.avatar?.url ?? DEFAULT_PROFILE_ICON.url))
                       }
                       alt="Avatar"
                       width={20}
@@ -1106,15 +1106,6 @@ export default function SocialPage() {
                   >
                     <i className="fa-solid fa-paperclip" />
                   </button>
-
-                  {/*Bouton de signalement en attendant un vrai*/}
-                  {/* <button
-                    onClick={reportConv}
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-[#302a45] text-white transition-colors hover:bg-[#3b3457]"
-                    aria-label="Report this conversation"
-                  >
-                    <i className="fa-solid fa-paperclip" />
-                  </button> */}
 
                   <input
                     type="text"
