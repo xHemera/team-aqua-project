@@ -172,7 +172,7 @@ export default function SocialPage() {
     const handler = async ({ sender,
       receiver,
       msg,
-      }: {
+      } : {
       sender: string,
       receiver: string,
       msg: string,
@@ -744,19 +744,22 @@ export default function SocialPage() {
   }
 
   const isTyping = async () => {
+    let typingTimeout;
+
     if (!selectedUser || !currentUser)
       return ;
-    if (message.length === 0)
-    {
-      socket.emit("notTyping", {
-        sender : currentUser.name,
-        receiver: selectedUser,
-      });
-    }
     socket.emit("typing", {
       sender : currentUser.name,
       receiver: selectedUser,
     });
+    clearTimeout(typingTimeout);
+
+    typingTimeout = setTimeout(() => {
+      socket.emit("notTyping", {
+        sender: currentUser.name,
+        receiver: selectedUser,
+      });
+    }, 1000);
   }
 
   return (
