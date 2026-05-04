@@ -1,6 +1,6 @@
 import { CharacterInstance } from "../Instances/CharacterInstance";
 import { resolvePhyDamage } from "../Utils/resolveDamage";
-import { Spell } from "./Spells";
+import { Spell } from "./Spell";
 
 export class PiercingShot extends Spell {
 

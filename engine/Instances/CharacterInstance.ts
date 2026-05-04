@@ -1,5 +1,5 @@
 import { CharacterData } from "../../frontend/components/organisms/characters/types";
-import { Spell } from "../Spells/Spells";
+import { Spell } from "../Spells/Spell";
 
 export interface ModEntry {
     value:	number;
