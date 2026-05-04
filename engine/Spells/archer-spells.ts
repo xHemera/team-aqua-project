@@ -4,27 +4,22 @@ import { Spell } from "./Spell";
 
 export class PiercingShot extends Spell {
 
-    private readonly RESISTANCE_IGNORE = 0.15;
-
     constructor() {
         super();
-        this.id     = "s1";
-        this.name   = "Piercing Shot";
-        this.mpCost = 8;
-        this.level  = 1;
+        this.id     	= "s1";
+        this.name   	= "Piercing Shot";
+        this.mpCost 	= 8;
+        this.targeting 	= "single"
     }
 
-    dealDamage(idUser: CharacterInstance, idTarget: CharacterInstance): number {
-        const stats      = idUser.character.stats;
-        const skillLevel = idUser.character.skills.find(s => s.id === "s1")?.level ?? 1;
+    applyEffect(idUser: CharacterInstance, idTargets: CharacterInstance[]): void {
+        const stats			= idUser.character.stats;
+        const skillLevel	= idUser.character.skills.find(s => s.id === "s1")?.level ?? 1;
+        const raw 			= stats.physicalDamage * 1.2 + skillLevel * 15;
+        const reducedRes	= idTargets[0].phyRes * (0.85);
+		const damage 		=  resolvePhyDamage(raw, idUser, idTargets[0], reducedRes);
 
-        // {physical damage * 1.2 + skill level * 15}
-        const raw = stats.physicalDamage * 1.2 + skillLevel * 15;
-
-        // Ignore 15% de résistance
-        const reducedRes = idTarget.phyRes * (1 - this.RESISTANCE_IGNORE);
-
-        return resolvePhyDamage(raw, idUser, idTarget, reducedRes);
+		idTargets[0].currentHp = Math.max(0, idTargets[0].currentHp - damage);
     }
 }
 
@@ -35,18 +30,18 @@ export class RainOfArrows extends Spell {
 		this.id		= "s2";
 		this.name	= "Rain of Arrows";
 		this.mpCost	= 12;
-		this.level	= 1;
+		this.targeting = "aoe"
 	}
 
-	dealDamage(idUser: CharacterInstance, idTargets: CharacterInstance[]): number[] {
+	applyEffect(idUser: CharacterInstance, idTargets: CharacterInstance[]): void {
 		const stats = idUser.character.stats;
 		const skillLevel = idUser.character.skills.find(s => s.id == "s2")?.level ?? 1;
-
 		const raw = stats.physicalDamage * 0.8 + skillLevel * 15;
-
-		return idTargets.map(target => resolvePhyDamage(raw, idUser, target));
+		idTargets.forEach(target => {
+			const damage = resolvePhyDamage(raw, idUser, target);
+			target.currentHp = Math.max(0, target.currentHp - damage);
+		});
 	}
-	
 }
 
 export class PrecisionFocus extends Spell {
@@ -56,20 +51,13 @@ export class PrecisionFocus extends Spell {
 		this.id 	= "s3";
 		this.name	= "Precision Focus";
 		this.mpCost = 15;
-		this.level	= 1;
+		this.targeting = "self";
 	}
 
-	applyBuff(idUser: CharacterInstance): void {
+	applyEffect(idUser: CharacterInstance): void {
 		const skillLevel = idUser.character.skills.find(s => s.id === "s3")?.level ?? 1;
 	
-		idUser.critChanceMod.push({
-			value: 5 + skillLevel * 2,
-			turn: 3,
-		});
-
-		idUser.critDamageMod.push({
-			value: skillLevel * 8,
-			turn: 3,
-		});
+		idUser.critChanceMod.push({ value: 5 + skillLevel * 2, turn: 3 });
+		idUser.critDamageMod.push({ value: skillLevel * 8, turn: 3 });
 	}
 }
