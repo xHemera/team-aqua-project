@@ -32,10 +32,10 @@ export class RainOfArrows extends Spell {
 
 	constructor() {
 		super();
-		this.id = "s2";
-		this.name = "Rain of Arrows";
-		this.mpCost = 12;
-		this.level = 1;
+		this.id		= "s2";
+		this.name	= "Rain of Arrows";
+		this.mpCost	= 12;
+		this.level	= 1;
 	}
 
 	dealDamage(idUser: CharacterInstance, idTargets: CharacterInstance[]): number[] {
@@ -49,3 +49,27 @@ export class RainOfArrows extends Spell {
 	
 }
 
+export class PrecisionFocus extends Spell {
+
+	constructor() {
+		super();
+		this.id 	= "s3";
+		this.name	= "Precision Focus";
+		this.mpCost = 15;
+		this.level	= 1;
+	}
+
+	applyBuff(idUser: CharacterInstance): void {
+		const skillLevel = idUser.character.skills.find(s => s.id === "s3")?.level ?? 1;
+	
+		idUser.critChanceMod.push({
+			value: 5 + skillLevel * 2,
+			turn: 3,
+		});
+
+		idUser.critDamageMod.push({
+			value: skillLevel * 8,
+			turn: 3,
+		});
+	}
+}
