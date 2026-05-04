@@ -1,4 +1,10 @@
 import prisma from "@/lib/prisma";
+import { headers } from "next/headers"
+
+export async function POST(req: Request)
+{
+    
+}
 
 export async function PATCH(req: Request)
 {

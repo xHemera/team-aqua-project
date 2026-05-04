@@ -58,6 +58,7 @@ services:
       BETTER_AUTH_SECRET: dev-secret-change-me-please-at-least-32-characters
       BETTER_AUTH_DATABASE_URL: $BETTER_AUTH_DATABASE_URL
       DATABASE_URL: $DATABASE_URL
+      API_KEY: $API_KEY
     depends_on:
       db:
         condition: service_healthy
