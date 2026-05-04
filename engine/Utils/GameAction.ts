@@ -2,7 +2,7 @@ export type ActionType = "basic" | "skill";
 
 export type GameAction = {
 	type:		ActionType;
-	skillUid?:	string;
+	skillId?:	string;
 	userUid:	string;
 	targetUids:	string[];
 }
