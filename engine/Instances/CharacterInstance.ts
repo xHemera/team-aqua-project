@@ -10,6 +10,8 @@ export class CharacterInstance {
     uid:			string;
     character:		CharacterData;
     owner:			number;
+	currentHp:		number;
+	currentMp:		number;
     phyMod:			ModEntry[] = [];
     magMod:			ModEntry[] = [];
     phyResMod:		ModEntry[] = [];
@@ -23,6 +25,8 @@ export class CharacterInstance {
         this.uid       = uid;
         this.character = character;
         this.owner     = owner;
+		this.currentHp = character.stats.hp;
+		this.currentMp = character.stats.mp;
     }
 
     get phyRes(): number {
