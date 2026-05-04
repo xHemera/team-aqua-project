@@ -50,9 +50,9 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
   {
     await manage.changeRole(id, modo);
     if (modo)
-      socket.emit("removeMod", user.name);
+      socket.emit("removeMod");
     else
-      socket.emit("addMod", user.name);
+      socket.emit("addMod");
   }
 
   return (

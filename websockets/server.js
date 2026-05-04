@@ -196,13 +196,13 @@ io.on("connection", (socket) => {
   });
 
   //tells that a user has been promoted
-  socket.on("addMod", async (added) => {
-    io.emit("newMod", added);
+  socket.on("addMod", async () => {
+    io.emit("newMod");
   });
 
   //tells that a mod has been removed
-  socket.on("removeMod", async (removed) => {
-    io.emit("noMod", removed);
+  socket.on("removeMod", async () => {
+    io.emit("noMod");
   });
 
   //tells that someone has been banned

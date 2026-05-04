@@ -62,6 +62,7 @@ export default function AdminPage() {
   }, [userPseudo])
 
   useEffect(() => {
+    if (!userPseudo) return;
     const cU = users.find(u => u.name === userPseudo);
       if (cU && cU.badges.includes("ADMIN"))
         setCurrentRole("ADMIN");
@@ -146,7 +147,6 @@ export default function AdminPage() {
       socket.off("ban", banFetch);
       socket.off("unban", unbanFetch);
     }
-
   }, []);
 
   const filteredUsers = useMemo(() => {
