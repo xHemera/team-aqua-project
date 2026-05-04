@@ -1,4 +1,5 @@
 import { CharacterData } from "../../frontend/components/organisms/characters/types";
+import { Spell } from "../Spells/Spells";
 
 export interface ModEntry {
     value:	number;
@@ -16,6 +17,7 @@ export class CharacterInstance {
 	critChanceMod:	ModEntry[] = [];
 	critDamageMod:	ModEntry[] = [];
     spdMod:			ModEntry[] = [];
+	spells:			Map<string, Spell> = new Map();
 
     constructor(uid: string, character: CharacterData, owner: number) {
         this.uid       = uid;
