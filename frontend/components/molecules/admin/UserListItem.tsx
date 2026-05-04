@@ -35,9 +35,7 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
   {
     await manage.banUser(user.name);
     socket.emit("reviewed");
-    socket.emit("banning", {
-      banned: user.name
-    });
+    socket.emit("banning", user.name);
     return ;
   }
 
@@ -52,13 +50,9 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
   {
     await manage.changeRole(id, modo);
     if (modo)
-      socket.emit("removeMod", {
-        removed: user.name
-    });
+      socket.emit("removeMod", user.name);
     else
-      socket.emit("addMod", {
-        added: user.name
-    });
+      socket.emit("addMod", user.name);
   }
 
   return (
@@ -92,7 +86,7 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
         <Button
           type="button"
           size="sm"
-          variant={isAdmin ? "secondary" : "primary"}
+          variant={isAdmin || currentRole !== "ADMIN" ? "secondary" : "primary"}
           className="h-8 px-3 text-xs"
           onClick={() => {
               if (isAdmin) return;
@@ -105,15 +99,15 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
           }
           title="Action de moderation pour admin"
         >
-          {isAdmin ? "Admin" : isModo ? "demote moderator" : "Promote to moderator"}
+          {isAdmin ? "Admin" : currentRole !== "ADMIN" ? "Moderator" : isModo ? "demote moderator" : "Promote to moderator"}
         </Button>
         <Button
           type="button"
           size="sm"
-          variant={isAdmin ? "secondary" : "primary"}
+          variant={isAdmin || currentRole !== "ADMIN" ? "secondary" : "primary"}
           className="h-9 px-3 text-xs"
           onClick={() => {
-              if (isAdmin)
+              if (isAdmin || currentRole !== "ADMIN")
                 return;
               if (banned)
                 unbanUser()
@@ -124,7 +118,7 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
           }
           title="Ban"
         >
-          {isAdmin ? "Admin" : !banned ? "Ban" : "Unban"}
+          {isAdmin ? "Admin" : currentRole !== "ADMIN" ? "Moderator" : !banned ? "Ban" : "Unban"}
         </Button>
       </div>
     </Card>

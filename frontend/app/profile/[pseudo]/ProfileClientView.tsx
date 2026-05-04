@@ -7,11 +7,9 @@ import AppPageShell from "@/components/AppPageShell";
 import Button from "@/components/atoms/Button";
 import Card from "@/components/atoms/Card";
 import IconButton from "@/components/atoms/IconButton";
-import Input from "@/components/atoms/Input";
 import { socket } from "../../../socket"
 import { authClient } from "@/lib/auth-client";
 import { applyBackgroundPreferenceToDocument, buildBackgroundStyle, DEFAULT_SITE_BACKGROUND, normalizeImageValue } from "@/lib/background-utils";
-import { persistAvatarPreference } from "@/lib/avatar-preference";
 import { applyAccentPalette, resolveProfileIcon, DEFAULT_PROFILE_ICON } from "@/lib/profile-icons";
 import NotificationToast from "@/components/organisms/home/NotificationToast";
 
@@ -25,15 +23,6 @@ type Match_history = {
   user_id:      string;
 }
 
-type Avatar = {
-  id: string;
-  name: string;
-  type: string;
-  url: string;
-  accent: string;
-  accentHover: string
-};
-
 type ProfileClientViewProps = {
   profileName: string;
   profileUserId: string;
@@ -42,15 +31,6 @@ type ProfileClientViewProps = {
   isOwnProfile: boolean;
   profileBadges: string[];
   matchHistory: Match_history[];
-};
-
-type ProfilePayload = {
-  avatar?: {
-    id: string;
-    url: string;
-  };
-  profileBackground?: string | null;
-  profileBanner?: string | null;
 };
 
 type ProfilePatchPayload = {
@@ -96,7 +76,6 @@ const deckpublic: Record<string, string> = {
 const defaultBackground = DEFAULT_SITE_BACKGROUND;
 
 const normalizeBackgroundValue = (value: string) => normalizeImageValue(value, defaultBackground);
-const normalizeBannerValue = (value: string) => value; // Banner normalization preserved only
 
 export default function ProfileClientView({ profileName, profileUserId, initialAvatar, initialBackground, isOwnProfile, profileBadges, matchHistory }: ProfileClientViewProps) {
   const router = useRouter();
@@ -117,21 +96,6 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
   
   // Default avatar for all users
   const defaultAvatar = DEFAULT_PROFILE_ICON.url;
-
-  /**
-   * Objective: convert uploaded file to Data URL for instant local preview.
-   * Usage: used by profile customization upload inputs.
-   * Input: browser `File` object.
-   * Output: promise resolving to Data URL string.
-   * Special cases: rejects on FileReader errors.
-   */
-  const fileToDataUrl = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
 
   useEffect(() => {
     if (!isOwnProfile) return;
@@ -173,7 +137,7 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
       if (banned === userPseudo)
         handleLogout();
     });
-  }, [])
+  }, [userPseudo])
 
   //render messages sent by other users
   useEffect(() => {
@@ -317,7 +281,6 @@ export default function ProfileClientView({ profileName, profileUserId, initialA
     setShowDeleteConfirmation(true);
   };
 
-  const bannerStyle = buildBackgroundStyle(profileBanner, defaultBanner);
   const profileBackgroundStyle = buildBackgroundStyle(profileBackground, defaultBackground);
   const totalMatches = matchHistory.length;
   const totalWins = matchHistory.filter((match) => match.result.toLowerCase() === "win").length;
