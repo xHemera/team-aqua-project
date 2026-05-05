@@ -1,5 +1,8 @@
 'use server'
 import prisma from "@/lib/prisma";
+import { rateLimit } from "@/lib/rateLimit";
+import { redis } from "@/lib/redis";
+import { headers } from "next/headers"
 
 //get all users and their relations
 export async function getUsers()
@@ -135,6 +138,18 @@ export async function getAvatar (userName: string)
 //adds a message written by the first user
 export async function addMsg(msg: string, sender: string, receiver: string, draftIds: string[])
 {
+    const h = await headers();
+    const ip = h
+    .get("x-forwarded-for")
+    ?.split(",")[0]
+    .trim() || "unknown";
+
+    const allowed = await rateLimit(redis, `rl:admin${ip}`, 3, 10);
+
+    if (!allowed) {
+        console.log("Too many request");
+        return;
+    }
     const user1 = await prisma.user.findFirst({
         where: { name: sender },
 		select: {id: true}

@@ -25,7 +25,7 @@ services:
     container_name: aqua-redis
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli ping || exit 1"]
       interval: 3s
       timeout: 2s
       retries: 10
@@ -64,6 +64,8 @@ services:
         condition: service_healthy
       websockets:
         condition: service_started
+      redis:
+        condition: service_healthy
 
   websockets:
     env_file: 

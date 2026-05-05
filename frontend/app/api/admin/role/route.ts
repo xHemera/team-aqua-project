@@ -1,8 +1,21 @@
 import prisma from "@/lib/prisma";
 import { authClient } from "@/lib/auth-client";
+import { rateLimit } from "@/lib/rateLimit";
+import { redis } from "@/lib/redis";
 
 export async function POST(req: Request)
 {
+    const ip = req.headers
+  .get("x-forwarded-for")
+  ?.split(",")[0]
+  .trim() || "unknown";
+
+    const allowed = await rateLimit(redis, `rl:admin${ip}`, 3, 10);
+
+    if (!allowed) {
+        return new Response("Too many requests", { status: 429 });
+    }
+
     const data = await req.json();
     const { name, email, password } = data;
     const apiKey = req.headers.get('apiKey');
@@ -37,8 +50,20 @@ export async function POST(req: Request)
     return Response.json({status: 200});
 }
 
+//fonction inutile POUR L'INSTANT
 export async function PATCH(req: Request)
 {
+    const ip = req.headers
+  .get("x-forwarded-for")
+  ?.split(",")[0]
+  .trim() || "unknown";
+
+    const allowed = await rateLimit(redis, `rl:admin${ip}`, 3, 10);
+
+    if (!allowed) {
+        return new Response("Too many requests", { status: 429 });
+    }
+
     const body = await req.json();
     const { user, isModo } = body;
 
@@ -61,7 +86,7 @@ export async function PATCH(req: Request)
                 }
             });
         }
-        return Response.json({success: true}, {status: 201})
+        return Response.json({success: true}, {status: 200})
     }
     catch (error)
     {
