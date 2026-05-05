@@ -236,7 +236,7 @@ render_compact_menu() {
     echo ""
     echo -e "${MAGENTA}${BOLD}Actions${NC}"
     echo -e "${GREEN}[1]${NC}  Start   ${YELLOW}[2]${NC}  Restart   ${RED}[3]${NC}  Stop   ${CYAN}[4]${NC} 󰃢 Clean"
-    echo -e "${GREEN}[5]${NC}  Logs    ${YELLOW}[6]${NC}  Statut    ${CYAN}[7]${NC} 󱙋 DB     ${MAGENTA}[8]${NC}  Admin"
+    echo -e "${GREEN}[5]${NC}  Logs    ${YELLOW}[6]${NC}  Statut    ${RED}[7]${NC} 󱙋 DB"
     echo ""
     echo -e "${DIM}Raccourcis: [r] Rafraîchir • [q] Quitter${NC}"
     echo -ne "${BOLD}${CYAN}Choix:${NC} "
@@ -423,19 +423,6 @@ access_db() {
     docker compose exec db psql -U postgres -d aqua_temp
 }
 
-# Créer un admin
-create_admin() {
-    print_header "Création d'un administrateur"
-    read -p "Email: " email
-    read -p "Name: " name
-    read -p "Password: " password
-
-    curl -X POST http://localhost:3000/api/admin/role \
-        -H "Content-Type: application/json" \
-        -H "apiKey: Hyper1Secured2Key3From4Coco" \
-        -d "{\"name\":\"$name\",\"email\":\"$email\",\"password\":\"$password\"}"
-}
-
 # Tester les services
 test_services() {
     print_header "Test des services"
@@ -464,7 +451,6 @@ main() {
             5) show_logs ;;
             6) check_status ;;
             7) access_db ;;
-            8) create_admin ;;
             0) print_success "Au revoir!"; exit 0 ;;
             *) print_error "Choix invalide" ;;
         esac

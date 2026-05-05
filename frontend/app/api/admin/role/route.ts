@@ -30,6 +30,8 @@ export async function POST(req: Request)
         });
     }
     catch (e) {
+        if (e)
+            return e;
         return Response.json({error: "Internal server error"}, {status: 500});
     }
     return Response.json({status: 200});
