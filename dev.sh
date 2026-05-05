@@ -427,16 +427,13 @@ access_db() {
 create_admin() {
     print_header "Création d'un administrateur"
     read -p "Email: " email
+    read -p "Name: " name
+    read -p "Password: " password
 
-    if [ -z "$email" ]; then
-        print_error "Email requis"
-        return
-    fi
-
-    docker compose exec -T db psql -U postgres -d aqua_temp -v user_email="$email" -c \
-        "UPDATE \"user\" SET role = 'admin' WHERE email = :'user_email';"
-
-    print_success "Utilisateur $email promu admin"
+    curl -X POST http://localhost:3000/api/admin/role \
+        -H "Content-Type: application/json" \
+        -H "apiKey: Hyper1Secured2Key3From4Coco" \
+        -d "{\"name\":\"$name\",\"email\":\"$email\",\"password\":\"$password\"}"
 }
 
 # Tester les services
