@@ -147,9 +147,10 @@ export async function addMsg(msg: string, sender: string, receiver: string, draf
     const allowed = await rateLimit(redis, `rl:admin${ip}`, 3, 10);
 
     if (!allowed) {
-        console.log("Too many request");
+        console.log("Too many requests");
         return;
     }
+
     const user1 = await prisma.user.findFirst({
         where: { name: sender },
 		select: {id: true}
@@ -216,6 +217,7 @@ export async function addMsg(msg: string, sender: string, receiver: string, draf
 
 	if (!message)
 		throw Error("Could not create the message");
+    return;
 }
 
 //return all messages from a conversation
