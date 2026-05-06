@@ -420,7 +420,17 @@ export default function SocialPage() {
     async function isWaiting()
     {
       if (!currentUser || !selectedUser) return;
-      const friend = await contact.getFriendFromOther(currentUser.name, selectedUser);
+      const params = new URLSearchParams({
+        currentUser: currentUser.name,
+        otherUser: selectedUser,
+      });
+      const res = await fetch(`/api/social/otherFriend?${params.toString()}`, {
+        method: "GET",
+      });
+      if (!res.ok)
+        return ;
+      const data = await res.json();
+      const friend: type.Friend = data.friend;
       if (!friend) {
         setWaiting(false);
         setRequest(false);
@@ -436,8 +446,24 @@ export default function SocialPage() {
     async function isFriend()
     {
       if (!currentUser || !selectedUser) return;
-      const myFriend = await contact.getFriend(currentUser.name, selectedUser);
-      const theirFriend = await contact.getFriendFromOther(currentUser.name, selectedUser);
+      const params = new URLSearchParams({
+        currentUser: currentUser.name,
+        otherUser: selectedUser,
+      });
+      const fres = await fetch(`/api/social/otherFriend?${params.toString()}`, {
+        method: "GET",
+      });
+      if (!fres.ok)
+        return ;
+      const fdata = await fres.json();
+      const myFriend: type.Friend = fdata.friend;
+      const tres = await fetch(`/api/social/otherFriend?${params.toString()}`, {
+        method: "GET",
+      });
+      if (!tres.ok)
+        return ;
+      const tdata = await tres.json();
+      const theirFriend: type.Friend = tdata.friend;
       if (!myFriend || !theirFriend) {
         setFriend(false);
         return;
@@ -450,7 +476,17 @@ export default function SocialPage() {
     async function isRequesting()
     {
       if (!currentUser || !selectedUser) return;
-      const friend = await contact.getFriend(currentUser.name, selectedUser);
+      const params = new URLSearchParams({
+        currentUser: currentUser.name,
+        otherUser: selectedUser,
+      });
+      const res = await fetch(`/api/social/otherFriend?${params.toString()}`, {
+        method: "GET",
+      });
+      if (!res.ok)
+        return ;
+      const data = await res.json();
+      const friend: type.Friend = data.friend;
       if (!friend) {
         setRequest(false);
         setFriendRequestSender(null);
@@ -616,7 +652,7 @@ export default function SocialPage() {
       const ires = await fetch(`/api/social/inbox?username=${userPseudo}`, {
         method: "GET",
       });
-      if (!ires)
+      if (!ires.ok)
         return ;
       const idata = await ires.json();
       setInboxes(idata.inboxes);

@@ -38,8 +38,8 @@ export async function GET(req: Request)
         const friend = await prisma.friends.findUnique({
             where: {
                 userId_friendId: {
-                    userId: cUser.id,
-                    friendId: oUser.id
+                    userId: oUser.id,
+                    friendId: cUser.id
                 },
             }
         });

@@ -144,7 +144,7 @@ export async function addMsg(msg: string, sender: string, receiver: string, draf
     ?.split(",")[0]
     .trim() || "unknown";
 
-    const allowed = await rateLimit(redis, `rl:admin${ip}`, 3, 10);
+    const allowed = await rateLimit(redis, `rl:admin${ip}`, 5, 1);
 
     if (!allowed) {
         console.log("Too many requests");

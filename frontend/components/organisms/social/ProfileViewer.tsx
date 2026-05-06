@@ -10,6 +10,7 @@ import { contact }  from "../../../app/social/index"
 import NotificationToast from "@/components/organisms/home/NotificationToast";
 import Validate from "../Validate";
 import { useRouter } from "next/navigation";
+import {type} from "@/app/social/index"
 
 type Avatar = {
   url:					string;
@@ -115,7 +116,17 @@ export default function ProfileViewerModal({
     async function isWaiting()
     {
       if (!currentUser || !inputUser) return;
-      const friend = await contact.getFriendFromOther(currentUser.name, inputUser.name);
+      const params = new URLSearchParams({
+        currentUser: currentUser.name,
+        otherUser: inputUser.name,
+      });
+      const res = await fetch(`/api/social/otherFriend?${params.toString()}`, {
+        method: "GET",
+      });
+      if (!res.ok)
+        return ;
+      const data = await res.json();
+      const friend: type.Friend = data.friend;
       if (!friend) return;
       if (friend.request_sent == true) setWaiting(true);
       return;
@@ -128,8 +139,24 @@ export default function ProfileViewerModal({
     async function isFriend()
     {
       if (!currentUser || !inputUser) return;
-      const myFriend = await contact.getFriend(currentUser.name, inputUser.name);
-      const theirFriend = await contact.getFriendFromOther(currentUser.name, inputUser.name);
+     const params = new URLSearchParams({
+        currentUser: currentUser.name,
+        otherUser: inputUser.name,
+      });
+      const fres = await fetch(`/api/social/otherFriend?${params.toString()}`, {
+        method: "GET",
+      });
+      if (!fres.ok)
+        return ;
+      const fdata = await fres.json();
+      const myFriend: type.Friend = fdata.friend;
+      const tres = await fetch(`/api/social/otherFriend?${params.toString()}`, {
+        method: "GET",
+      });
+      if (!tres.ok)
+        return ;
+      const tdata = await tres.json();
+      const theirFriend: type.Friend = tdata.friend;
       if (!myFriend || !theirFriend) {setFriend(false); return;}
       if (myFriend.request_sent == false && theirFriend.request_sent == false) setFriend(true);
       return;
@@ -143,7 +170,17 @@ export default function ProfileViewerModal({
     {
 			//console.error("Before check: ", request);
       if (!currentUser || !inputUser) return;
-      const friend = await contact.getFriend(currentUser.name, inputUser.name);
+      const params = new URLSearchParams({
+        currentUser: currentUser.name,
+        otherUser: inputUser.name,
+      });
+      const fres = await fetch(`/api/social/otherFriend?${params.toString()}`, {
+        method: "GET",
+      });
+      if (!fres.ok)
+        return ;
+      const fdata = await fres.json();
+      const friend: type.Friend = fdata.friend;
       if (!friend) return;
       if (friend.request_sent == true) setRequest(true);
 			//console.error("After check: ", request);
@@ -228,7 +265,17 @@ export default function ProfileViewerModal({
     if (!currentUser || !inputUser) return;
     if (hasBlocked === false)
     {
-      const oUser = await contact.getFriend(currentUser.name, inputUser.name);
+      const params = new URLSearchParams({
+        currentUser: currentUser.name,
+        otherUser: inputUser.name,
+      });
+      const fres = await fetch(`/api/social/otherFriend?${params.toString()}`, {
+        method: "GET",
+      });
+      if (!fres.ok)
+        return ;
+      const fdata = await fres.json();
+      const oUser: type.Friend = fdata.friend;
       if (oUser)
         contact.blockFriend(currentUser.name, inputUser.name);
       else

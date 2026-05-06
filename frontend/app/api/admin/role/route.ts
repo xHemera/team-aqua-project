@@ -58,7 +58,7 @@ export async function PATCH(req: Request)
   ?.split(",")[0]
   .trim() || "unknown";
 
-    const allowed = await rateLimit(redis, `rl:admin${ip}`, 3, 10);
+    const allowed = await rateLimit(redis, `rl:admin${ip}`, 3, 1);
 
     if (!allowed) {
         return new Response("Too many requests", { status: 429 });
