@@ -442,11 +442,11 @@ export async function resetUnread(sender: string, receiver: string)
     const user1 = await prisma.user.findFirst({
         where: { name: sender },
 		select: {id: true}
-    })
+    });
     const user2 = await prisma.user.findFirst({
         where: { name: receiver },
 		select: {id: true}
-    })
+    });
 
     if (!user1 || !user2) throw new Error("User not found");
 
@@ -462,7 +462,7 @@ export async function resetUnread(sender: string, receiver: string)
 			}
 		},
         select: { id: true }
-	})
+	});
 
 	if (!inbox)
 		throw Error("No discussion found or created prior");
@@ -475,7 +475,7 @@ export async function resetUnread(sender: string, receiver: string)
         data: {
             unread_messages: 0
         }
-    })
+    });
 }
 
 //change both requests to false, making them friends

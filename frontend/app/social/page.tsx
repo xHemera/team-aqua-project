@@ -384,16 +384,21 @@ export default function SocialPage() {
         user: currentUser.name,
         otherUser: selectedUser,
       });
-      const res = await fetch(`/api/social/msg?${params.toString()}`, {
+      const mres = await fetch(`/api/social/msg?${params.toString()}`, {
         method: "GET",
       })
-      if (!res.ok)
+      if (!mres.ok)
         return;
-      const data = await res.json();
+      const data = await mres.json();
       const newMessages: type.Messages[] = data.msgs;
 			if (!newMessages) return;
     	setCurrentMessages(newMessages);
-      contact.resetUnread(currentUser.name, selectedUser)
+      const ures = await fetch(`api/social/unread`, {
+        method: "PUT",
+        body: JSON.stringify({sender: currentUser.name, receiver: selectedUser})
+      });
+      if (!ures.ok)
+        return;
       fetchUnread();
       
       // Load read status from localStorage
@@ -608,8 +613,13 @@ export default function SocialPage() {
       }
       //makes a new inbox for both users and updates it
       contact.addContact(currentUser.name, inviteUsername);
-      const i = await contact.getInboxes(currentUser.name);
-      setInboxes(i);
+      const ires = await fetch(`/api/social/inbox?username=${userPseudo}`, {
+        method: "GET",
+      });
+      if (!ires)
+        return ;
+      const idata = await ires.json();
+      setInboxes(idata.inboxes);
       socket.emit("new_conv", {
         sender: currentUser.name,
         receiver: inviteUsername,
@@ -757,7 +767,14 @@ export default function SocialPage() {
       sender : currentUser.name,
       receiver: selectedUser,
     });
-    contact.resetUnread(currentUser.name, selectedUser);
+
+    //reset unread messages
+    const ures = await fetch(`api/social/unread`, {
+      method: "PUT",
+      body: JSON.stringify({sender: currentUser.name, receiver: selectedUser})
+    });
+    if (!ures.ok)
+      return;
     setUnread(true);
 
     //sends a signal to the other user's socket
