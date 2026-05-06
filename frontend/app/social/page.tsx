@@ -14,8 +14,8 @@ import {type} from "./index"
 
 
 
-const formatTime = (date: Date) =>
-  date.toLocaleTimeString("fr-FR", {
+const formatTime = (date: Date | string) =>
+  new Date(date).toLocaleTimeString("fr-FR", {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -370,7 +370,18 @@ export default function SocialPage() {
     async function fetchmessages()
 		{
 			if (!currentUser || !selectedUser) return;
-			const newMessages = await contact.getMsg(currentUser.name, selectedUser);
+			//const newMessages = await contact.getMsg(currentUser.name, selectedUser);
+      const params = new URLSearchParams({
+        user: currentUser.name,
+        otherUser: selectedUser,
+      });
+      const res = await fetch(`/api/social/msg?${params.toString()}`, {
+        method: "GET",
+      })
+      if (!res.ok)
+        return;
+      const data = await res.json();
+      const newMessages: type.Messages[] = data.msgs;
 			if (!newMessages) return;
     	setCurrentMessages(newMessages);
       contact.resetUnread(currentUser.name, selectedUser)
@@ -694,10 +705,28 @@ export default function SocialPage() {
     if (isBlocked || hasBlocked) return;
     const draftIds = draftAttachments.map(draft => draft.id);
 
-    contact.addMsg(cleanMessage, currentUser.name, selectedUser, draftIds);
+    const response = await fetch("/api/social/msg", {
+        method: "POST",
+        body: JSON.stringify({sender: currentUser.name,
+          msg: cleanMessage, receiver: selectedUser,
+          draftIds: draftIds}),
+      });
+    const data = await response.json();
+    if (!response.ok)
+      return ;
 
     //fetch messages between users
-		const newMessages = await contact.getMsg(currentUser.name, selectedUser);
+    const params = new URLSearchParams({
+      user: currentUser.name,
+      otherUser: selectedUser,
+    });
+    const res = await fetch(`/api/social/msg?${params.toString()}`, {
+      method: "GET",
+    })
+    if (!res.ok)
+      return;
+    const msg = await res.json();
+    const newMessages: type.Messages[] = msg.msgs;
     contact.getUnreadNotif(currentUser.name);
 		if (!newMessages) return;
     
@@ -719,13 +748,6 @@ export default function SocialPage() {
 
     setMessage("");
     setDraftAttachments([]);
-  };
-
-  const reportConv = async () => {
-    if (!currentUser || !selectedUser || reported) return ;
-    setReported(true);
-    contact.reported(currentUser.name, selectedUser);
-    socket.emit("reported");
   };
 
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
