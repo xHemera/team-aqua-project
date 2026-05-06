@@ -380,7 +380,6 @@ export default function SocialPage() {
     async function fetchmessages()
 		{
 			if (!currentUser || !selectedUser) return;
-			//const newMessages = await contact.getMsg(currentUser.name, selectedUser);
       const params = new URLSearchParams({
         user: currentUser.name,
         otherUser: selectedUser,
@@ -474,7 +473,6 @@ export default function SocialPage() {
         return;
       const data = await res.json();
       const blockedUser: type.User = data.user;
-      //const blockedUser = await contact.getUser(selectedUser);
       if (!blockedUser) return;
       for (const id of currentUser.blockedUsers)
       {
@@ -495,7 +493,6 @@ export default function SocialPage() {
         return;
       const data = await res.json();
       const blockingUser: type.User = data.user;
-      //const blockingUser = await contact.getUser(selectedUser);
       if (!blockingUser) return;
       for (const id of blockingUser.blockedUsers)
       {
@@ -789,7 +786,6 @@ export default function SocialPage() {
       return;
     const data = await res.json();
     const targetUser: type.User = data.user;
-    //const targetUser = await contact.getUser(name) ?? null;
     setProfileViewerUser(targetUser);
     setShowProfileViewer(true);
   };
