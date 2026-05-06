@@ -4,7 +4,7 @@ import { rateLimit } from "@/lib/rateLimit";
 import { redis } from "@/lib/redis";
 import { headers } from "next/headers"
 
-export async function GET()
+export async function GET(req: Request)
 {
     const h = await headers();
     const ip = h
@@ -20,7 +20,13 @@ export async function GET()
     }
 
     try {
-        const users = await prisma.user.findMany({
+        const {searchParams} = new URL(req.url);
+        const username = searchParams.get("username");
+        if (!username)
+            return Response.json({error: "Internal server error"}, {status: 500});
+
+        const user = await prisma.user.findFirst({
+            where: {name: username},
             select: {
                 id: true,
                 name: true,
@@ -31,9 +37,9 @@ export async function GET()
                 online: true,
             }
         });
-        if (!users)
+        if (!user)
             return Response.json({error: "Internal server error"}, {status: 500});
-        return Response.json({users: users}, {status: 200});
+        return Response.json({user: user}, {status: 200});
     }
     catch {
         return Response.json({error: "Internal server error"}, {status: 500});

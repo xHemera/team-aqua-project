@@ -172,16 +172,26 @@ export default function SocialPage() {
   //fetch users and their inboxes
   useEffect(() => {
     async function fetchUsers() {
-    if (!userPseudo) return;
-      const [u, i] = await Promise.all([
-      contact.getUsers(),
-      contact.getInboxes(userPseudo),
-    ]);
-    const cU = u.find(user => user.name === userPseudo);
-    if (!cU) return ;
-    setCurrentUser(cU);
-    setUsers(u);
-    setInboxes(i);
+      if (!userPseudo) return;
+        const [ures, ires] = await Promise.all([
+        fetch("/api/social/users", {
+          method: "GET",
+        }),
+        fetch(`/api/social/inbox?username=${userPseudo}`, {
+          method: "GET",
+        }),
+      ]);
+      if (!ures.ok || !ires.ok)
+          return ;
+      const udata = await ures.json();
+      const idata = await ires.json();
+      const users: type.User[] = udata.users;
+      const inboxes: type.Inbox[] = idata.inboxes;
+      const cU = users.find(user => user.name === userPseudo);
+      if (!cU) return ;
+      setCurrentUser(cU);
+      setUsers(users);
+      setInboxes(inboxes);
     }
     fetchUsers();
 
@@ -457,7 +467,14 @@ export default function SocialPage() {
     async function isBlockedByMe()
     {
       if (!currentUser || !selectedUser) return;
-      const blockedUser = await contact.getUser(selectedUser);
+      const res = await fetch(`api/social/user?username=${selectedUser}`, {
+        method: "GET",
+      });
+      if (!res.ok)
+        return;
+      const data = await res.json();
+      const blockedUser: type.User = data.user;
+      //const blockedUser = await contact.getUser(selectedUser);
       if (!blockedUser) return;
       for (const id of currentUser.blockedUsers)
       {
@@ -471,7 +488,14 @@ export default function SocialPage() {
     async function amIBlocked()
     {
       if (!currentUser || !selectedUser) return;
-      const blockingUser = await contact.getUser(selectedUser);
+      const res = await fetch(`api/social/user?username=${selectedUser}`, {
+        method: "GET",
+      });
+      if (!res.ok)
+        return;
+      const data = await res.json();
+      const blockingUser: type.User = data.user;
+      //const blockingUser = await contact.getUser(selectedUser);
       if (!blockingUser) return;
       for (const id of blockingUser.blockedUsers)
       {
@@ -534,7 +558,7 @@ export default function SocialPage() {
 
 	//Loading screen while currentUser is not set
 	if (!currentUser)
-		return <div>Loading...</div>;
+		return <div>loading</div>;
 
   //open a add contact modal
   const openAddContactModal = () => {
@@ -758,7 +782,14 @@ export default function SocialPage() {
   };
 
   const openProfileViewerForUserName = async (name: string) => {
-    const targetUser = await contact.getUser(name) ?? null;
+    const res = await fetch(`api/social/user?username=${selectedUser}`, {
+      method: "GET",
+    });
+    if (!res.ok)
+      return;
+    const data = await res.json();
+    const targetUser: type.User = data.user;
+    //const targetUser = await contact.getUser(name) ?? null;
     setProfileViewerUser(targetUser);
     setShowProfileViewer(true);
   };
