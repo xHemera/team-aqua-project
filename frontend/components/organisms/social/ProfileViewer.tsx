@@ -181,7 +181,7 @@ export default function ProfileViewerModal({
       method: "POST",
       body: JSON.stringify({currentUser: currentUser.name, otherUser: inputUser.name}),
     })
-    if (!res)
+    if (!res.ok)
     {
       setReportNotification({
         type: "error",
@@ -206,7 +206,7 @@ export default function ProfileViewerModal({
     const res = await fetch(`api/social/friend?${params.toString()}`, {
       method: "DELETE",
     })
-    if (!res)
+    if (!res.ok)
     {
       setReportNotification({
         type: "error",
@@ -422,7 +422,7 @@ export default function ProfileViewerModal({
                 const res = await fetch("/api/social/report", {
                   method: "POST",
                   body: JSON.stringify({user: currentUser.name, reportedUser: inputUser.name})
-                })
+                });
                 if (res.status === 201)
                 {
                   setReportNotification({

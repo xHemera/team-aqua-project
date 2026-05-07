@@ -592,7 +592,7 @@ export default function SocialPage() {
       const ares = await fetch(`/api/social/contact?${params.toString()}`, {
         method: "GET",
       })
-      if (!ares)
+      if (!ares.ok)
       {
         setInviteNotification({
           type: "error",
@@ -606,7 +606,7 @@ export default function SocialPage() {
         method: "POST",
         body: JSON.stringify({currentUser: currentUser.name, addUser: inviteUsername}),
       })
-      if (!cres)
+      if (!cres.ok)
         return;
       const ires = await fetch(`/api/social/inbox?username=${currentUser.name}`, {
         method: "GET",
@@ -654,7 +654,7 @@ export default function SocialPage() {
       method: "PATCH",
       body: JSON.stringify({currentUser: currentUser.name, otherUser: selectedUser}),
     })
-    if (!res)
+    if (!res.ok)
       return;
     socket.emit("friend_added", {
       user: currentUser.name,
@@ -674,7 +674,7 @@ export default function SocialPage() {
     const res = await fetch(`api/social/friend?${params.toString()}`, {
       method: "DELETE",
     })
-    if (!res)
+    if (!res.ok)
       return;
     socket.emit("friend_denied", {
       user: currentUser.name,
@@ -711,7 +711,19 @@ export default function SocialPage() {
 
     for (const file of files)
     {
-      const id = await contact.addAttachments(file, fileName);
+      const formData = new FormData();
+
+      formData.append("file", file);
+      formData.append("url", fileName);
+
+      const res = await fetch("/api/social/attachment", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok)
+        continue;
+      const data = await res.json();
+      const id: string = data.id;
       const buildAttachmentFromFile = (file: File): type.Attachment => ({
         id: id,
         name: `${Date.now()}-${file.name}`,
@@ -727,7 +739,12 @@ export default function SocialPage() {
   };
 
   const removeDraftAttachment = async (attachmentId: string) => {
-    await contact.removeAttachment(attachmentId);
+
+    const res = await fetch(`/api/social/attachment?attachmentId=${attachmentId}`, {
+        method: "DELETE",
+      })
+      if (!res.ok)
+        return ;
     setDraftAttachments((prevAttachments) => {
       const target = prevAttachments.find((item) => item.id === attachmentId);
       if (target) {
@@ -1248,9 +1265,9 @@ export default function SocialPage() {
                 </div>
                 {draftAttachments.length > 0 && (
                   <div className="flex flex-wrap gap-2">
-                    {draftAttachments.map((attachment) => (
+                    {draftAttachments.map((attachment, index) => (
                       <div
-                        key={attachment.id}
+                        key={`${attachment.id}-${index}`}
                         className="inline-flex items-center gap-2 rounded-full border border-[#c9a227]/30 bg-[#242033] px-3 py-1 text-xs text-gray-200"
                       >
                         <i className="fa-regular fa-paperclip" />
