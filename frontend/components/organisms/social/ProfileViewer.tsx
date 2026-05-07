@@ -46,8 +46,6 @@ export default function ProfileViewerModal({
   badges = [],
 }: ProfileViewerModalProps) {
   const router = useRouter();
-  const [request, setRequest] = useState(false);
-  const [waiting, setWaiting] = useState(false);
   const [friend, setFriend] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [hasBlocked, setHasBlocked] = useState(false);
@@ -66,17 +64,10 @@ export default function ProfileViewerModal({
       }
     });
 
-    //adds the request live
-    socket.on("request", async ({user, oUser}) => {
-      if (oUser == currentUser.name)
-        setRequest(true);
-    });
-
     //adds match button live
     socket.on("adding", async ({user, oUser}) => {
       if (user == inputUser.name)
       {
-        setWaiting(false);
         setFriend(true);
       }
     });
@@ -85,7 +76,6 @@ export default function ProfileViewerModal({
     socket.on("refusing", async ({user, oUser}) => {
       if (oUser == inputUser.name)
       {
-        setWaiting(false);
         setFriend(false);
       }
     });
@@ -111,28 +101,6 @@ export default function ProfileViewerModal({
       });
   }, [currentUser, inputUser]);
 
-  //sets waiting status
-  useEffect(() => {
-    async function isWaiting()
-    {
-      if (!currentUser || !inputUser) return;
-      const params = new URLSearchParams({
-        currentUser: currentUser.name,
-        otherUser: inputUser.name,
-      });
-      const res = await fetch(`/api/social/otherFriend?${params.toString()}`, {
-        method: "GET",
-      });
-      if (!res.ok)
-        return ;
-      const data = await res.json();
-      const friend: type.Friend = data.friend;
-      if (!friend) return;
-      if (friend.request_sent == true) setWaiting(true);
-      return;
-    }
-    isWaiting();
-  }, [inputUser, currentUser])
 
   //sets friend status
   useEffect(() => {
@@ -163,31 +131,6 @@ export default function ProfileViewerModal({
     }
     isFriend();
   }, [currentUser, inputUser])
-
-  //sets request status
-  useEffect(() => {
-    async function isRequesting()
-    {
-			//console.error("Before check: ", request);
-      if (!currentUser || !inputUser) return;
-      const params = new URLSearchParams({
-        currentUser: currentUser.name,
-        otherUser: inputUser.name,
-      });
-      const fres = await fetch(`/api/social/otherFriend?${params.toString()}`, {
-        method: "GET",
-      });
-      if (!fres.ok)
-        return ;
-      const fdata = await fres.json();
-      const friend: type.Friend = fdata.friend;
-      if (!friend) return;
-      if (friend.request_sent == true) setRequest(true);
-			//console.error("After check: ", request);
-      return;
-    }
-    isRequesting();
-  }, [inputUser, currentUser])
 
   //sets blocked status
   useEffect(() => {
@@ -241,8 +184,6 @@ export default function ProfileViewerModal({
       user: currentUser.name,
       oUser: inputUser.name
     });
-    setWaiting(true);
-		setRequest(false);
     onClose();
   }
 
@@ -255,7 +196,6 @@ export default function ProfileViewerModal({
       oUser: inputUser.name
     });
     setFriend(false);
-    setRequest(false);
     setOpenRemove(false)
     onClose();
   }

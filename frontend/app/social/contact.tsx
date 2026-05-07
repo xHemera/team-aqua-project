@@ -138,19 +138,6 @@ export async function getAvatar (userName: string)
 //adds a message written by the first user
 export async function addMsg(msg: string, sender: string, receiver: string, draftIds: string[])
 {
-    const h = await headers();
-    const ip = h
-    .get("x-forwarded-for")
-    ?.split(",")[0]
-    .trim() || "unknown";
-
-    const allowed = await rateLimit(redis, `rl:admin${ip}`, 5, 1);
-
-    if (!allowed) {
-        console.log("Too many requests");
-        return;
-    }
-
     const user1 = await prisma.user.findFirst({
         where: { name: sender },
 		select: {id: true}
@@ -632,6 +619,11 @@ export async function reported(user: string, reportedUser: string)
         }
     });
     if (!inbox) throw Error("Inbox not found");
+
+    const alreadyReported = await prisma.reported_Conv.findFirst({
+        where: { inboxId: inbox.id }
+    })
+    if (alreadyReported) return;
 
     await prisma.reported_Conv.create({
         data: {

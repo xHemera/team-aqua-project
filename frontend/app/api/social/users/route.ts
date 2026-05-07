@@ -12,7 +12,7 @@ export async function GET()
     ?.split(",")[0]
     .trim() || "unknown";
 
-    const allowed = await rateLimit(redis, `rl:${ip}`, 20, 10);
+    const allowed = await rateLimit(redis, `rl:${ip}`, 20, 1);
 
     if (!allowed) {
         console.log("Too many requests");

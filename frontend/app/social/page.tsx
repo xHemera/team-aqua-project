@@ -51,8 +51,6 @@ export default function SocialPage() {
   const [profileViewerUser, setProfileViewerUser] = useState<type.User | null>(null);
   const [request, setRequest] = useState(false);
   const [friendRequestSender, setFriendRequestSender] = useState<string | null>(null);
-  const [waiting, setWaiting] = useState(false);
-  const [friend, setFriend] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [hasBlocked, setHasBlocked] = useState(false);
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
@@ -62,7 +60,6 @@ export default function SocialPage() {
   const [typing, setTyping] = useState(false);
   const [unread, setUnread] = useState(false);
   const [customUserAvatar, setCustomUserAvatar] = useState<string | null>(null);
-  const [reported, setReported] = useState(false);
 
   const MAX_MESSAGE_LENGTH = 500;
   const MAX_DISPLAY_LENGTH = 200;
@@ -288,18 +285,7 @@ export default function SocialPage() {
     socket.on("adding", async ({user, oUser}) => {
       if (user == selectedUser)
       {
-        setWaiting(false);
         setRequest(false)
-        setFriend(true);
-      }
-    });
-
-    //resets status dynamically
-    socket.on("refusing", async ({user, oUser}) => {
-      if (user == selectedUser)
-      {
-        setWaiting(false);
-        setFriend(false);
       }
     });
 
@@ -307,12 +293,10 @@ export default function SocialPage() {
     socket.on("blocked", async ({user, oUser}) => {
       if (user == selectedUser)
         setIsBlocked(true);
-        setFriend(false);
     });
 
     socket.on("blocking", async () => {
       setHasBlocked(true);
-      setFriend(false);
     });
 
     //resets status dynamically
@@ -330,23 +314,14 @@ export default function SocialPage() {
         setChallenge(true);
         setOpponent(sender);
       }
-      if (sender == userPseudo)
-        setWaiting(true);
     });
 
     //send to the game if duel is accepted
     socket.on("accept", async ({user, oUser}) => {
       if (oUser == userPseudo)
       {
-        setWaiting(false);
         router.push("game");
       }
-    });
-
-    //stops the waiting status if duel is refused
-    socket.on("refuse", async ({user, oUser}) => {
-      if (oUser == userPseudo)
-        setWaiting(false);
     });
 
     //sets unread to read if message is read
@@ -432,46 +407,11 @@ export default function SocialPage() {
       const data = await res.json();
       const friend: type.Friend = data.friend;
       if (!friend) {
-        setWaiting(false);
         setRequest(false);
         setFriendRequestSender(null);
-        return;
       }
-      if (friend.request_sent == true) setWaiting(true);
-      else setWaiting(false);
-      return;
     }
     isWaiting();
-
-    async function isFriend()
-    {
-      if (!currentUser || !selectedUser) return;
-      const params = new URLSearchParams({
-        currentUser: currentUser.name,
-        otherUser: selectedUser,
-      });
-      const fres = await fetch(`/api/social/otherFriend?${params.toString()}`, {
-        method: "GET",
-      });
-      if (!fres.ok)
-        return ;
-      const fdata = await fres.json();
-      const myFriend: type.Friend = fdata.friend;
-      const tres = await fetch(`/api/social/otherFriend?${params.toString()}`, {
-        method: "GET",
-      });
-      if (!tres.ok)
-        return ;
-      const tdata = await tres.json();
-      const theirFriend: type.Friend = tdata.friend;
-      if (!myFriend || !theirFriend) {
-        setFriend(false);
-        return;
-      }
-      if (myFriend.request_sent == false && theirFriend.request_sent == false) setFriend(true);
-      return;
-    }
-    isFriend();
 
     async function isRequesting()
     {
@@ -543,14 +483,6 @@ export default function SocialPage() {
       return;
     }
     amIBlocked();
-
-    async function isItReported()
-    {
-      if (!currentUser || !selectedUser) return;
-      const r = await contact.getReport(currentUser.name, selectedUser);
-      setReported(r);
-    }
-    isItReported();
   }, [currentUser, selectedUser])
 
 	useEffect(() => {
@@ -581,7 +513,14 @@ export default function SocialPage() {
     async function fetchSelectedUnread()
     {
       if (!currentUser || !selectedUser) return;
-      const unr = await contact.getUnread(currentUser.name, selectedUser);
+        const ures = await fetch(`api/social/unread`, {
+        method: "PUT",
+        body: JSON.stringify({sender: currentUser.name, receiver: selectedUser})
+      });
+      if (!ures.ok)
+        return;
+      const data = await ures.json();
+      const unr: number = data.unread;
       setUnread(unr > 0);
     }
     fetchSelectedUnread();
@@ -590,7 +529,13 @@ export default function SocialPage() {
   async function fetchUnread()
   {
     if (!userPseudo) return;
-    const results = await contact.getUnreadNotif(userPseudo);
+    const mres = await fetch(`/api/social/unreadMap?user=${userPseudo}`, {
+      method: "GET",
+    })
+    if (!mres.ok)
+      return;
+    const udata = await mres.json();
+    const results: Record<string, number> = udata.results;
     setUnreadMap(results);
   }
 
@@ -794,7 +739,15 @@ export default function SocialPage() {
       return;
     const msg = await res.json();
     const newMessages: type.Messages[] = msg.msgs;
-    contact.getUnreadNotif(currentUser.name);
+
+    const mres = await fetch(`/api/social/unreadMap?${params.toString()}`, {
+      method: "GET",
+    })
+    if (!mres.ok)
+      return;
+    const udata = await mres.json();
+    const results: Record<string, number> = udata.results;
+    setUnreadMap(results);
 		if (!newMessages) return;
     
     setCurrentMessages(newMessages);
