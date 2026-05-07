@@ -240,9 +240,23 @@ export default function ProfileViewerModal({
       const fdata = await fres.json();
       const oUser: type.Friend = fdata.friend;
       if (oUser)
-        contact.blockFriend(currentUser.name, inputUser.name);
+      {
+        const bres = await fetch(`/api/social/block?${params}`, {
+          method: "DELETE",
+        })
+        if (!bres)
+          return;
+      }
+
       else
-        contact.blockUser(currentUser.name, inputUser.name);
+      {
+        const bres = await fetch("/api/social/block", {
+          method: "PATCH",
+          body: JSON.stringify({currentUser: currentUser.name, otherUser: inputUser.name}),
+        })
+        if (!bres)
+          return;
+      }
       socket.emit("friend_or_user_blocked", {
         user: currentUser.name,
         oUser: inputUser.name
@@ -253,7 +267,12 @@ export default function ProfileViewerModal({
     }
     else
     {
-      contact.unblockUser(currentUser.name, inputUser.name);
+      const bres = await fetch("/api/social/block", {
+          method: "PUT",
+          body: JSON.stringify({currentUser: currentUser.name, otherUser: inputUser.name}),
+        })
+        if (!bres)
+          return;
       socket.emit("user_unblocked", {
         user: currentUser.name,
         oUser: inputUser.name

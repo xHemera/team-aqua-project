@@ -712,7 +712,6 @@ export default function SocialPage() {
     for (const file of files)
     {
       const formData = new FormData();
-
       formData.append("file", file);
       formData.append("url", fileName);
 
@@ -783,6 +782,9 @@ export default function SocialPage() {
       return;
     const msg = await res.json();
     const newMessages: type.Messages[] = msg.msgs;
+    if (!newMessages) return;
+    
+    setCurrentMessages(newMessages);
 
     const mres = await fetch(`/api/social/unreadMap?${params.toString()}`, {
       method: "GET",
@@ -792,9 +794,6 @@ export default function SocialPage() {
     const udata = await mres.json();
     const results: Record<string, number> = udata.results;
     setUnreadMap(results);
-		if (!newMessages) return;
-    
-    setCurrentMessages(newMessages);
 
     socket.emit("notTyping", {
       sender : currentUser.name,
