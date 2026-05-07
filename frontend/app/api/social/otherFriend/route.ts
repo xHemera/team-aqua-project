@@ -31,7 +31,7 @@ export async function GET(req: Request)
         });
         const oUser = await prisma.user.findFirst({
             where: {name: otherUser},
-            select: {id: true}
+            select: {id: true},
         });
         if (!cUser || !oUser) return Response.json({error: "Internal server error"}, {status: 500});
 

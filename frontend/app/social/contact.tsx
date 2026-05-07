@@ -635,35 +635,6 @@ export async function reported(user: string, reportedUser: string)
     });
 }
 
-export async function getReport(currentUser: string, otherUser: string)
-{
-    const cUser = await prisma.user.findFirst({
-        where: {name: currentUser},
-        select: {id: true}
-    });
-    const oUser = await prisma.user.findFirst({
-        where: {name: otherUser},
-        select: {id: true}
-    });
-    if (!cUser || !oUser) throw Error("Users not found");
-
-    const inbox = await prisma.inbox.findFirst({
-        where: {
-            inboxUser: {
-                some: {user_id: cUser.id}
-            },
-            AND: {
-                inboxUser: {
-                    some: {user_id: oUser.id}
-                }
-            }
-        },
-        select: {report_id: true}
-    });
-    if (!inbox || !inbox.report_id) return false;
-    return true;
-}
-
 export async function addAttachments(file: File, url: string)
 {
     const toSizeLabel = (bytes: number) => {

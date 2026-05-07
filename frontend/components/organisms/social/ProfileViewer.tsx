@@ -179,7 +179,18 @@ export default function ProfileViewerModal({
       onClose();
       return;
     }
-    contact.addFriend(currentUser.name, inputUser.name);
+    const res = await fetch("api/social/friend", {
+      method: "POST",
+      body: JSON.stringify({currentUser: currentUser.name, otherUser: inputUser.name}),
+    })
+    if (!res)
+    {
+      setReportNotification({
+        type: "error",
+        message: "Could not send friend request",
+      });
+      return;
+    }
     socket.emit("friend_request", {
       user: currentUser.name,
       oUser: inputUser.name
@@ -190,7 +201,21 @@ export default function ProfileViewerModal({
   async function refuseFriendship()
   {
     if (!currentUser || !inputUser) return;
-    contact.denyFriendRequest(currentUser.name, inputUser.name);
+    const params = new URLSearchParams({
+      currentUser: currentUser.name,
+      otherUser: inputUser.name,
+    });
+    const res = await fetch(`api/social/friend?${params.toString()}`, {
+      method: "DELETE",
+    })
+    if (!res)
+    {
+      setReportNotification({
+        type: "error",
+        message: "Could not delete friendship",
+      });
+      return;
+    }
     socket.emit("friend_denied", {
       user: currentUser.name,
       oUser: inputUser.name
@@ -396,17 +421,28 @@ export default function ProfileViewerModal({
               className="border-orange-500/70 bg-orange-900/20 text-orange-200 hover:bg-orange-900/35"
               onClick={async () => {
                 if (!currentUser || !inputUser) return;
-                try {
-                  await contact.reported(currentUser.name, inputUser.name);
+                const res = await fetch("/api/social/report", {
+                  method: "POST",
+                  body: JSON.stringify({user: currentUser.name, reportedUser: inputUser.name})
+                })
+                if (res.status === 201)
+                {
                   setReportNotification({
                     type: "success",
-                    message: "User reported successfully",
+                    message: "User reported successfully.",
                   });
                   socket.emit("reported");
-                } catch (error) {
+                }
+                else if (res.status === 409) {
                   setReportNotification({
                     type: "error",
-                    message: "you can't report this user before he gets reviewed",
+                    message: "You can't report this user before he gets reviewed.",
+                  });
+                }
+                else {
+                  setReportNotification({
+                    type: "error",
+                    message: "Could not report.",
                   });
                 }
               }}

@@ -636,7 +636,12 @@ export default function SocialPage() {
   async function addFriend()
   {
     if (!currentUser || !friendRequestSender) return;
-    contact.acceptFriendRequest(currentUser.name, friendRequestSender);
+    const res = await fetch("api/social/friend", {
+      method: "PATCH",
+      body: JSON.stringify({currentUser: currentUser.name, otherUser: selectedUser}),
+    })
+    if (!res)
+      return;
     socket.emit("friend_added", {
       user: currentUser.name,
       oUser: friendRequestSender
@@ -648,7 +653,15 @@ export default function SocialPage() {
   async function refuseFriendship()
   {
     if (!currentUser || !friendRequestSender) return;
-    contact.denyFriendRequest(currentUser.name, friendRequestSender);
+    const params = new URLSearchParams({
+      currentUser: currentUser.name,
+      otherUser: selectedUser,
+    });
+    const res = await fetch(`api/social/friend?${params.toString()}`, {
+      method: "DELETE",
+    })
+    if (!res)
+      return;
     socket.emit("friend_denied", {
       user: currentUser.name,
       oUser: friendRequestSender
