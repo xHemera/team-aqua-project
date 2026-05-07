@@ -351,7 +351,7 @@ export default function SocialPage() {
     }
 	}, [currentMessages.length])
 
-  //sets waiting status
+  //fetch messages and resets unread messages
   useEffect(() => {
     async function fetchmessages()
 		{
@@ -360,19 +360,22 @@ export default function SocialPage() {
         user: currentUser.name,
         otherUser: selectedUser,
       });
-      const mres = await fetch(`/api/social/msg?${params.toString()}`, {
-        method: "GET",
-      })
+      const [mres, ures] = await Promise.all([
+        fetch(`/api/social/msg?${params.toString()}`, {
+          method: "GET",
+        }),
+        fetch(`api/social/unread`, {
+          method: "PUT",
+          body: JSON.stringify({sender: currentUser.name, receiver: selectedUser})
+        }),
+      ])
+      
       if (!mres.ok)
         return;
       const data = await mres.json();
       const newMessages: type.Messages[] = data.msgs;
 			if (!newMessages) return;
     	setCurrentMessages(newMessages);
-      const ures = await fetch(`api/social/unread`, {
-        method: "PUT",
-        body: JSON.stringify({sender: currentUser.name, receiver: selectedUser})
-      });
       if (!ures.ok)
         return;
       fetchUnread();
@@ -393,6 +396,7 @@ export default function SocialPage() {
         user: userPseudo,
         oUser: selectedUser,
       });
+
     async function isWaiting()
     {
       if (!currentUser || !selectedUser) return;
@@ -603,15 +607,17 @@ export default function SocialPage() {
       }
 
       //makes a new inbox for both users and updates it
-      const cres = await fetch("/api/social/contact", {
-        method: "POST",
-        body: JSON.stringify({currentUser: currentUser.name, addUser: inviteUsername}),
-      })
+      const [cres, ires] = await Promise.all([
+        fetch("/api/social/contact", {
+          method: "POST",
+          body: JSON.stringify({currentUser: currentUser.name, addUser: inviteUsername}),
+        }),
+        fetch(`/api/social/inbox?username=${currentUser.name}`, {
+          method: "GET",
+        }),
+      ])
       if (!cres.ok)
         return;
-      const ires = await fetch(`/api/social/inbox?username=${currentUser.name}`, {
-        method: "GET",
-      });
       if (!ires.ok)
         return ;
       const idata = await ires.json();
@@ -761,24 +767,31 @@ export default function SocialPage() {
     if (isBlocked || hasBlocked) return;
     const draftIds = draftAttachments.map(draft => draft.id);
 
+    const params = new URLSearchParams({
+      user: currentUser.name,
+      otherUser: selectedUser,
+    });
     const response = await fetch("/api/social/msg", {
         method: "POST",
         body: JSON.stringify({sender: currentUser.name,
           msg: cleanMessage, receiver: selectedUser,
           draftIds: draftIds}),
       });
+      
+
     const data = await response.json();
     if (!response.ok)
       return ;
 
-    //fetch messages between users
-    const params = new URLSearchParams({
-      user: currentUser.name,
-      otherUser: selectedUser,
-    });
-    const res = await fetch(`/api/social/msg?${params.toString()}`, {
-      method: "GET",
-    })
+    const [res, ures] = await Promise.all([
+      fetch(`/api/social/msg?${params.toString()}`, {
+        method: "GET",
+      }),
+      fetch(`api/social/unread`, {
+        method: "PUT",
+        body: JSON.stringify({sender: currentUser.name, receiver: selectedUser})
+      }),
+    ]);
     if (!res.ok)
       return;
     const msg = await res.json();
@@ -787,25 +800,12 @@ export default function SocialPage() {
     
     setCurrentMessages(newMessages);
 
-    const mres = await fetch(`/api/social/unreadMap?${params.toString()}`, {
-      method: "GET",
-    })
-    if (!mres.ok)
-      return;
-    const udata = await mres.json();
-    const results: Record<string, number> = udata.results;
-    setUnreadMap(results);
-
     socket.emit("notTyping", {
       sender : currentUser.name,
       receiver: selectedUser,
     });
 
     //reset unread messages
-    const ures = await fetch(`api/social/unread`, {
-      method: "PUT",
-      body: JSON.stringify({sender: currentUser.name, receiver: selectedUser})
-    });
     if (!ures.ok)
       return;
     setUnread(true);

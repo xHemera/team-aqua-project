@@ -82,17 +82,16 @@ export default function ReportedConversationsPanel({
       reported: selectedReport.reportedUser,
     });
 
-    const dres = await fetch(`/api/admin/reports?${params.toString()}`, {
-      method: "DELETE",
-    });
-    if (!dres.ok)
-      return ;
-
-    const bres = await fetch("/api/admin/ban", {
-      method: "PUT",
-      body: JSON.stringify({username: selectedReport.reportedUser}),
-    });
-    if (!bres.ok)
+    const [dres, bres] = await Promise.all ([
+      fetch(`/api/admin/reports?${params.toString()}`, {
+        method: "DELETE",
+      }),
+      fetch("/api/admin/ban", {
+        method: "PUT",
+        body: JSON.stringify({username: selectedReport.reportedUser}),
+      }),
+    ]);
+    if (!dres.ok || !bres.ok)
       return ;
 
     socket.emit("banning", selectedReport.reportedUser );

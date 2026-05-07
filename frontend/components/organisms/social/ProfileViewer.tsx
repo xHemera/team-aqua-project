@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import {type} from "@/app/social/index"
 
 type Avatar = {
-  url:					string;
+  url:  string;
 };
 
 type User = {
@@ -108,19 +108,20 @@ export default function ProfileViewerModal({
         currentUser: currentUser.name,
         otherUser: inputUser.name,
       });
-      const fres = await fetch(`/api/social/otherFriend?${params.toString()}`, {
-        method: "GET",
-      });
-      if (!fres.ok)
+
+      const [fres, tres] = await Promise.all([
+        fetch(`/api/social/friend?${params.toString()}`, {
+          method: "GET",
+        }),
+        fetch(`/api/social/otherFriend?${params.toString()}`, {
+          method: "GET",
+        }),
+      ]);
+      if (!fres.ok || !tres.ok)
         return ;
       const fdata = await fres.json();
-      const myFriend: type.Friend = fdata.friend;
-      const tres = await fetch(`/api/social/otherFriend?${params.toString()}`, {
-        method: "GET",
-      });
-      if (!tres.ok)
-        return ;
       const tdata = await tres.json();
+      const myFriend: type.Friend = fdata.friend;
       const theirFriend: type.Friend = tdata.friend;
       if (!myFriend || !theirFriend) {setFriend(false); return;}
       if (myFriend.request_sent == false && theirFriend.request_sent == false) setFriend(true);
