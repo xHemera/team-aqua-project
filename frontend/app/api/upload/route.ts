@@ -1,8 +1,24 @@
+import { rateLimit } from "@/lib/rateLimit";
+import { redis } from "@/lib/redis";
 import { writeFile } from "fs/promises";
+import { headers } from "next/headers";
 import path from "path";
 
 export async function POST(req: Request)
 {
+    const h = await headers();
+    const ip = h
+    .get("x-forwarded-for")
+    ?.split(",")[0]
+    .trim() || "unknown";
+
+    const allowed = await rateLimit(redis, `rl:${ip}`, 5, 1);
+
+    if (!allowed) {
+        console.log("Too many requests");
+        return Response.json({error: "Too many request"}, {status: 429});
+    }
+
     try {
         const formData = await req.formData();
         const files = formData.getAll("file");

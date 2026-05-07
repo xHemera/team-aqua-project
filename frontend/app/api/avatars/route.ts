@@ -1,7 +1,23 @@
 import prisma from "@/lib/prisma";
 import { PROFILE_ICONS } from "@/lib/profile-icons";
+import { headers } from "next/headers";
+import { rateLimit } from "@/lib/rateLimit";
+import { redis } from "@/lib/redis";
 
 export async function GET() {
+  const h = await headers();
+  const ip = h
+  .get("x-forwarded-for")
+  ?.split(",")[0]
+  .trim() || "unknown";
+
+  const allowed = await rateLimit(redis, `rl:${ip}`, 5, 1);
+
+  if (!allowed) {
+      console.log("Too many requests");
+      return Response.json({error: "Too many request"}, {status: 429});
+  }
+
   try {
     let avatars = await prisma.avatar.findMany({
       orderBy: [{ name: "asc" }, { id: "asc" }],
