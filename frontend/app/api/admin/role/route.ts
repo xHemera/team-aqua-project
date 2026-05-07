@@ -50,13 +50,12 @@ export async function POST(req: Request)
     return Response.json({status: 200});
 }
 
-//fonction inutile POUR L'INSTANT
 export async function PATCH(req: Request)
 {
     const ip = req.headers
-  .get("x-forwarded-for")
-  ?.split(",")[0]
-  .trim() || "unknown";
+    .get("x-forwarded-for")
+    ?.split(",")[0]
+    .trim() || "unknown";
 
     const allowed = await rateLimit(redis, `rl:${ip}`, 3, 1);
 

@@ -6,6 +6,7 @@ import type { type } from "@/app/admin/index";
 import { manage }  from "@/app/admin/index"
 import { useEffect, useState } from "react";
 import { socket } from "../../../socket"
+import { SearchParamsContext } from "next/dist/shared/lib/hooks-client-context.shared-runtime";
 
 type ReportedConversationsPanelProps = {
   reports: type.ReportedConv[];
@@ -39,7 +40,17 @@ export default function ReportedConversationsPanel({
     async function fetchUsers()
     {
       if (!selectedReport || !selectedReport.reporter || !selectedReport.reportedUser) return ;
-      const u = await manage.getUsersByName(selectedReport.reporter, selectedReport.reportedUser);
+      const params = new URLSearchParams({
+        reporter: selectedReport.reporter,
+        reported: selectedReport.reportedUser,
+      });
+      const res = await fetch(`/api/admin/userByName?${params.toString()}`, {
+        method: "GET",
+      });
+      if (!res.ok)
+        return ;
+      const data = await res.json();
+      const u: Record<string, string> = data.results;
       setUsers(u);
     }
     fetchUsers();
@@ -48,21 +59,45 @@ export default function ReportedConversationsPanel({
   async function deleteReport()
   {
     if (!selectedReport) return;
-    manage.deleteReport(selectedReport.reporter, selectedReport.reportedUser);
+    const params = new URLSearchParams({
+      reporter: selectedReport.reporter,
+      reported: selectedReport.reportedUser,
+    });
+    const dres = await fetch(`/api/admin/reports?${params.toString()}`, {
+      method: "DELETE",
+    });
+    if (!dres.ok)
+      return ;
     const i = reports.findIndex((report) => report.id === selectedReport.id);
     reports.splice(i, 1);
     socket.emit("reviewed");
     selectedReport = reports[0] ?? null;
-    socket.emit("banning", {
-      banned: selectedReport.reportedUser
-    });
   }
 
   async function banUser()
   {
     if (!selectedReport) return;
-    manage.deleteReport(selectedReport.reporter, selectedReport.reportedUser);
-    manage.banUser(selectedReport.reportedUser);
+    const params = new URLSearchParams({
+      reporter: selectedReport.reporter,
+      reported: selectedReport.reportedUser,
+    });
+
+    const dres = await fetch(`/api/admin/reports?${params.toString()}`, {
+      method: "DELETE",
+    });
+    if (!dres.ok)
+      return ;
+
+    const bres = await fetch("/api/admin/ban", {
+      method: "PUT",
+      body: JSON.stringify({username: selectedReport.reportedUser}),
+    });
+    if (!bres.ok)
+      return ;
+
+    socket.emit("banning", {
+      banned: selectedReport.reportedUser
+    });
     const i = reports.findIndex((report) => report.id === selectedReport.id);
     reports.splice(i, 1);
     socket.emit("reviewed");

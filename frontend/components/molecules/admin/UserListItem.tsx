@@ -33,22 +33,36 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
 
   async function banUser()
   {
-    await manage.banUser(user.name);
-    socket.emit("reviewed");
+    const res = await fetch("/api/admin/ban", {
+      method: "PUT",
+      body: JSON.stringify({username: user.name}),
+    })
+    if (!res.ok)
+      return ;
     socket.emit("banning", user.name);
     return ;
   }
 
   async function unbanUser()
   {
-    await manage.unbanUser(user.name);
+    const res = await fetch("/api/admin/ban", {
+      method: "PATCH",
+      body: JSON.stringify({username: user.name}),
+    })
+    if (!res.ok)
+      return ;
     socket.emit("unbanning");
     return ;
   }
 
   const changeRole = async (id: string, modo: boolean) =>
   {
-    await manage.changeRole(id, modo);
+    const res = await fetch("/api/admin/role", {
+      method: "PATCH",
+      body: JSON.stringify({user: id, isModo: modo}),
+    })
+    if (!res.ok)
+      return ;
     if (modo)
       socket.emit("removeMod");
     else

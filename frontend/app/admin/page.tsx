@@ -39,10 +39,18 @@ export default function AdminPage() {
 
     async function fetchUsersAndReports()
     {
-      const [u, r] = await Promise.all([
-            manage.getUsers(),
-            manage.getReports(),
+      const [uRes, rRes] = await Promise.all([
+            fetch("/api/admin/users", {
+              method: "GET",
+            }),
+            fetch("/api/admin/reports", {
+              method: "GET",
+            }),
       ])
+      const uData = await uRes.json();
+      const u: type.User[] = uData.users;
+      const rData = await rRes.json();
+      const r: type.ReportedConv[] = rData.reports;
       setUsers(u);
       if (!r)
         setReports([])
