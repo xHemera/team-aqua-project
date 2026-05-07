@@ -57,7 +57,7 @@ export async function DELETE(req: Request)
     ?.split(",")[0]
     .trim() || "unknown";
 
-    const allowed = await rateLimit(redis, `rl:${ip}`, 20, 1);
+    const allowed = await rateLimit(redis, `rl:${ip}`, 5, 1);
 
     if (!allowed) {
         console.log("Too many requests");
