@@ -4,7 +4,6 @@ import Button from "@/components/atoms/Button";
 import Card from "@/components/atoms/Card";
 import IconButton from "@/components/atoms/IconButton";
 import { socket } from "../../../socket"
-import { contact }  from "../../../app/social/index"
 import NotificationToast from "@/components/organisms/home/NotificationToast";
 import Validate from "../Validate";
 import { useRouter } from "next/navigation";
