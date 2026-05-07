@@ -95,9 +95,7 @@ export default function ReportedConversationsPanel({
     if (!bres.ok)
       return ;
 
-    socket.emit("banning", {
-      banned: selectedReport.reportedUser
-    });
+    socket.emit("banning", selectedReport.reportedUser );
     const i = reports.findIndex((report) => report.id === selectedReport.id);
     reports.splice(i, 1);
     socket.emit("reviewed");
