@@ -71,10 +71,10 @@ export async function addContact(currentUser: string, addUser: string)
 {
     const user1 = await prisma.user.findFirst({
         where: { name: currentUser }
-    })
+    });
     const user2 = await prisma.user.findFirst({
         where: { name: addUser }
-    })
+    });
 
 	if (!user1 || !user2) throw new Error("Users not found");
 
@@ -90,7 +90,7 @@ export async function addContact(currentUser: string, addUser: string)
                 ]
             }
         }
-    })
+    });
 }
 
 //check if a user already has a conversation with someone

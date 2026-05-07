@@ -584,7 +584,15 @@ export default function SocialPage() {
         return ;
       }
       //check if the inbox already exist
-      if (await contact.alreadyAdded(currentUser.name, inviteUsername) === false)
+      const params = new URLSearchParams({
+        currentUser: currentUser.name,
+        addUser: inviteUsername,
+      });
+
+      const ares = await fetch(`/api/social/contact?${params.toString()}`, {
+        method: "GET",
+      })
+      if (!ares)
       {
         setInviteNotification({
           type: "error",
@@ -592,9 +600,15 @@ export default function SocialPage() {
         });
         return;
       }
+
       //makes a new inbox for both users and updates it
-      contact.addContact(currentUser.name, inviteUsername);
-      const ires = await fetch(`/api/social/inbox?username=${userPseudo}`, {
+      const cres = await fetch("/api/social/contact", {
+        method: "POST",
+        body: JSON.stringify({currentUser: currentUser.name, addUser: inviteUsername}),
+      })
+      if (!cres)
+        return;
+      const ires = await fetch(`/api/social/inbox?username=${currentUser.name}`, {
         method: "GET",
       });
       if (!ires.ok)
