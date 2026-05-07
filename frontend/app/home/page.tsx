@@ -401,72 +401,99 @@ export default function Home() {
       <main className="relative flex-1 overflow-hidden p-3 pl-0">
         <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[#0c0a0f] via-[#12101a] to-[#0a0810]" />
         <div
-          className="absolute inset-0 rounded-3xl opacity-[0.03]"
+          className="absolute inset-0 rounded-3xl opacity-[0.02]"
           style={{
             backgroundImage:
               "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c9a227' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
           }}
         />
 
-        <div className="relative z-10 flex h-full min-h-0 flex-col gap-4 rounded-3xl border border-[#c9a227]/25 bg-black/15 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#c9a227]/30 bg-[#120f17]/85 px-4 py-3">
-            <div className="text-sm uppercase tracking-[0.12em] text-[#ead9aa]">
-              {pseudo}
+        <div className="relative z-10 flex h-full min-h-0 flex-col gap-5 rounded-3xl border border-[#c9a227]/20 bg-black/10 p-5">
+          {/* Header */}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-col">
+              <span
+                className="text-lg font-black uppercase tracking-[0.16em] text-[#f5e6c8]"
+                style={{ fontFamily: "var(--font-display), serif" }}
+              >
+                {pseudo}
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-[0.1em] text-[#c9b48a]">Welcome back</span>
             </div>
-            <div className="flex items-center gap-3 text-sm font-semibold text-[#f5e6c8]">
-              <span className="inline-flex items-center gap-2 rounded-lg border border-[#6a5b81] bg-[#1e1828] px-3 py-1.5">
-                <i className="fa-solid fa-gem text-[#cd5c5c]" aria-hidden="true" />
-                {ruby}
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-lg border border-[#6a5b81] bg-[#1e1828] px-3 py-1.5">
-                <i className="fa-solid fa-coins text-[#f2c658]" aria-hidden="true" />
-                {gold}
-              </span>
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl border border-[#c9a227]/50 bg-gradient-to-br from-[#1e1828] to-[#15121a] px-4 py-2.5 backdrop-blur-sm">
+                <span className="inline-flex items-center gap-2.5 text-sm font-bold text-[#f5e6c8]">
+                  <i className="fa-solid fa-gem text-lg text-[#ff6b6b]" aria-hidden="true" />
+                  <span className="min-w-[48px] text-right">{ruby}</span>
+                </span>
+              </div>
+              <div className="rounded-xl border border-[#c9a227]/50 bg-gradient-to-br from-[#1e1828] to-[#15121a] px-4 py-2.5 backdrop-blur-sm">
+                <span className="inline-flex items-center gap-2.5 text-sm font-bold text-[#f5e6c8]">
+                  <i className="fa-solid fa-coins text-lg text-[#ffd700]" aria-hidden="true" />
+                  <span className="min-w-[48px] text-right">{gold}</span>
+                </span>
+              </div>
             </div>
           </div>
 
+          {/* Expedition Reward Banner */}
           {expeditionReward && (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#4b8f65]/70 bg-[#122019] px-4 py-3 text-[#dcffe9]">
-              <div className="text-sm uppercase tracking-wider">
-                Expedition complete • +{expeditionReward.xp} XP • +{expeditionReward.gold} Gold
+            <div className="overflow-hidden rounded-xl border border-[#4b8f65]/60 bg-gradient-to-r from-[#122019] to-[#1a2b23] p-4 shadow-[0_0_20px_rgba(75,143,101,0.15)]">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <i className="fa-solid fa-star text-xl text-[#7cfc00]" aria-hidden="true" />
+                  <div>
+                    <div className="text-xs font-bold uppercase tracking-widest text-[#7cfc00]">
+                      Expedition complete
+                    </div>
+                    <div className="mt-1 text-sm text-[#dcffe9]">
+                      +{expeditionReward.xp} XP • +{expeditionReward.gold} Gold
+                    </div>
+                  </div>
+                </div>
+                <Button type="button" size="sm" onClick={handleClaimExpeditionReward} className="font-bold uppercase tracking-wider">
+                  Claim
+                </Button>
               </div>
-              <Button type="button" size="sm" onClick={handleClaimExpeditionReward} className="font-bold uppercase tracking-wider">
-                Claim
-              </Button>
             </div>
           )}
 
-          <div className="flex min-h-0 flex-1 flex-col gap-4">
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+          {/* Main Content Grid */}
+          <div className="flex min-h-0 flex-1 flex-col gap-5">
+            {/* Features Row */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-4">
               <button
                 type="button"
                 onClick={handleMine}
-                className="mine-clicker group relative flex min-h-[150px] w-full flex-col justify-between overflow-hidden rounded-2xl border border-[#c9a227]/30 bg-[#120f17]/90 p-4 text-left shadow-[0_20px_40px_rgba(0,0,0,0.45)] transition-transform duration-300 hover:scale-[1.01] hover:border-[#e6c55a]/60"
+                className="mine-clicker group relative flex min-h-[160px] w-full flex-col justify-between overflow-hidden rounded-xl border border-[#c9a227]/40 bg-gradient-to-br from-[#1a1422] to-[#0f0c14] p-4 text-left shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-300 hover:border-[#e6c55a]/70 hover:shadow-[0_12px_40px_rgba(201,162,39,0.15)] lg:min-h-[140px]"
               >
-                <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#2a2234]/0 via-[#7a3f2e]/35 to-[#c7662d]/35" />
+                <div className="pointer-events-none absolute -inset-1 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#c7662d]/15 via-transparent to-[#2a2234]/15 rounded-xl" />
                 </div>
 
-                <div className="relative z-10 flex items-center justify-between">
-                  <span
-                    className="text-xl font-black uppercase tracking-[0.14em] text-[#f5e6c8]"
-                    style={{ fontFamily: "var(--font-display), serif" }}
-                  >
-                    Mine
-                  </span>
-                  <i className="fa-solid fa-hammer text-lg text-[#e6c55a]" aria-hidden="true" />
+                <div className="relative z-10 flex items-start justify-between">
+                  <div className="flex flex-col gap-1">
+                    <span
+                      className="text-2xl font-black uppercase tracking-[0.14em] text-[#f5e6c8]"
+                      style={{ fontFamily: "var(--font-display), serif" }}
+                    >
+                      Forge
+                    </span>
+                    <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#c9b48a]">Mine Crystals</span>
+                  </div>
+                  <i className="fa-solid fa-pickaxe text-lg text-[#e6c55a] drop-shadow-lg" aria-hidden="true" />
                 </div>
 
-                <div className="relative z-10 mt-4 flex items-center justify-between">
+                <div className="relative z-10 flex items-center gap-2.5">
                   <div className="h-px flex-1 bg-gradient-to-r from-[#e6c55a]/60 to-transparent" />
-                  <span className="ml-3 text-xs font-semibold uppercase tracking-wider text-[#f0dfb1]">Click</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-[#f0dfb1]">Click to Earn</span>
                 </div>
               </button>
 
               <FeatureActionTile
                 title="PvP"
                 icon="fa-swords"
-                accentClassName="bg-gradient-to-br from-[#241d30]/0 via-[#4d2f57]/35 to-[#b15b45]/35"
+                accentClassName="bg-gradient-to-br from-[#4d2f57]/20 via-[#b15b45]/15 to-transparent"
                 value="Queue"
                 onClick={handleStartPvp}
               />
@@ -474,7 +501,7 @@ export default function Home() {
               <FeatureActionTile
                 title="Expedition"
                 icon="fa-compass"
-                accentClassName="bg-gradient-to-br from-[#1e2a32]/0 via-[#355366]/35 to-[#7a9162]/35"
+                accentClassName="bg-gradient-to-br from-[#355366]/20 via-[#7a9162]/15 to-transparent"
                 value={expeditionLabel}
                 content={
                   activeExpeditionCharacter ? (
@@ -500,8 +527,7 @@ export default function Home() {
                             />
                           </div>
                         </div>
-                      </div>  
-                      
+                      </div>
                     </div>
                   ) : null
                 }
@@ -509,24 +535,32 @@ export default function Home() {
               />
             </div>
 
-            <div className="rounded-2xl p-2">
-              <div className="mb-3 flex items-center justify-between">
-                <h2
-                  className="text-lg font-black uppercase tracking-[0.12em] text-[#f5e6c8]"
-                  style={{ fontFamily: "var(--font-display), serif" }}
-                >
-                  Team Builder
-                </h2>
-                <span className="rounded-lg border border-[#6a5b81] bg-[#1e1828] px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#e6d39e]">
+            {/* Team Builder Section */}
+            <div className="flex-1 overflow-hidden rounded-xl border border-[#c9a227]/25 bg-gradient-to-br from-[#120f17]/80 to-[#0f0c14]/60 p-5 backdrop-blur-xs">
+              <div className="mb-4 flex items-center justify-between border-b border-[#c9a227]/20 pb-4">
+                <div className="flex flex-col gap-1">
+                  <h2
+                    className="text-lg font-black uppercase tracking-[0.14em] text-[#f5e6c8]"
+                    style={{ fontFamily: "var(--font-display), serif" }}
+                  >
+                    Your Squad
+                  </h2>
+                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#c9b48a]">Assemble your champions</p>
+                </div>
+                <span className="rounded-lg border border-[#c9a227]/60 bg-gradient-to-r from-[#1e1828] to-[#15121a] px-3 py-1.5 text-xs font-black uppercase tracking-widest text-[#e6c55a]">
                   {teamPowerLabel}
                 </span>
               </div>
 
-              <div className="space-y-2.5">
-                <section className="flex w-full justify-center p-2">
-                  <div className="inline-flex flex-col items-center">
-                    <div className="mb-2 w-full text-center text-[10px] font-bold uppercase tracking-[0.16em] text-[#c9b48a]">Active Team</div>
-                    <div className="grid w-fit grid-cols-3 justify-items-center gap-1.5">
+              <div className="space-y-4">
+                {/* Active Team */}
+                <div className="rounded-lg border border-[#c9a227]/25 bg-[#0a0810]/50 p-4">
+                  <div className="mb-3 text-center">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#c9b48a]">
+                      ⚔️ Active Team
+                    </div>
+                  </div>
+                  <div className="flex justify-center gap-3">
                     {teamSlots.map((slotCharacterId, index) => {
                       const selectedCharacter = getTeamCharacter(slotCharacterId);
                       const isSlotHovered = hoveredSlotIndex === index;
@@ -536,17 +570,17 @@ export default function Home() {
                           ref={(element) => {
                             slotRefs.current[index] = element;
                           }}
-                          className={`relative w-[112px] overflow-hidden rounded-lg border border-dashed bg-[#120f17] transition-colors ${
-                            isSlotHovered ? "border-[#c9a227]" : "border-[#6b5a84]"
-                          }`}
+                          className={`group team-slot-item relative w-[110px] overflow-hidden rounded-lg border-2 transition-all duration-200 ${
+                            isSlotHovered ? "border-[#c9a227] shadow-[0_0_16px_rgba(201,162,39,0.5)]" : "border-[#6b5a84]/70"
+                          } ${selectedCharacter ? "bg-[#0f0c14]" : "bg-[#120f17]/50"}`}
                         >
                           {selectedCharacter ? (
                             <>
-                              <div className="relative aspect-[3/4] w-full">
-                                <Image src={selectedCharacter.portrait} alt={selectedCharacter.name} fill className="object-cover" />
+                              <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#0a0810]">
+                                <Image src={selectedCharacter.portrait} alt={selectedCharacter.name} fill className="object-cover transition-transform group-hover:scale-110" />
                               </div>
-                              <div className="flex items-center justify-between bg-[#1a1422] px-1.5 py-0.5">
-                                <span className="truncate text-[9px] font-semibold uppercase tracking-wider text-[#ead9aa]">
+                              <div className="flex items-center justify-between bg-gradient-to-r from-[#1a1422] to-[#0f0c14] px-2 py-1.5">
+                                <span className="truncate text-[8px] font-bold uppercase tracking-wider text-[#ead9aa]">
                                   {selectedCharacter.name}
                                 </span>
                                 <button
@@ -558,30 +592,38 @@ export default function Home() {
                                       return next;
                                     });
                                   }}
-                                  className="text-[10px] text-[#e6c55a]"
+                                  className="text-xs text-[#e6c55a] transition-colors hover:text-[#ffcf63]"
                                   aria-label={`Clear slot ${index + 1}`}
                                 >
-                                  ×
+                                  ✕
                                 </button>
                               </div>
                             </>
                           ) : (
-                            <div className="flex aspect-[3/4] w-full items-center justify-center text-[10px] font-semibold uppercase tracking-wider text-[#7b6d93]">
-                              Slot {index + 1}
+                            <div className="flex aspect-[3/4] w-full items-center justify-center bg-gradient-to-br from-[#1e1a24] to-[#0f0c14] text-center">
+                              <div className="flex flex-col items-center gap-1.5">
+                                <i className="fa-solid fa-plus text-lg text-[#6b5a84]" aria-hidden="true" />
+                                <div className="text-[8px] font-bold uppercase tracking-wider text-[#7b6d93]">
+                                  Slot<br />{index + 1}
+                                </div>
+                              </div>
                             </div>
                           )}
                         </div>
                       );
                     })}
+                  </div>
+                </div>
+
+                {/* Roster Selection */}
+                <div className="rounded-lg border border-[#c9a227]/25 bg-[#0a0810]/50 p-4">
+                  <div className="mb-4 text-center">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#c9b48a]">
+                      📜 Available Champions
                     </div>
                   </div>
-                </section>
-
-                <section className="flex w-full justify-center p-2">
-                  <div className="inline-flex flex-col items-center">
-                    <div className="mb-2 w-full text-center text-[10px] font-bold uppercase tracking-[0.16em] text-[#c9b48a]">Roster</div>
-                    <div className="flex justify-center gap-1.5">
-                    {roster.map((character) => {
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {roster.map((character, index) => {
                       const inTeam = isCharacterInTeam(character.id);
                       return (
                         <button
@@ -597,24 +639,23 @@ export default function Home() {
                             const freeSlot = teamSlots.findIndex((slot) => slot === null);
                             handleDropToTeamSlot(freeSlot === -1 ? 0 : freeSlot, character.id);
                           }}
-                          className={`group w-[86px] overflow-hidden rounded-lg border text-left transition-all ${
+                          className={`group team-slot-item w-[90px] overflow-hidden rounded-lg border-2 text-left transition-all duration-200 ${
                             inTeam
-                              ? "border-[#c9a227] shadow-[0_0_15px_rgba(201,162,39,0.3)]"
-                              : "border-[#433556] hover:border-[#7a6599]"
-                          } ${dragPreview?.id === character.id ? "opacity-50" : ""}`}
+                              ? "border-[#c9a227] shadow-[0_0_12px_rgba(201,162,39,0.4)]"
+                              : "border-[#433556]/60 hover:border-[#7a6599]/80"
+                          } ${dragPreview?.id === character.id ? "opacity-40" : ""}`}
                         >
-                          <div className="relative aspect-[3/4] w-full">
-                            <Image src={character.portrait} alt={character.name} fill className="object-cover transition-transform duration-300 group-hover:scale-105" draggable={false} />
+                          <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#0a0810]">
+                            <Image src={character.portrait} alt={character.name} fill className="object-cover transition-transform group-hover:scale-110" draggable={false} />
                           </div>
-                          <div className="truncate bg-[#1a1422] px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-[#ead9aa]">
+                          <div className="truncate bg-gradient-to-r from-[#1a1422] to-[#0f0c14] px-1.5 py-1 text-[7px] font-bold uppercase tracking-wider text-[#ead9aa]">
                             {character.name}
                           </div>
                         </button>
                       );
                     })}
-                    </div>
                   </div>
-                </section>
+                </div>
               </div>
             </div>
           </div>

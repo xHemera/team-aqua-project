@@ -276,10 +276,51 @@ body::before {
   }
 }
 
+@keyframes team-slot-reveal {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes feature-card-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .mine-reward-pop {
   animation: mine-pop 0.62s cubic-bezier(0.2, 0.75, 0.28, 1) forwards;
   will-change: transform, opacity;
 }
+
+.team-slot-item {
+  animation: team-slot-reveal 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.team-slot-item:nth-child(1) { animation-delay: 0.05s; }
+.team-slot-item:nth-child(2) { animation-delay: 0.1s; }
+.team-slot-item:nth-child(3) { animation-delay: 0.15s; }
+.team-slot-item:nth-child(4) { animation-delay: 0.2s; }
+.team-slot-item:nth-child(5) { animation-delay: 0.25s; }
+.team-slot-item:nth-child(6) { animation-delay: 0.3s; }
+
+.feature-card-reveal {
+  animation: feature-card-slide-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.feature-card-reveal:nth-child(1) { animation-delay: 0.1s; }
+.feature-card-reveal:nth-child(2) { animation-delay: 0.15s; }
+.feature-card-reveal:nth-child(3) { animation-delay: 0.2s; }
 
 .mine-clicker,
 .mine-clicker * {
@@ -447,34 +488,93 @@ body::before {
   color: var(--text-primary);
 }
 
-@keyframes expedition-lane-glow {
-  0%,
-  100% {
-    opacity: 0.45;
+@keyframes expedition-path-shimmer {
+  0% {
+    background-position: -100% 0;
   }
-  50% {
-    opacity: 0.8;
+  100% {
+    background-position: 200% 0;
   }
 }
 
-@keyframes expedition-bob {
-  0%,
-  100% {
-    transform: translateY(0) rotate(-1deg);
+@keyframes expedition-progress-glow {
+  0% {
+    box-shadow: inset -20px 0 30px rgba(201, 162, 39, 0.1);
   }
   50% {
-    transform: translateY(-2px) rotate(1deg);
+    box-shadow: inset -20px 0 40px rgba(201, 162, 39, 0.35);
+  }
+  100% {
+    box-shadow: inset -20px 0 30px rgba(201, 162, 39, 0.1);
+  }
+}
+
+@keyframes expedition-path-shimmer {
+  0% {
+    background-position: -100% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes expedition-walker-stride {
+  0%, 100% {
+    transform: translate(-50%, -50%) scaleY(1);
+  }
+  25% {
+    transform: translate(-50%, -56%) scaleY(0.92);
+  }
+  50% {
+    transform: translate(-50%, -50%) scaleY(1);
+  }
+  75% {
+    transform: translate(-50%, -54%) scaleY(0.95);
+  }
+}
+
+@keyframes expedition-walker-aura {
+  0% {
+    box-shadow: 0 0 0 0 rgba(201, 162, 39, 0.6), 
+                0 8px 16px rgba(0, 0, 0, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(201, 162, 39, 0.15), 
+                0 8px 20px rgba(0, 0, 0, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(201, 162, 39, 0),
+                0 8px 16px rgba(0, 0, 0, 0.5);
+  }
+}
+
+@keyframes expedition-checkpoint-pulse {
+  0%, 100% {
+    transform: translateY(-50%) scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(-50%) scale(1.15);
+    opacity: 1;
   }
 }
 
 .expedition-walk-lane {
   position: relative;
-  height: 42px;
+  height: 32px;
   border-radius: 9999px;
   --expedition-progress: 0%;
-  background: linear-gradient(90deg, rgba(201, 162, 39, 0.08), rgba(122, 145, 98, 0.16), rgba(201, 162, 39, 0.08));
-  border: 1px solid rgba(201, 162, 39, 0.35);
-  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    rgba(12, 10, 15, 0.8) 0%,
+    rgba(20, 15, 28, 0.6) 25%,
+    rgba(18, 15, 23, 0.7) 50%,
+    rgba(20, 15, 28, 0.6) 75%,
+    rgba(12, 10, 15, 0.8) 100%
+  );
+  border: 2px solid rgba(201, 162, 39, 0.4);
+  overflow: visible;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .expedition-walk-lane::before {
@@ -484,8 +584,18 @@ body::before {
   top: 0;
   bottom: 0;
   width: var(--expedition-progress);
-  background: linear-gradient(90deg, rgba(122, 145, 98, 0.1), rgba(201, 162, 39, 0.22));
-  box-shadow: inset -8px 0 14px rgba(201, 162, 39, 0.2);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(122, 145, 98, 0.15) 10%,
+    rgba(122, 145, 98, 0.25) 50%,
+    rgba(201, 162, 39, 0.2) 100%
+  );
+  box-shadow: 
+    inset -20px 0 30px rgba(201, 162, 39, 0.2),
+    0 0 20px rgba(122, 145, 98, 0.2);
+  animation: expedition-progress-glow 5s ease-in-out infinite;
+  border-radius: 9999px;
 }
 
 .expedition-walk-lane::after {
@@ -495,11 +605,11 @@ body::before {
   background: repeating-linear-gradient(
     90deg,
     transparent 0,
-    transparent 10px,
-    rgba(201, 162, 39, 0.15) 10px,
-    rgba(201, 162, 39, 0.15) 12px
+    transparent 12px,
+    rgba(201, 162, 39, 0.08) 12px,
+    rgba(201, 162, 39, 0.08) 16px
   );
-  animation: expedition-lane-glow 1.4s ease-in-out infinite;
+  border-radius: 9999px;
   pointer-events: none;
 }
 
@@ -507,38 +617,40 @@ body::before {
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
-  transition: left 0.14s linear;
-  z-index: 2;
+  transition: left 0.12s linear;
+  z-index: 3;
 }
 
 .expedition-walker > div {
-  animation: expedition-bob 0.38s ease-in-out infinite;
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.08),
-    0 6px 14px rgba(0, 0, 0, 0.45);
+  animation: 
+    expedition-walker-stride 0.8s ease-in-out infinite,
+    expedition-walker-aura 1.8s ease-in-out infinite;
 }
 
 .expedition-node {
   position: absolute;
   top: 50%;
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
   transform: translateY(-50%);
-  border: 1px solid rgba(201, 162, 39, 0.45);
-  background: rgba(20, 17, 27, 0.88);
-  color: rgba(230, 197, 90, 0.9);
-  font-size: 10px;
+  border: 2px solid rgba(201, 162, 39, 0.7);
+  background: radial-gradient(circle at 30% 30%, rgba(201, 162, 39, 0.3), rgba(20, 17, 27, 0.95));
+  color: rgba(230, 197, 90, 1);
+  font-size: 12px;
   z-index: 3;
+  box-shadow: 
+    0 0 0 2px rgba(12, 10, 15, 0.8),
+    0 0 12px rgba(201, 162, 39, 0.4);
 }
 
 .expedition-node-start {
-  left: 4px;
+  left: 0;
 }
 
 .expedition-node-end {
-  right: 4px;
+  right: 0;
 }
