@@ -1,22 +1,23 @@
 "use client";
 
 import Image from "next/image";
+import dynamic from "next/dynamic";
 
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import FeatureActionTile from "@/components/atoms/home/FeatureActionTile";
-import PvpMatchmakingModal from "@/components/organisms/home/PvpMatchmakingModal";
-import ExpeditionModal from "@/components/organisms/home/ExpeditionModal";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import AppPageShell from "@/components/AppPageShell";
-import MatchmakingModal from "@/components/organisms/home/MatchmakingModal";
-import NotificationToast from "@/components/organisms/home/NotificationToast";
-import PlayCta from "@/components/organisms/home/PlayCta";
 import { DEFAULT_PROFILE_ICON } from "@/lib/profile-icons";
 import Button from "@/components/atoms/Button";
 import { CHARACTERS, PLAYER_RESOURCES } from "@/app/characters/characters-data";
-import Sidebar from "@/components/Sidebar";
+import SidebarShell from "@/components/SidebarShell";
 import {socket} from "../../socket"
+
+const PvpMatchmakingModal = dynamic(() => import("@/components/organisms/home/PvpMatchmakingModal"), { ssr: false });
+const ExpeditionModal = dynamic(() => import("@/components/organisms/home/ExpeditionModal"), { ssr: false });
+const MatchmakingModal = dynamic(() => import("@/components/organisms/home/MatchmakingModal"), { ssr: false });
+const NotificationToast = dynamic(() => import("@/components/organisms/home/NotificationToast"), { ssr: false });
 
 type ActiveExpedition = {
   characterId: string;
@@ -97,7 +98,7 @@ export default function Home() {
   const [selectedDurationId, setSelectedDurationId] = useState<string>(EXPEDITION_DURATIONS[0].id);
   const [activeExpedition, setActiveExpedition] = useState<ActiveExpedition | null>(null);
   const [expeditionReward, setExpeditionReward] = useState<ExpeditionReward | null>(null);
-  const [nowTs, setNowTs] = useState<number>(Date.now());
+  const [nowTs, setNowTs] = useState<number>(() => Date.now());
 
   const [teamSlots, setTeamSlots] = useState<Array<string | null>>([roster[0]?.id ?? null, roster[1]?.id ?? null, roster[2]?.id ?? null]);
   const [dragPreview, setDragPreview] = useState<TeamDragState | null>(null);
@@ -120,15 +121,26 @@ export default function Home() {
         setPseudo(data.user.name);
       }
     };
-    void getUserData();
+
+    const timeoutId = window.setTimeout(() => {
+      void getUserData();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, []);
 
   useEffect(() => {
       if (!userPseudo || socket.connected) return;
-  
-      socket.connect();
-      socket.emit("login", userPseudo);
+
+      const timeoutId = window.setTimeout(() => {
+        socket.connect();
+        socket.emit("login", userPseudo);
+      }, 0);
+
       return () => {
+        window.clearTimeout(timeoutId);
         socket.off("online_users");
       };
     }, [userPseudo]);
@@ -394,9 +406,7 @@ export default function Home() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#0c0a0f] font-serif text-white">
-      <div className="shrink-0 p-3 pl-2">
-        <Sidebar />
-      </div>
+      <SidebarShell />
 
       <main className="relative flex-1 overflow-hidden p-3 pl-0">
         <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[#0c0a0f] via-[#12101a] to-[#0a0810]" />

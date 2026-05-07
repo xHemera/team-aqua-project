@@ -23,19 +23,30 @@ export default function CharactersPage() {
       if (data && data.user.name)
         setUserPseudo(data.user.name);
     };
-    getUserData();
+
+    const timeoutId = window.setTimeout(() => {
+      void getUserData();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, []);
 
   useEffect(() => {
     if (!userPseudo || socket.connected) return;
 
-    socket.connect();
-    socket.emit("login", userPseudo);
+    const timeoutId = window.setTimeout(() => {
+      socket.connect();
+      socket.emit("login", userPseudo);
 
-    socket.on("online_users", (users) => {
-      console.log("Users from Redis:", users);
-    });
+      socket.on("online_users", (users) => {
+        console.log("Users from Redis:", users);
+      });
+    }, 0);
+
     return () => {
+      window.clearTimeout(timeoutId);
       socket.off("online_users");
     };
   }, []);

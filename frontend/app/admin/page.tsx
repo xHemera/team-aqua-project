@@ -34,7 +34,10 @@ export default function AdminPage() {
       if (data && data.user.name)
         setUserPseudo(data.user.name);
     };
-    getUserData();
+
+    const timeoutId = window.setTimeout(() => {
+      void getUserData();
+    }, 0);
 
     async function fetchUsersAndReports()
     {
@@ -48,7 +51,15 @@ export default function AdminPage() {
       else
         setReports(r);
     }
-    fetchUsersAndReports();
+
+      const fetchTimeoutId = window.setTimeout(() => {
+        void fetchUsersAndReports();
+      }, 0);
+
+      return () => {
+        window.clearTimeout(timeoutId);
+        window.clearTimeout(fetchTimeoutId);
+      };
   }, []);
 
   useEffect(() => {

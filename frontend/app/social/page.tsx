@@ -118,7 +118,14 @@ export default function SocialPage() {
       else
         router.push("/not-connected");
     };
-    getUserData();
+
+    const timeoutId = window.setTimeout(() => {
+      void getUserData();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, []);
 
   //load custom avatar from localStorage
@@ -161,16 +168,19 @@ export default function SocialPage() {
 
     //connect the socket
     if (socket.connected) return;
-    socket.connect();
-		socket.emit("login", userPseudo);
+    const timeoutId = window.setTimeout(() => {
+      socket.connect();
+    socket.emit("login", userPseudo);
 
-		socket.on("online_users", (users) => {
-			console.log("Users from Redis:", users);
-		});
+    socket.on("online_users", (users) => {
+      console.log("Users from Redis:", users);
+    });
+    }, 0);
 
-		return () => {
-			socket.off("online_users");
-		};
+    return () => {
+      window.clearTimeout(timeoutId);
+      socket.off("online_users");
+    };
   }, [userPseudo]);
 
   //render messages sent by other users
@@ -526,29 +536,28 @@ export default function SocialPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username }),
       });
+
       const payload = (await response.json()) as {
-        error: string;
-        user: { name: string; avatarUrl: string | null };
+        error?: string;
+        user?: { name: string; avatarUrl: string | null };
       };
-      //return if we invite ourselves
-      if (payload.error === "vous ne pouvez pas vous inviter")
-      {
+
+      if (payload.error === "vous ne pouvez pas vous inviter") {
         setInviteNotification({
           type: "error",
           message: payload.error,
         });
-        return ;
+        return;
       }
-      //check if the inbox already exist
-      if (await contact.alreadyAdded(currentUser.name, inviteUsername) === false)
-      {
+
+      if (!(await contact.alreadyAdded(currentUser.name, inviteUsername))) {
         setInviteNotification({
           type: "error",
           message: payload.error ?? "une discussion a deja ete cree.",
         });
         return;
       }
-      //makes a new inbox for both users and updates it
+
       contact.addContact(currentUser.name, inviteUsername);
       const i = await contact.getInboxes(currentUser.name);
       setInboxes(i);
@@ -556,8 +565,7 @@ export default function SocialPage() {
         sender: currentUser.name,
         receiver: inviteUsername,
       });
-      
-      //return if user does not exist
+
       if (!response.ok || !payload.user) {
         setInviteNotification({
           type: "error",
@@ -565,6 +573,7 @@ export default function SocialPage() {
         });
         return;
       }
+
       const foundName = payload.user.name;
       setSelectedUser(foundName);
       setInviteNotification({

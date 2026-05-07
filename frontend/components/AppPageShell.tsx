@@ -1,5 +1,3 @@
-"use client";
-
 import { ReactNode, CSSProperties } from "react";
 import Sidebar from "./Sidebar";
 
@@ -28,11 +26,16 @@ export default function AppPageShell({
     >
 
       {showSidebar ? (
-        <div className="relative z-10 flex h-screen w-full gap-4 overflow-hidden px-4 py-4 sm:px-8 sm:py-6">
-          <Sidebar />
-          <div className={joinClasses("relative flex min-h-0 flex-1", containerClassName)}>
-            {children}
+        <div className="flex h-screen w-full overflow-hidden bg-[#0c0a0f] font-serif text-white">
+          <div className="shrink-0 p-3 pl-2">
+            <Sidebar />
           </div>
+
+          <main className="relative flex-1 overflow-hidden p-3 pl-0">
+            <div className={joinClasses("relative flex h-full min-h-0 flex-col", containerClassName)}>
+              {children}
+            </div>
+          </main>
         </div>
       ) : (
         <div

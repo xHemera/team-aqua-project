@@ -50,7 +50,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   return (
     <ProfileClientView
       profileName={profileUser.name}
-      profileUserId={profileUser.id}
       profileBadges={profileUser.badges ?? []}
       initialAvatar={avatar}
       initialBackground={profileUser.profileBackground ?? undefined}
