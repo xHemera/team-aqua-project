@@ -43,7 +43,6 @@ export async function GET(req: Request)
                 },
             }
         });
-        if (!friend) return Response.json({error: "Internal server error"}, {status: 500});
         return Response.json({friend: friend}, {status: 200});
     }
     catch {
