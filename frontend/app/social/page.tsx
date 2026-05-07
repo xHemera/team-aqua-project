@@ -60,6 +60,7 @@ export default function SocialPage() {
   const [typing, setTyping] = useState(false);
   const [unread, setUnread] = useState(false);
   const [customUserAvatar, setCustomUserAvatar] = useState<string | null>(null);
+  const [click, setClick] = useState(true);
 
   const MAX_MESSAGE_LENGTH = 500;
   const MAX_DISPLAY_LENGTH = 200;
@@ -874,6 +875,17 @@ export default function SocialPage() {
     }, 1000);
   }
 
+  async function onSelect() {
+    if (!click)
+      return;
+
+    setClick(false);
+
+    setTimeout(() => {
+      setClick(true);
+    }, 1500);
+  }
+
   return (
     <AppPageShell showSidebar containerClassName="min-h-0 flex-1 flex-col" mainClassName="bg-gradient-to-br from-[#0c0a0f] via-[#12101a] to-[#0a0810]">
       <style>{`
@@ -960,10 +972,12 @@ export default function SocialPage() {
                   return(
                     <button
                       key={user.name}
+                      disabled={!click}
                       onClick={() => {
                           setSelectedUser(user.name);
                           if (user.name == notifSender)
                             setShowNotification(false);
+                          onSelect();
                         }
                       }
                       className={`relative flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 transition-colors ${
