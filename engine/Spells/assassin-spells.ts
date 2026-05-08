@@ -23,3 +23,19 @@ export class ShadowStrike extends Spell {
 		idTargets[0].currentHp = Math.max(0, idTargets[0].currentHp - damage);
 	}
 }
+
+export class VenomBlade extends Spell {
+	constructor() {
+		super();
+		this.id			= "s2";
+		this.name 		= "Venom Blade";
+		this.mpCost		= 14;
+		this.targeting	= "single"
+	}
+
+	applyEffect(idUser: CharacterInstance, idTargets: CharacterInstance[]): void {
+		const stats			= idUser.character.stats;
+		const skillLevel	= idUser.character.skills.find(s => s.id === "s2")?.level ?? 1;
+		const raw			= stats.physicalDamage * 0.9 + skillLevel * 12;
+	}
+}
