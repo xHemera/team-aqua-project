@@ -11,14 +11,7 @@ import { contact }  from "./index"
 import NotificationToast from "@/components/organisms/home/NotificationToast";
 import ProfileViewerModal from "@/components/organisms/social/ProfileViewer";
 import {type} from "./index"
-
-
-
-const formatTime = (date: Date) =>
-  date.toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+import { formatTime } from "@/lib/date-utils";
 
 const toSizeLabel = (bytes: number) => {
   if (bytes < 1024) return `${bytes} o`;
@@ -55,7 +48,6 @@ export default function SocialPage() {
   const [friend, setFriend] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [hasBlocked, setHasBlocked] = useState(false);
-  const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [challenge, setChallenge] = useState(false);
   const [opponent, setOpponent] = useState<string | null>(null);
   const [typer, setTyper] = useState<string | null>(null);
@@ -63,6 +55,7 @@ export default function SocialPage() {
   const [unread, setUnread] = useState(false);
   const [customUserAvatar, setCustomUserAvatar] = useState<string | null>(null);
   const [reported, setReported] = useState(false);
+  const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
 
   const MAX_MESSAGE_LENGTH = 500;
   const MAX_DISPLAY_LENGTH = 200;
@@ -108,7 +101,7 @@ export default function SocialPage() {
       return next;
     });
   };
-  
+
   //fetch the current user pseudo
   useEffect(() => {
     const getUserData = async () => {
@@ -118,14 +111,7 @@ export default function SocialPage() {
       else
         router.push("/not-connected");
     };
-
-    const timeoutId = window.setTimeout(() => {
-      void getUserData();
-    }, 0);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
+    getUserData();
   }, []);
 
   //load custom avatar from localStorage
@@ -168,19 +154,16 @@ export default function SocialPage() {
 
     //connect the socket
     if (socket.connected) return;
-    const timeoutId = window.setTimeout(() => {
-      socket.connect();
-    socket.emit("login", userPseudo);
+    socket.connect();
+		socket.emit("login", userPseudo);
 
-    socket.on("online_users", (users) => {
-      console.log("Users from Redis:", users);
-    });
-    }, 0);
+		socket.on("online_users", (users) => {
+			console.log("Users from Redis:", users);
+		});
 
-    return () => {
-      window.clearTimeout(timeoutId);
-      socket.off("online_users");
-    };
+		return () => {
+			socket.off("online_users");
+		};
   }, [userPseudo]);
 
   //render messages sent by other users
@@ -359,7 +342,7 @@ export default function SocialPage() {
     	setCurrentMessages(newMessages);
       contact.resetUnread(currentUser.name, selectedUser)
       fetchUnread();
-      
+
       // Load read status from localStorage
       const storedStatus = getStoredReadStatus(currentUser.name, selectedUser);
       const newStatus: Record<string, boolean> = {};
@@ -415,7 +398,7 @@ export default function SocialPage() {
         setFriendRequestSender(null);
         return;
       }
-      if (friend.request_sent == true) 
+      if (friend.request_sent == true)
       {
         setRequest(true);
         setFriendRequestSender(selectedUser);
@@ -536,28 +519,29 @@ export default function SocialPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username }),
       });
-
       const payload = (await response.json()) as {
-        error?: string;
-        user?: { name: string; avatarUrl: string | null };
+        error: string;
+        user: { name: string; avatarUrl: string | null };
       };
-
-      if (payload.error === "vous ne pouvez pas vous inviter") {
+      //return if we invite ourselves
+      if (payload.error === "vous ne pouvez pas vous inviter")
+      {
         setInviteNotification({
           type: "error",
           message: payload.error,
         });
-        return;
+        return ;
       }
-
-      if (!(await contact.alreadyAdded(currentUser.name, inviteUsername))) {
+      //check if the inbox already exist
+      if (await contact.alreadyAdded(currentUser.name, inviteUsername) === false)
+      {
         setInviteNotification({
           type: "error",
           message: payload.error ?? "une discussion a deja ete cree.",
         });
         return;
       }
-
+      //makes a new inbox for both users and updates it
       contact.addContact(currentUser.name, inviteUsername);
       const i = await contact.getInboxes(currentUser.name);
       setInboxes(i);
@@ -566,6 +550,7 @@ export default function SocialPage() {
         receiver: inviteUsername,
       });
 
+      //return if user does not exist
       if (!response.ok || !payload.user) {
         setInviteNotification({
           type: "error",
@@ -573,7 +558,6 @@ export default function SocialPage() {
         });
         return;
       }
-
       const foundName = payload.user.name;
       setSelectedUser(foundName);
       setInviteNotification({
@@ -683,7 +667,7 @@ export default function SocialPage() {
 		const newMessages = await contact.getMsg(currentUser.name, selectedUser);
     contact.getUnreadNotif(currentUser.name);
 		if (!newMessages) return;
-    
+
     setCurrentMessages(newMessages);
 
     socket.emit("notTyping", {

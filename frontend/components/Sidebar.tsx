@@ -73,9 +73,9 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [pseudo, setPseudo] = useState<string | null>(null);
-  const [badges, setBadges] = useState<string[]>(readStoredBadges);
+  const [badges, setBadges] = useState<string[]>([]);
   const [socialUnread, setSocialUnread] = useState<number>(0);
-  const [customUserAvatar, setCustomUserAvatar] = useState<string | null>(readStoredAvatar);
+  const [customUserAvatar, setCustomUserAvatar] = useState<string | null>(null);
   const unreadRequestSeqRef = useRef(0);
 
   const scheduleDeferredWork = (task: () => void) => {
@@ -98,6 +98,14 @@ export default function Sidebar() {
   };
 
   useEffect(() => {
+    // Read persisted local-only data on mount to avoid hydration mismatch
+    try {
+      setBadges(readStoredBadges());
+      setCustomUserAvatar(readStoredAvatar());
+    } catch {
+      // ignore
+    }
+
     let isCancelled = false;
     const cancelDeferredWork = scheduleDeferredWork(() => {
       const hydrateIdentity = async () => {

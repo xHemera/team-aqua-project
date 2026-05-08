@@ -10,6 +10,8 @@ import { authClient } from "@/lib/auth-client";
 import { applyBackgroundPreferenceToDocument, buildBackgroundStyle, DEFAULT_SITE_BACKGROUND, normalizeImageValue } from "@/lib/background-utils";
 import { persistAvatarPreference } from "@/lib/avatar-preference";
 import { applyAccentPalette, DEFAULT_PROFILE_ICON, resolveProfileIcon } from "@/lib/profile-icons";
+import { formatDate } from "@/lib/date-utils";
+import { TEAM_PORTRAITS } from "@/lib/hero-portraits";
 import { socket } from "../../../socket";
 
 type MatchHistoryEntry = {
@@ -41,24 +43,8 @@ const BORDER_STYLES: Record<string, string> = {
   lose: "bg-rose-400",
 };
 
-const TEAM_PORTRAITS: Record<string, string> = {
-  Knight: "/heroes/Avatar_Sorel.webp",
-  Assassin: "/heroes/Avatar_Wanda.webp",
-  Healer: "/heroes/Avatar_Tulu.webp",
-  Archer: "/heroes/Avatar_Uvhash.webp",
-  Mage: "/heroes/Avatar_Thais.webp",
-};
-
 const defaultBackground = DEFAULT_SITE_BACKGROUND;
 const normalizeBackgroundValue = (value: string) => normalizeImageValue(value, defaultBackground);
-
-const formatDate = (date: Date) =>
-  date.toLocaleDateString("fr-FR", {
-    timeZone: "Europe/Paris",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
 
 export default function ProfileClientView({
   profileName,
@@ -80,10 +66,10 @@ export default function ProfileClientView({
   const profileBackgroundStyle = buildBackgroundStyle(profileBackground, defaultBackground);
 
   // Add test match for demo purposes if matchHistory exists
-  const enhancedMatchHistory = matchHistory.length > 0 
+  const enhancedMatchHistory = matchHistory.length > 0
     ? [...matchHistory, ...matchHistory.slice(0, 2)]
     : matchHistory;
-  
+
   const totalMatches = enhancedMatchHistory.length;
 
   useEffect(() => {
@@ -304,7 +290,7 @@ export default function ProfileClientView({
               {/* Name + Badges */}
               <div className="flex-1 min-w-0">
                 <div className="mb-4 sm:mb-6">
-                  <h1 
+                  <h1
                     className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-2 break-words"
                     style={{ fontFamily: "var(--font-display), serif" }}
                   >
@@ -361,7 +347,7 @@ export default function ProfileClientView({
                 >
                   {/* Result Bar */}
                   <div className={`h-1.5 w-full ${isWin ? BORDER_STYLES.win : BORDER_STYLES.lose}`} />
-                  
+
                   <div className="p-5 sm:p-6">
                     {/* Result + Date */}
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">

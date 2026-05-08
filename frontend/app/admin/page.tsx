@@ -105,30 +105,30 @@ export default function AdminPage() {
         setReports(r);
     }
 
-    const modFetch = () => fetchUsers();
-    const noModFetch = () => fetchUsers();
-    const banFetch = () => fetchUsers();
-    const unbanFetch = () => fetchUsers();
-    const handleNewUser = () => fetchUsers();
-    const handleNewReport = () => fetchReports();
-    const handleLessReports = () => fetchReports();
-  
-    socket.on("newUser", handleNewUser);
-    socket.on("newReport", handleNewReport);
-    socket.on("lessReports", handleLessReports);
-    socket.on("newMod", modFetch);
-    socket.on("noMod", noModFetch);
-    socket.on("ban", banFetch);
-    socket.on("unban", unbanFetch);
+    // const modFetch = () => fetchUsers();
+    // const noModFetch = () => fetchUsers();
+    // const banFetch = () => fetchUsers();
+    // const unbanFetch = () => fetchUsers();
+    // const handleNewUser = () => fetchUsers();
+    // const handleNewReport = () => fetchReports();
+    // const handleLessReports = () => fetchReports();
+
+    socket.on("newUser", fetchUsers);
+    socket.on("newReport", fetchReports);
+    socket.on("lessReports", fetchReports);
+    socket.on("newMod", fetchUsers);
+    socket.on("noMod", fetchUsers);
+    socket.on("ban", fetchUsers);
+    socket.on("unban", fetchUsers);
 
     return () => {
-      socket.off("newUser", handleNewUser);
-      socket.off("newReport", handleNewReport);
-      socket.off("lessReports", handleLessReports);
-      socket.off("newMod", modFetch);
-      socket.off("noMod", noModFetch);
-      socket.off("ban", banFetch);
-      socket.off("unban", unbanFetch);
+      socket.off("newUser", fetchUsers);
+      socket.off("newReport", fetchReports);
+      socket.off("lessReports", fetchReports);
+      socket.off("newMod", fetchUsers);
+      socket.off("noMod", fetchUsers);
+      socket.off("ban", fetchUsers);
+      socket.off("unban", fetchUsers);
     }
 
   }, []);

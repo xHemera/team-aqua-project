@@ -7,8 +7,6 @@ import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react"
 import FeatureActionTile from "@/components/atoms/home/FeatureActionTile";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import AppPageShell from "@/components/AppPageShell";
-import { DEFAULT_PROFILE_ICON } from "@/lib/profile-icons";
 import Button from "@/components/atoms/Button";
 import { CHARACTERS, PLAYER_RESOURCES } from "@/app/characters/characters-data";
 import SidebarShell from "@/components/SidebarShell";
@@ -16,8 +14,6 @@ import {socket} from "../../socket"
 
 const PvpMatchmakingModal = dynamic(() => import("@/components/organisms/home/PvpMatchmakingModal"), { ssr: false });
 const ExpeditionModal = dynamic(() => import("@/components/organisms/home/ExpeditionModal"), { ssr: false });
-const MatchmakingModal = dynamic(() => import("@/components/organisms/home/MatchmakingModal"), { ssr: false });
-const NotificationToast = dynamic(() => import("@/components/organisms/home/NotificationToast"), { ssr: false });
 
 type ActiveExpedition = {
   characterId: string;
@@ -108,7 +104,6 @@ export default function Home() {
   const activeDragRef = useRef<TeamDragState | null>(null);
   const suppressClickForIdRef = useRef<string | null>(null);
   const router = useRouter();
-  const [showMatchmaking, setShowMatchmaking] = useState(false);
   const [showNotification, setShowNotification] = useState(true);
   const [notification, setNotification] = useState<string | null>(null);
   const [notifSender, setNotifSender] = useState<string | null>(null);
@@ -144,7 +139,7 @@ export default function Home() {
         socket.off("online_users");
       };
     }, [userPseudo]);
-    
+
   //render messages sent by other users
   useEffect(() => {
     if (!userPseudo) return;
