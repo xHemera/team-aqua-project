@@ -730,12 +730,13 @@ export default function SocialPage() {
         continue;
       const data = await res.json();
       const id: string = data.id;
+      const url: string = data.url;
       const buildAttachmentFromFile = (file: File): type.Attachment => ({
         id: id,
         name: `${Date.now()}-${file.name}`,
         sizeLabel: toSizeLabel(file.size),
         type: file.type,
-        previewUrl: URL.createObjectURL(file),
+        previewUrl: url,
       });
       const nextAttachments = files.map(buildAttachmentFromFile);
       setDraftAttachments((prevAttachments) => [...prevAttachments, ...nextAttachments]);
@@ -744,9 +745,9 @@ export default function SocialPage() {
     event.target.value = "";
   };
 
-  const removeDraftAttachment = async (attachmentId: string) => {
+  const removeDraftAttachment = async (attachmentId: string, attachmentURL: string) => {
 
-    const res = await fetch(`/api/social/attachment?attachmentId=${attachmentId}`, {
+    const res = await fetch(`/api/social/attachment?attachmentId=${attachmentId}&url=${attachmentURL}`, {
         method: "DELETE",
       })
       if (!res.ok)
@@ -1287,7 +1288,7 @@ export default function SocialPage() {
                         <span className="max-w-[14rem] truncate">{attachment.name}</span>
                         <span className="opacity-75">({attachment.sizeLabel})</span>
                         <button
-                          onClick={() => removeDraftAttachment(attachment.id)}
+                          onClick={() => removeDraftAttachment(attachment.id, attachment.previewUrl)}
                           className="text-gray-300 transition-colors hover:text-white"
                           aria-label={`Delete ${attachment.name}`}
                         >

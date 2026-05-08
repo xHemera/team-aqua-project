@@ -2,6 +2,8 @@ import prisma from "@/lib/prisma";
 import { headers } from "next/headers";
 import { rateLimit } from "@/lib/rateLimit";
 import { redis } from "@/lib/redis";
+import fs from "fs";
+import path from "path";
 
 export async function POST(req: Request)
 {
@@ -38,7 +40,7 @@ export async function POST(req: Request)
                 previewUrl: `/images/${url}`
             }
         });
-        return Response.json({id: a.id}, {status: 201});
+        return Response.json({id: a.id, url: a.previewUrl}, {status: 201});
     }
     catch {
         return Response.json({error: "Internal server error"}, {status: 500});
@@ -63,11 +65,23 @@ export async function DELETE(req: Request)
     try {
         const {searchParams} = new URL(req.url);
         const attachmentId = searchParams.get("attachmentId");
-        if (!attachmentId)
+        const url = searchParams.get("url");
+        if (!attachmentId || !url)
             return Response.json({error: "Internal server error"}, {status: 500});
 
         await prisma.attachment.delete({
             where: { id: attachmentId }
+        });
+
+        const relativePath = url.replace(/^\/+/, "");
+        const filePath = path.join(
+            process.cwd(),
+            "public",
+            relativePath
+        );
+
+        await fs.unlink(filePath, (err) => {
+            if (err) return Response.json({error: "Internal server error"}, {status: 500});
         });
 
         return Response.json({message: "OK"}, {status: 200});
