@@ -19,6 +19,7 @@ export class CharacterInstance {
 	critChanceMod:	ModEntry[] = [];
 	critDamageMod:	ModEntry[] = [];
     spdMod:			ModEntry[] = [];
+	poisonMod:		ModEntry[] = [];
 	spells:			Map<string, Spell> = new Map();
 
     constructor(uid: string, character: CharacterData, owner: number) {

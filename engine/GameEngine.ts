@@ -21,6 +21,11 @@ function tickAllMods(character: CharacterInstance): void {
 	character.magResMod		= tick(character.magResMod);
 	character.critChanceMod	= tick(character.critChanceMod);
 	character.critDamageMod = tick(character.critDamageMod);
+	//calcul du dot de poison au debut de chaque tour
+	character.poisonMod.forEach( instance => {
+			character.currentHp = Math.max(0, character.currentHp - instance.value)
+	});
+	character.poisonMod = tick(character.poisonMod);
 }
 
 function removeDeadCharacters(state: GameState): GameState {
