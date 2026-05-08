@@ -8,7 +8,6 @@ import NotificationToast from "@/components/organisms/home/NotificationToast";
 import { ProfileHeader } from "@/components/organisms/profile/ProfileHeader";
 import { MatchHistoryList } from "@/components/organisms/profile/MatchHistoryList";
 import { authClient } from "@/lib/auth-client";
-import { applyBackgroundPreferenceToDocument, buildBackgroundStyle, DEFAULT_SITE_BACKGROUND, normalizeImageValue } from "@/lib/background-utils";
 import { persistAvatarPreference } from "@/lib/avatar-preference";
 import { applyAccentPalette, DEFAULT_PROFILE_ICON, resolveProfileIcon } from "@/lib/profile-icons";
 import { socket } from "../../../socket";
@@ -32,7 +31,6 @@ type ProfileClientViewProps = {
   matchHistory: MatchHistoryEntry[];
 };
 
-const defaultBackground = DEFAULT_SITE_BACKGROUND;
 const normalizeBackgroundValue = (value: string) => normalizeImageValue(value, defaultBackground);
 
 export default function ProfileClientView({
@@ -51,8 +49,6 @@ export default function ProfileClientView({
   const [customAvatar, setCustomAvatar] = useState<string | null>(null);
   const [displayAvatar, setDisplayAvatar] = useState(initialAvatar);
   const avatarUploadRef = useRef<HTMLInputElement>(null);
-  const profileBackground = normalizeBackgroundValue(initialBackground || defaultBackground);
-  const profileBackgroundStyle = buildBackgroundStyle(profileBackground, defaultBackground);
 
   // Add test match for demo purposes if matchHistory exists
   const enhancedMatchHistory = matchHistory.length > 0
@@ -138,11 +134,6 @@ export default function ProfileClientView({
     applyAccentPalette(icon);
   }, []);
 
-  useEffect(() => {
-    if (!isOwnProfile) return;
-    applyBackgroundPreferenceToDocument(profileBackground, defaultBackground);
-  }, [isOwnProfile, profileBackground]);
-
   const currentAvatar = customAvatar || displayAvatar || DEFAULT_PROFILE_ICON.url;
 
   const handleAvatarUpload = async (file: File) => {
@@ -194,10 +185,6 @@ export default function ProfileClientView({
     <AppPageShell
       showSidebar
       containerClassName="min-h-0 flex-1"
-      mainStyle={{
-        ...profileBackgroundStyle,
-        backgroundAttachment: "fixed",
-      }}
     >
       {showNotification && notification && notifSender && (
         <NotificationToast
@@ -213,7 +200,6 @@ export default function ProfileClientView({
           isOwnProfile={isOwnProfile}
           badges={profileBadges}
           currentAvatar={currentAvatar}
-          backgroundStyle={profileBackgroundStyle}
           onAvatarUploadClick={() => avatarUploadRef.current?.click()}
         />
 

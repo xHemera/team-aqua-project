@@ -17,13 +17,11 @@ export function ProfileHeader({
   isOwnProfile,
   badges,
   currentAvatar,
-  backgroundStyle,
   onAvatarUploadClick,
 }: ProfileHeaderProps) {
   return (
     <Card className="overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#15131d]/92 p-0 shadow-[0_30px_100px_rgba(0,0,0,0.42)] backdrop-blur-xl">
       <div className="relative overflow-hidden border-b border-white/10">
-        <div className="absolute inset-0" style={backgroundStyle} />
         <div className="absolute inset-0 bg-gradient-to-t from-[#09070c] via-[#09070c]/72 to-transparent" />
 
         <div className="relative flex flex-col gap-6 p-4 sm:p-6 lg:flex-row lg:items-start lg:gap-8 lg:justify-between">

@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-/* Medieval Fantasy Theme - JRPG Style */
 :root {
   /* Core Backgrounds */
   --bg-primary: #0c0a0f;
@@ -260,11 +259,11 @@ body::before {
 
 @keyframes expedition-walker-aura {
   0% {
-    box-shadow: 0 0 0 0 rgba(201, 162, 39, 0.6), 
+    box-shadow: 0 0 0 0 rgba(201, 162, 39, 0.6),
                 0 8px 16px rgba(0, 0, 0, 0.5);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(201, 162, 39, 0.15), 
+    box-shadow: 0 0 0 6px rgba(201, 162, 39, 0.15),
                 0 8px 20px rgba(0, 0, 0, 0.6);
   }
   100% {
@@ -305,7 +304,7 @@ body::before {
     rgba(122, 145, 98, 0.25) 50%,
     rgba(201, 162, 39, 0.2) 100%
   );
-  box-shadow: 
+  box-shadow:
     inset -20px 0 30px rgba(201, 162, 39, 0.2),
     0 0 20px rgba(122, 145, 98, 0.2);
   animation: expedition-progress-glow 5s ease-in-out infinite;
@@ -336,7 +335,7 @@ body::before {
 }
 
 .expedition-walker > div {
-  animation: 
+  animation:
     expedition-walker-stride 0.8s ease-in-out infinite,
     expedition-walker-aura 1.8s ease-in-out infinite;
 }
@@ -356,7 +355,7 @@ body::before {
   color: rgba(230, 197, 90, 1);
   font-size: 12px;
   z-index: 3;
-  box-shadow: 
+  box-shadow:
     0 0 0 2px rgba(12, 10, 15, 0.8),
     0 0 12px rgba(201, 162, 39, 0.4);
 }
