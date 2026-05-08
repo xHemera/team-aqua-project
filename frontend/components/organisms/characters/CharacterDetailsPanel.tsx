@@ -9,9 +9,8 @@ type CharacterDetailsPanelProps = {
   selectedSkill: CharacterSkill | null;
   resources: PlayerResources;
   maxSkillLevel: number;
-  upgradeAnimatingSkillId: string | null;
   onToggleSkill: (skill: CharacterSkill) => void;
-  onUpgradeSkill: (skillId: string) => void;
+  onUpgradeSkill: (skillId: string) => Promise<boolean>;
   canUpgradeSkill: (skill: CharacterSkill) => boolean;
 };
 
@@ -21,7 +20,6 @@ export default function CharacterDetailsPanel({
   selectedSkill,
   resources,
   maxSkillLevel,
-  upgradeAnimatingSkillId,
   onToggleSkill,
   onUpgradeSkill,
   canUpgradeSkill,
@@ -76,7 +74,6 @@ export default function CharacterDetailsPanel({
               maxSkillLevel={maxSkillLevel}
               selectedSkillId={selectedSkill?.id ?? null}
               canUpgrade={canUpgradeSkill(skill)}
-              isAnimating={upgradeAnimatingSkillId === skill.id}
               onToggleDetails={onToggleSkill}
               onUpgrade={onUpgradeSkill}
             />

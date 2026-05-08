@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import type { CharacterSkill, CharacterStats } from "@/components/organisms/characters/types";
 import { resolveSkillDescription } from "@/components/organisms/characters/character-utils";
@@ -9,10 +10,13 @@ type SkillCardProps = {
   maxSkillLevel: number;
   selectedSkillId: string | null;
   canUpgrade: boolean;
-  isAnimating: boolean;
   onToggleDetails: (skill: CharacterSkill) => void;
-  onUpgrade: (skillId: string) => void;
+  onUpgrade: (skillId: string) => Promise<boolean>;
 };
+
+const CHARGE_STEPS = 10;
+const HOLD_DELAY_MS = 260;
+const HOLD_TICK_MS = 140;
 
 // Molecule: carte de competence interactive avec details et progression.
 export default function SkillCard({
@@ -21,14 +25,109 @@ export default function SkillCard({
   maxSkillLevel,
   selectedSkillId,
   canUpgrade,
-  isAnimating,
   onToggleDetails,
   onUpgrade,
 }: SkillCardProps) {
+  const [chargeProgress, setChargeProgress] = useState(0);
+  const holdDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdTickTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const chargeProgressRef = useRef(0);
+  const upgradeInFlightRef = useRef(false);
+  const autoRepeatingRef = useRef(false);
   const skillType = getSkillType(skill, maxSkillLevel);
   const config = SKILL_TYPE_CONFIG[skillType];
   const isMaxLevel = skill.level >= maxSkillLevel;
   const resolved = resolveSkillDescription(skill.description, stats, skill);
+  const visibleChargeProgress = canUpgrade && !isMaxLevel ? chargeProgress : 0;
+
+  const setChargeValue = (nextValue: number) => {
+    chargeProgressRef.current = nextValue;
+    setChargeProgress(nextValue);
+  };
+
+  const stopHold = () => {
+    if (holdDelayTimerRef.current) {
+      clearTimeout(holdDelayTimerRef.current);
+      holdDelayTimerRef.current = null;
+    }
+    if (holdTickTimerRef.current) {
+      clearInterval(holdTickTimerRef.current);
+      holdTickTimerRef.current = null;
+    }
+    autoRepeatingRef.current = false;
+  };
+
+  const executeUpgrade = async () => {
+    if (upgradeInFlightRef.current) {
+      return;
+    }
+
+    upgradeInFlightRef.current = true;
+    const success = await onUpgrade(skill.id);
+    upgradeInFlightRef.current = false;
+
+    if (!success) {
+      stopHold();
+    }
+  };
+
+  const triggerChargeTick = () => {
+    if (!canUpgrade || isMaxLevel || upgradeInFlightRef.current) {
+      return;
+    }
+
+    const next = chargeProgressRef.current + 1;
+    if (next < CHARGE_STEPS) {
+      setChargeValue(next);
+      return;
+    }
+
+    setChargeValue(0);
+    void executeUpgrade();
+  };
+
+  const handleUpgradePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    event.stopPropagation();
+    if (!canUpgrade || isMaxLevel) {
+      return;
+    }
+
+    stopHold();
+    autoRepeatingRef.current = false;
+
+    holdDelayTimerRef.current = setTimeout(() => {
+      autoRepeatingRef.current = true;
+      holdTickTimerRef.current = setInterval(() => {
+        triggerChargeTick();
+      }, HOLD_TICK_MS);
+    }, HOLD_DELAY_MS);
+  };
+
+  const handleUpgradePointerEnd = (event: React.PointerEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    const shouldIncrementOnce = !autoRepeatingRef.current;
+    stopHold();
+
+    if (shouldIncrementOnce) {
+      triggerChargeTick();
+    }
+  };
+
+  useEffect(() => {
+    if (!canUpgrade || isMaxLevel) {
+      stopHold();
+    }
+  }, [canUpgrade, isMaxLevel]);
+
+  useEffect(() => {
+    return () => {
+      stopHold();
+    };
+  }, []);
 
   return (
     <div
@@ -47,10 +146,10 @@ export default function SkillCard({
       <div className="p-3 pl-4">
         <div className="flex items-start gap-3">
           <div
-            className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border-2"
+            className={`relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border-2 ${isMaxLevel ? "prismatic-border" : ""}`}
             style={{
-              borderColor: isMaxLevel ? "#c9a227" : config.borderColor,
-              boxShadow: isMaxLevel ? "0 0 10px rgba(201,162,39,0.3)" : "none",
+              borderColor: isMaxLevel ? "transparent" : config.borderColor,
+              boxShadow: isMaxLevel ? "0 0 12px rgba(180, 136, 255, 0.35)" : "none",
             }}
           >
             <Image
@@ -60,11 +159,11 @@ export default function SkillCard({
               className="object-cover"
             />
             <div
-              className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold"
+              className={`absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${isMaxLevel ? "prismatic-gradient" : ""}`}
               style={{
-                backgroundColor: isMaxLevel ? "#c9a227" : "#0c0a0f",
-                color: isMaxLevel ? "#1a1510" : "#f5e6c8",
-                border: `1px solid ${isMaxLevel ? "#c9a227" : config.color}`,
+                backgroundColor: isMaxLevel ? undefined : "#0c0a0f",
+                color: "#f5e6c8",
+                border: `1px solid ${isMaxLevel ? "transparent" : config.color}`,
                 fontFamily: "var(--font-display), serif",
               }}
             >
@@ -81,7 +180,7 @@ export default function SkillCard({
                 {skill.name}
               </span>
               {isMaxLevel && (
-                <span className="flex items-center gap-1 rounded bg-[#c9a227]/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#c9a227]">
+                <span className="prismatic-gradient flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#f5e6c8]">
                   <i className="fa-solid fa-crown text-[8px]" />
                   Max
                 </span>
@@ -115,10 +214,11 @@ export default function SkillCard({
 
           {!isMaxLevel && (
             <button
-              onClick={(event) => {
-                event.stopPropagation();
-                onUpgrade(skill.id);
-              }}
+              onPointerDown={handleUpgradePointerDown}
+              onPointerUp={handleUpgradePointerEnd}
+              onPointerCancel={handleUpgradePointerEnd}
+              onPointerLeave={handleUpgradePointerEnd}
+              onClick={(event) => event.stopPropagation()}
               disabled={!canUpgrade}
               className={`shrink-0 rounded border px-3 py-1.5 text-xs font-bold transition-all duration-200 ${
                 canUpgrade
@@ -127,15 +227,11 @@ export default function SkillCard({
               }`}
               style={{ fontFamily: "var(--font-display), serif" }}
             >
-              {isAnimating ? (
-                <i className="fa-solid fa-spinner fa-spin" />
-              ) : (
-                <div className="flex items-center gap-1.5">
-                  <i className="fa-solid fa-arrow-up text-[10px]" />
-                  <span>{skill.cost}</span>
-                  <i className="fa-solid fa-gem text-[#cd5c5c] text-[10px]" />
-                </div>
-              )}
+              <div className="flex items-center gap-1.5">
+                <i className="fa-solid fa-arrow-up text-[10px]" />
+                <span>{visibleChargeProgress}/{CHARGE_STEPS}</span>
+                <i className="fa-solid fa-gem text-[#cd5c5c] text-[10px]" />
+              </div>
             </button>
           )}
         </div>
@@ -145,7 +241,7 @@ export default function SkillCard({
             <div
               className="h-full rounded-full transition-all duration-500"
               style={{
-                width: `${(skill.level / maxSkillLevel) * 100}%`,
+                width: `${(visibleChargeProgress / CHARGE_STEPS) * 100}%`,
                 backgroundColor: config.color,
                 opacity: 0.7,
               }}
@@ -153,7 +249,7 @@ export default function SkillCard({
           </div>
         ) : (
           <div className="mt-2 h-1 overflow-hidden rounded-full bg-[#c9a227]/20">
-            <div className="h-full w-full rounded-full bg-[#c9a227]" />
+            <div className="prismatic-gradient h-full w-full rounded-full" />
           </div>
         )}
       </div>

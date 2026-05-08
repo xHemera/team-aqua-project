@@ -60,8 +60,6 @@ const EXPEDITION_DURATIONS = [
 ] as const;
 
 const STORAGE_KEYS = {
-  ruby: "home-ruby",
-  gold: "home-gold",
   team: "home-team-slots",
 };
 
@@ -117,6 +115,7 @@ export default function Home() {
       const { data } = await authClient.getSession();
       if (data?.user?.name) {
         setPseudo(data.user.name);
+        setUserPseudo(data.user.name);
       }
     };
 
@@ -146,22 +145,32 @@ export default function Home() {
   //render messages sent by other users
   useEffect(() => {
     if (!userPseudo) return;
-    const storedRuby = localStorage.getItem(STORAGE_KEYS.ruby);
-    const storedGold = localStorage.getItem(STORAGE_KEYS.gold);
     const storedTeam = localStorage.getItem(STORAGE_KEYS.team);
+
+    const loadResources = async () => {
+      try {
+        const response = await fetch("/api/profile/resources", { cache: "no-store" });
+        if (!response.ok) return;
+
+        const payload = (await response.json()) as { rubis?: number; gold?: number };
+        if (typeof payload.rubis === "number") {
+          setRuby(payload.rubis);
+        }
+        if (typeof payload.gold === "number") {
+          setGold(payload.gold);
+        }
+      } catch {
+        // Keep local defaults if the server is unavailable.
+      }
+    };
+
+    void loadResources();
 
     socket.on("received", async ({sender, receiver, msg}) => {
       setNotification(msg);
       setNotifSender(sender);
       setShowNotification(true);
     });
-
-    if (storedRuby && !Number.isNaN(Number(storedRuby))) {
-      setRuby(Number(storedRuby));
-    }
-    if (storedGold && !Number.isNaN(Number(storedGold))) {
-      setGold(Number(storedGold));
-    }
     if (storedTeam) {
       try {
         const parsed = JSON.parse(storedTeam) as Array<string | null>;
@@ -173,14 +182,6 @@ export default function Home() {
       }
     }
   }, [userPseudo]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.ruby, String(ruby));
-  }, [ruby]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.gold, String(gold));
-  }, [gold]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.team, JSON.stringify(teamSlots));
@@ -220,6 +221,23 @@ export default function Home() {
   const handleMine = (event: React.MouseEvent<HTMLButtonElement>) => {
     const reward = Math.floor(Math.random() * 24) + 12;
     setRuby((current) => current + reward);
+    void fetch("/api/profile/resources", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ rubisDelta: reward, goldDelta: 0 }),
+    })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const payload = (await response.json()) as { rubis?: number };
+        if (typeof payload.rubis === "number") {
+          setRuby(payload.rubis);
+        }
+      })
+      .catch(() => {
+        // Keep the optimistic UI update if persistence fails.
+      });
     minePopupIdRef.current += 1;
     const popupId = minePopupIdRef.current;
     setMinePopups((current) => [

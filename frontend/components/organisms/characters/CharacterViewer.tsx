@@ -13,8 +13,8 @@ interface CharacterViewerProps {
   selectedCharacter: CharacterData;
   onSelectCharacter: (id: string) => void;
   resources: PlayerResources;
-  maxCharacterLevel: number;
   maxSkillLevel: number;
+  onUpgradeSkill: (skillId: string) => Promise<boolean>;
 }
 
 export default function CharacterViewer({
@@ -22,11 +22,10 @@ export default function CharacterViewer({
   selectedCharacter,
   onSelectCharacter,
   resources,
-  maxCharacterLevel,
   maxSkillLevel,
+  onUpgradeSkill,
 }: CharacterViewerProps) {
   const [selectedSkill, setSelectedSkill] = useState<CharacterSkill | null>(null);
-  const [upgradeAnimating, setUpgradeAnimating] = useState<string | null>(null);
 
   const power = useMemo(() => calculatePower(selectedCharacter.stats), [selectedCharacter.stats]);
   const characterRole = CHARACTER_ROLES[selectedCharacter.name] ?? {
@@ -37,11 +36,6 @@ export default function CharacterViewer({
 
   const canUpgradeSkill = (skill: CharacterSkill) => {
     return skill.level < maxSkillLevel && resources.ruby >= skill.cost;
-  };
-
-  const handleUpgradeSkill = (skillId: string) => {
-    setUpgradeAnimating(skillId);
-    setTimeout(() => setUpgradeAnimating(null), 600);
   };
 
   return (
@@ -68,9 +62,8 @@ export default function CharacterViewer({
         selectedSkill={selectedSkill}
         resources={resources}
         maxSkillLevel={maxSkillLevel}
-        upgradeAnimatingSkillId={upgradeAnimating}
         onToggleSkill={(skill) => setSelectedSkill(selectedSkill?.id === skill.id ? null : skill)}
-        onUpgradeSkill={handleUpgradeSkill}
+        onUpgradeSkill={onUpgradeSkill}
         canUpgradeSkill={canUpgradeSkill}
       />
     </div>
