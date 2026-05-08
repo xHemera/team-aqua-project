@@ -1,17 +1,18 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { socket } from "../../socket"
 import { authClient } from "@/lib/auth-client";
 import AppPageShell from "@/components/AppPageShell";
-import { DEFAULT_PROFILE_ICON } from "@/lib/profile-icons";
 import { contact }  from "./index"
 import NotificationToast from "@/components/organisms/home/NotificationToast";
 import ProfileViewerModal from "@/components/organisms/social/ProfileViewer";
+import { ConversationList } from "@/components/organisms/social/ConversationList";
+import { MessageThread } from "@/components/organisms/social/MessageThread";
+import { FriendRequestBanner } from "@/components/molecules/social/FriendRequestBanner";
+import { DuelRequestBanner } from "@/components/molecules/social/DuelRequestBanner";
 import {type} from "./index"
-import { formatTime } from "@/lib/date-utils";
 
 const toSizeLabel = (bytes: number) => {
   if (bytes < 1024) return `${bytes} o`;
@@ -22,7 +23,6 @@ const toSizeLabel = (bytes: number) => {
 export default function SocialPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const messageListRef = useRef<HTMLDivElement | null>(null);
 
   const [selectedUser, setSelectedUser] = useState("");
   const [message, setMessage] = useState("");
@@ -320,17 +320,6 @@ export default function SocialPage() {
     });
 
   }, [userPseudo, selectedUser]);
-
-  //scroll the conversation to last message
-  useEffect(() => {
-    if (messageListRef.current)
-    {
-      messageListRef.current.scrollTo({
-		    top: messageListRef.current.scrollHeight,
-		    behavior: "smooth",
-		  });
-    }
-	}, [currentMessages.length])
 
   //sets waiting status
   useEffect(() => {
@@ -812,274 +801,59 @@ export default function SocialPage() {
 
       <div className="flex w-full justify-center px-4">
         <section className="checkered-bg flex h-[calc(100vh-2rem)] w-[calc(100%-14rem)] flex-col overflow-hidden rounded-3xl border border-[#c9a227]/25 bg-black/15 shadow-2xl">
-          {/* Header avec contacts et boutons */}
-          <header className="flex items-center border-b border-[#c9a227]/30 px-5 py-3">
-            {/* Contacts scroll horizontalement */}
-            <div className="flex-1 overflow-x-auto px-4">
-              <div className="flex gap-2">
-                {
-                  users.map((user) => {
-                  const isActive = selectedUser === user.name;
-                  if (user.name === currentUser.name) return null;
-                  const hasConversation = inboxes.some(inbox => {
-                    const ids = inbox.inboxUser.map(iu => iu.user_id);
-                    return ids.includes(user.id);
-                  });
-                  if (!hasConversation) return null;
-                  return(
-                    <button
-                      key={user.name}
-                      onClick={() => {
-                          setSelectedUser(user.name);
-                          if (user.name == notifSender)
-                            setShowNotification(false);
-                        }
-                      }
-                      className={`relative flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 transition-colors ${
-                        isActive
-                          ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)] text-white"
-                          : "border-[#c9a227]/30 bg-[#242033] text-gray-200 hover:bg-[#302a45]"
-                      }`}
-                    >
-                      <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-visible">
-                        <Image
-                          src={user.name === userPseudo && customUserAvatar ? customUserAvatar : (user.image || (user.avatar?.url ?? DEFAULT_PROFILE_ICON.url))}
-                          alt={user.name}
-                          width={32}
-                          height={32}
-                          className="h-8 w-8 rounded-lg border border-[#c9a227]/30 object-cover"
-                          unoptimized
-                        />
-                      </div>
-                      {user.online ? <div>🟢</div> : <div>🔴</div>}
-                      <span className="shrink-0 whitespace-nowrap text-sm font-semibold">{user.name}</span>
-                      {
-                        (unreadMap[user.name] ?? 0) > 0 && (
-                        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
-                          {unreadMap[user.name] ?? 0}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+          <ConversationList
+            users={users}
+            selectedUser={selectedUser}
+            unreadMap={unreadMap}
+            inboxes={inboxes}
+            customUserAvatar={customUserAvatar}
+            currentUserName={currentUser?.name ?? ""}
+            onSelectUser={(userName) => {
+              setSelectedUser(userName);
+              if (userName === notifSender) setShowNotification(false);
+            }}
+            onAddContactClick={openAddContactModal}
+          />
 
-            {/* Boutons à droite */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={openAddContactModal}
-                disabled={isInviting}
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-50"
-                aria-label="Ajouter un contact"
-              >
-                <i className="fa-solid fa-plus"></i>
-              </button>
-            </div>
-          </header>
           <section className="flex h-full min-h-0 flex-col">
 
-            {/*Friend request*/}
             {selectedUser && request && friendRequestSender && (
-              <div className="border-b border-[#c9a227]/30 bg-[#1b1826] p-4">
-                <div className="rounded-lg border border-[var(--accent-color)] bg-[#242033] p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-300">
-                        <span className="text-[var(--accent-color)]">{friendRequestSender}</span> wants to be your friend
-                      </p>
-                      <p className="mt-1 text-xs text-gray-400">Do you want to accept this request?</p>
-                    </div>
-                    <div className="ml-4 flex gap-2">
-                      <button
-                        onClick={addFriend}
-                        className="rounded-lg bg-emerald-500/90 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-600"
-                      >
-                        Accept
-                      </button>
-                      <button
-                        onClick={refuseFriendship}
-                        className="rounded-lg bg-red-500/90 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-600"
-                      >
-                        Refuse
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            {/*Duel request*/}
-            {challenge && (
-              <div className="border-b border-[#c9a227]/30 bg-[#1b1826] p-4">
-                <div className="rounded-lg border border-[var(--accent-color)] bg-[#242033] p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-300">
-                        <span className="text-[var(--accent-color)]">{opponent}</span> wants to du-du-du-du-du-du-duel !
-                      </p>
-                      <p className="mt-1 text-xs text-gray-400">Do you want to accept this request?</p>
-                    </div>
-                    <div className="ml-4 flex gap-2">
-                      <button
-                        onClick={() => acceptDuel()}
-                        className="rounded-lg bg-emerald-500/90 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-600"
-                      >
-                        Accept
-                      </button>
-                      <button
-                        onClick={() => refuseDuel()}
-                        className="rounded-lg bg-red-500/90 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-600"
-                      >
-                        Refuse
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <FriendRequestBanner
+                senderName={friendRequestSender}
+                onAccept={addFriend}
+                onRefuse={refuseFriendship}
+              />
             )}
 
-            <div ref={messageListRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
-              {!selectedUser ? (
-                <div className="flex h-full min-h-[16rem] items-center justify-center text-base font-semibold text-gray-400">
-                  No conversation selected
-                </div> ) :
-              (
-                currentMessages.map((msg, index) => {
-                  const lastUserMessageIndex = currentMessages.findLastIndex((m) => m.user_id === currentUser.id);
-                  const isLastUserMessage = msg.user_id === currentUser.id && index === lastUserMessageIndex;
-                  return (
-                <div key={msg.id} className={`flex flex-col ${msg.user_id === currentUser.id ? "items-end" : "items-start"}`}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (msg.user_id === currentUser.id) {
-                        router.push(`/profile/${currentUser.name}`);
-                      } else if (selectedUser) {
-                        openProfileViewerForUserName(selectedUser);
-                      }
-                    }}
-                    className="mb-1 flex items-center gap-2 text-xs text-gray-400"
-                  >
-                    <Image
-                      src={
-                        msg.user_id === currentUser.id
-                          ? customUserAvatar || (currentUser.avatar?.url ?? DEFAULT_PROFILE_ICON.url)
-                          : (users.find(u => u.name === selectedUser)?.image || (users.find(u => u.name === selectedUser)?.avatar?.url ?? DEFAULT_PROFILE_ICON.url))
-                      }
-                      alt="Avatar"
-                      width={20}
-                      height={20}
-                      className="h-4 w-4 rounded transition-transform hover:scale-125"
-                      unoptimized
-                    />
-                    <span className="font-semibold">
-                      {msg.user_id === currentUser.id ? currentUser.name : selectedUser}
-                    </span>
-                    <span className="opacity-75">{formatTime(msg.createdAt)}</span>
-                  </button>
-                  <div className={`flex items-end ${msg.user_id === currentUser.id ? "flex-row-reverse gap-2" : "gap-2"}`}>
-                    <article
-                      className={`max-w-[44rem] rounded-2xl px-4 py-2 ${
-                        msg.user_id === currentUser.id
-                          ? "bg-[var(--accent-color)] text-white"
-                          : "border border-[#c9a227]/30 bg-[#242033] text-gray-100"
-                      }`}
-                    >
-                    {msg.message && (
-                      <div>
-                        <p className="text-l leading-relaxed break-words whitespace-pre-wrap">
-                          {expandedMessages.has(msg.id) ? msg.message : msg.message.slice(0, MAX_DISPLAY_LENGTH)}
-                        </p>
-                        {msg.message.length > MAX_DISPLAY_LENGTH && (
-                          <button
-                            onClick={() => toggleMessageExpanded(msg.id)}
-                            className={`mt-2 text-xs font-semibold transition-colors ${
-                              msg.user_id === currentUser.id
-                                ? "text-white/80 hover:text-white"
-                                : "text-gray-300 hover:text-gray-100"
-                            }`}
-                          >
-                            {expandedMessages.has(msg.id) ? "voir moins" : "voir plus"}
-                          </button>
-                        )}
-                      </div>
-                    )}
-
-
-                    {msg.attachments.length > 0 && (
-                      <div className={`mt-2 grid gap-2 ${msg.attachments.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
-                        {msg.attachments.map((attachment) => {
-                          return (
-                            <div
-                              key={attachment.id}
-                              className={`rounded-lg border p-2 ${
-                                msg.user_id === currentUser.id
-                                  ? "border-white/30 bg-white/10"
-                                  : "border-[#c9a227]/30 bg-[#15131d]"
-                              }`}
-                            >
-                              {(
-                                <Image
-                                  src={`${attachment.previewUrl}`}
-                                  alt={attachment.name}
-                                  width={320}
-                                  height={220}
-                                  className="h-28 w-full rounded-md object-cover"
-                                  unoptimized
-                                />
-                              )}
-                              <p className="mt-2 truncate text-xs font-semibold">{attachment.name}</p>
-                              <p className="text-[11px] opacity-75">{attachment.sizeLabel}</p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                    </article>
-                    {isLastUserMessage && (
-                      <div>
-                        {unread ? (
-                          <span className="text-gray-500 text-sm"><i className="fa-solid fa-check"></i></span>
-                        ) : (
-                          <span className="text-emerald-400 text-sm"><i className="fa-solid fa-check-double"></i></span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                );})
-              )}
-            </div>
-            {selectedUser && typer && selectedUser === typer && typing && (
-              <div className="px-5 py-3">
-                <style>{`
-                  @keyframes typing-animation {
-                    0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
-                    30% { opacity: 1; transform: translateY(-8px); }
-                  }
-                  .typing-dot {
-                    display: inline-block;
-                    width: 8px;
-                    height: 8px;
-                    border-radius: 50%;
-                    background-color: currentColor;
-                    margin: 0 2px;
-                    animation: typing-animation 1.4s infinite;
-                  }
-                  .typing-dot:nth-child(1) { animation-delay: 0s; }
-                  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-                  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-                `}</style>
-                <div className="flex items-center gap-2 text-sm font-medium text-gray-400">
-                  <span>{typer} is typing</span>
-                  <span className="text-[var(--accent-color)]">
-                    <span className="typing-dot"></span>
-                    <span className="typing-dot"></span>
-                    <span className="typing-dot"></span>
-                  </span>
-                </div>
-              </div>
+            {challenge && opponent && (
+              <DuelRequestBanner
+                opponentName={opponent}
+                onAccept={(acceptDuel)}
+                onRefuse={refuseDuel}
+              />
             )}
+
+            <MessageThread
+              selectedUser={selectedUser}
+              currentUser={currentUser}
+              messages={currentMessages}
+              unread={unread}
+              expandedMessages={expandedMessages}
+              users={users}
+              customUserAvatar={customUserAvatar}
+              maxDisplayLength={MAX_DISPLAY_LENGTH}
+              isTyping={typing}
+              typer={typer}
+              onMessageExpand={toggleMessageExpanded}
+              onProfileClick={(userName) => {
+                if (userName === currentUser?.name) {
+                  router.push(`/profile/${userName}`);
+                } else {
+                  openProfileViewerForUserName(userName);
+                }
+              }}
+            />
+
             <footer className="sticky bottom-0 border-t border-[#c9a227]/30 bg-[#15131d] p-4">
               {selectedUser && (<div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2 rounded-full border border-[#c9a227]/30 bg-[#242033] px-2 py-2 focus-within:border-[#c9a227]/30 focus-within:ring-0">

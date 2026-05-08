@@ -65,7 +65,7 @@ const AdminCrownIcon = ({ className }: { className?: string }) => (
 const NAV_ITEMS = [
   { href: "/home", icon: "fa-solid fa-house", label: "Home" },
   { href: "/characters", icon: "fa-solid fa-users", label: "Heroes" },
-  { href: "/social", icon: "fa-solid fa-people-group", label: "Social" },
+  { href: "/social", icon: "fa-solid fa-comments", label: "Social" },
   { href: "/admin", label: "Council", iconNode: <AdminCrownIcon className="h-5 w-5" /> },
 ] as const;
 

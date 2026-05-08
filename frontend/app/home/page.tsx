@@ -8,6 +8,9 @@ import FeatureActionTile from "@/components/atoms/home/FeatureActionTile";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import Button from "@/components/atoms/Button";
+import { MineSection } from "@/components/organisms/home/MineSection";
+import { TeamBuilder } from "@/components/organisms/home/TeamBuilder";
+import { ExpeditionTracker } from "@/components/organisms/home/ExpeditionTracker";
 import { CHARACTERS, PLAYER_RESOURCES } from "@/app/characters/characters-data";
 import SidebarShell from "@/components/SidebarShell";
 import {socket} from "../../socket"
@@ -382,15 +385,12 @@ export default function Home() {
     window.addEventListener("pointerup", handlePointerUp, { once: true });
   };
 
-  const teamPowerLabel = `${teamSlots.filter(Boolean).length}/3`;
   const expeditionLabel = activeExpedition
     ? `In progress • ${formatTimer(expeditionRemainingSeconds)}`
     : expeditionReward
       ? "Reward ready"
       : "Ready";
 
-  const getTeamCharacter = (id: string | null) => roster.find((character) => character.id === id) ?? null;
-  const isCharacterInTeam = (characterId: string) => teamSlots.includes(characterId);
   const activeExpeditionCharacter = activeExpedition
     ? roster.find((character) => character.id === activeExpedition.characterId) ?? null
     : null;
@@ -414,54 +414,7 @@ export default function Home() {
         />
 
         <div className="relative z-10 flex h-full min-h-0 flex-col gap-5 rounded-3xl border border-[#c9a227]/20 bg-black/10 p-5">
-          {/* Header */}
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-col">
-              <span
-                className="text-lg font-black uppercase tracking-[0.16em] text-[#f5e6c8]"
-                style={{ fontFamily: "var(--font-display), serif" }}
-              >
-                {pseudo}
-              </span>
-              <span className="text-xs font-semibold uppercase tracking-[0.1em] text-[#c9b48a]">Welcome back</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl border border-[#c9a227]/50 bg-gradient-to-br from-[#1e1828] to-[#15121a] px-4 py-2.5 backdrop-blur-sm">
-                <span className="inline-flex items-center gap-2.5 text-sm font-bold text-[#f5e6c8]">
-                  <i className="fa-solid fa-gem text-lg text-[#ff6b6b]" aria-hidden="true" />
-                  <span className="min-w-[48px] text-right">{ruby}</span>
-                </span>
-              </div>
-              <div className="rounded-xl border border-[#c9a227]/50 bg-gradient-to-br from-[#1e1828] to-[#15121a] px-4 py-2.5 backdrop-blur-sm">
-                <span className="inline-flex items-center gap-2.5 text-sm font-bold text-[#f5e6c8]">
-                  <i className="fa-solid fa-coins text-lg text-[#ffd700]" aria-hidden="true" />
-                  <span className="min-w-[48px] text-right">{gold}</span>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Expedition Reward Banner */}
-          {expeditionReward && (
-            <div className="overflow-hidden rounded-xl border border-[#4b8f65]/60 bg-gradient-to-r from-[#122019] to-[#1a2b23] p-4 shadow-[0_0_20px_rgba(75,143,101,0.15)]">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <i className="fa-solid fa-star text-xl text-[#7cfc00]" aria-hidden="true" />
-                  <div>
-                    <div className="text-xs font-bold uppercase tracking-widest text-[#7cfc00]">
-                      Expedition complete
-                    </div>
-                    <div className="mt-1 text-sm text-[#dcffe9]">
-                      +{expeditionReward.xp} XP • +{expeditionReward.gold} Gold
-                    </div>
-                  </div>
-                </div>
-                <Button type="button" size="sm" onClick={handleClaimExpeditionReward} className="font-bold uppercase tracking-wider">
-                  Claim
-                </Button>
-              </div>
-            </div>
-          )}
+          <MineSection pseudo={pseudo} rubyCount={ruby} goldCount={gold} />
 
           {/* Main Content Grid */}
           <div className="flex min-h-0 flex-1 flex-col gap-5">
@@ -503,166 +456,36 @@ export default function Home() {
                 onClick={handleStartPvp}
               />
 
-              <FeatureActionTile
-                title="Expedition"
-                icon="fa-compass"
-                accentClassName="bg-gradient-to-br from-[#355366]/20 via-[#7a9162]/15 to-transparent"
-                value={expeditionLabel}
-                content={
-                  activeExpeditionCharacter ? (
-                    <div>
-                      <div className="expedition-walk-lane" style={{ "--expedition-progress": `${expeditionProgressPercent.toFixed(2)}%` } as CSSProperties}>
-                        <div className="expedition-node expedition-node-start" aria-hidden="true">
-                          <i className="fa-solid fa-campground" />
-                        </div>
-                        <div className="expedition-node expedition-node-end" aria-hidden="true">
-                          <i className="fa-solid fa-flag-checkered" />
-                        </div>
-                        <div
-                          className="expedition-walker"
-                          style={{ left: `clamp(18px, ${expeditionProgressPercent.toFixed(2)}%, calc(100% - 18px))` }}
-                        >
-                          <div className="relative h-9 w-9 overflow-hidden rounded-full border border-[#c9a227]/80 bg-[#1e1828]">
-                            <Image
-                              src={activeExpeditionCharacter.portrait}
-                              alt={activeExpeditionCharacter.name}
-                              fill
-                              className="object-cover"
-                              draggable={false}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : null
-                }
-                onClick={() => setExpeditionOpen(true)}
+              <ExpeditionTracker
+                activeExpedition={activeExpedition}
+                expeditionReward={expeditionReward}
+                nowTs={nowTs}
+                activeExpeditionCharacter={activeExpeditionCharacter}
+                expeditionProgressPercent={expeditionProgressPercent}
+                expeditionRemainingSeconds={expeditionRemainingSeconds}
+                expeditionLabel={expeditionLabel}
+                onClaimReward={handleClaimExpeditionReward}
+                onOpenExpedition={() => setExpeditionOpen(true)}
               />
             </div>
 
-            {/* Team Builder Section */}
-            <div className="flex-1 overflow-hidden rounded-xl border border-[#c9a227]/25 bg-gradient-to-br from-[#120f17]/80 to-[#0f0c14]/60 p-5 backdrop-blur-xs">
-              <div className="mb-4 flex items-center justify-between border-b border-[#c9a227]/20 pb-4">
-                <div className="flex flex-col gap-1">
-                  <h2
-                    className="text-lg font-black uppercase tracking-[0.14em] text-[#f5e6c8]"
-                    style={{ fontFamily: "var(--font-display), serif" }}
-                  >
-                    Your Squad
-                  </h2>
-                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#c9b48a]">Assemble your champions</p>
-                </div>
-                <span className="rounded-lg border border-[#c9a227]/60 bg-gradient-to-r from-[#1e1828] to-[#15121a] px-3 py-1.5 text-xs font-black uppercase tracking-widest text-[#e6c55a]">
-                  {teamPowerLabel}
-                </span>
-              </div>
-
-              <div className="space-y-4">
-                {/* Active Team */}
-                <div className="rounded-lg border border-[#c9a227]/25 bg-[#0a0810]/50 p-4">
-                  <div className="mb-3 text-center">
-                    <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#c9b48a]">
-                      ⚔️ Active Team
-                    </div>
-                  </div>
-                  <div className="flex justify-center gap-3">
-                    {teamSlots.map((slotCharacterId, index) => {
-                      const selectedCharacter = getTeamCharacter(slotCharacterId);
-                      const isSlotHovered = hoveredSlotIndex === index;
-                      return (
-                        <div
-                          key={`home-team-slot-${index}`}
-                          ref={(element) => {
-                            slotRefs.current[index] = element;
-                          }}
-                          className={`group team-slot-item relative w-[110px] overflow-hidden rounded-lg border-2 transition-all duration-200 ${
-                            isSlotHovered ? "border-[#c9a227] shadow-[0_0_16px_rgba(201,162,39,0.5)]" : "border-[#6b5a84]/70"
-                          } ${selectedCharacter ? "bg-[#0f0c14]" : "bg-[#120f17]/50"}`}
-                        >
-                          {selectedCharacter ? (
-                            <>
-                              <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#0a0810]">
-                                <Image src={selectedCharacter.portrait} alt={selectedCharacter.name} fill className="object-cover transition-transform group-hover:scale-110" />
-                              </div>
-                              <div className="flex items-center justify-between bg-gradient-to-r from-[#1a1422] to-[#0f0c14] px-2 py-1.5">
-                                <span className="truncate text-[8px] font-bold uppercase tracking-wider text-[#ead9aa]">
-                                  {selectedCharacter.name}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setTeamSlots((current) => {
-                                      const next = [...current];
-                                      next[index] = null;
-                                      return next;
-                                    });
-                                  }}
-                                  className="text-xs text-[#e6c55a] transition-colors hover:text-[#ffcf63]"
-                                  aria-label={`Clear slot ${index + 1}`}
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            </>
-                          ) : (
-                            <div className="flex aspect-[3/4] w-full items-center justify-center bg-gradient-to-br from-[#1e1a24] to-[#0f0c14] text-center">
-                              <div className="flex flex-col items-center gap-1.5">
-                                <i className="fa-solid fa-plus text-lg text-[#6b5a84]" aria-hidden="true" />
-                                <div className="text-[8px] font-bold uppercase tracking-wider text-[#7b6d93]">
-                                  Slot<br />{index + 1}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Roster Selection */}
-                <div className="rounded-lg border border-[#c9a227]/25 bg-[#0a0810]/50 p-4">
-                  <div className="mb-4 text-center">
-                    <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#c9b48a]">
-                      📜 Available Champions
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap justify-center gap-3">
-                    {roster.map((character, index) => {
-                      const inTeam = isCharacterInTeam(character.id);
-                      return (
-                        <button
-                          key={character.id}
-                          type="button"
-                          onPointerDown={(event) => handleRosterPointerDown(event, character.id)}
-                          onClick={() => {
-                            if (suppressClickForIdRef.current === character.id) {
-                              suppressClickForIdRef.current = null;
-                              return;
-                            }
-
-                            const freeSlot = teamSlots.findIndex((slot) => slot === null);
-                            handleDropToTeamSlot(freeSlot === -1 ? 0 : freeSlot, character.id);
-                          }}
-                          className={`group team-slot-item w-[90px] overflow-hidden rounded-lg border-2 text-left transition-all duration-200 ${
-                            inTeam
-                              ? "border-[#c9a227] shadow-[0_0_12px_rgba(201,162,39,0.4)]"
-                              : "border-[#433556]/60 hover:border-[#7a6599]/80"
-                          } ${dragPreview?.id === character.id ? "opacity-40" : ""}`}
-                        >
-                          <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#0a0810]">
-                            <Image src={character.portrait} alt={character.name} fill className="object-cover transition-transform group-hover:scale-110" draggable={false} />
-                          </div>
-                          <div className="truncate bg-gradient-to-r from-[#1a1422] to-[#0f0c14] px-1.5 py-1 text-[7px] font-bold uppercase tracking-wider text-[#ead9aa]">
-                            {character.name}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <TeamBuilder
+              roster={roster}
+              teamSlots={teamSlots}
+              dragPreview={dragPreview}
+              hoveredSlotIndex={hoveredSlotIndex}
+              slotRefs={slotRefs}
+              suppressClickForIdRef={suppressClickForIdRef}
+              onTeamSlotChange={handleDropToTeamSlot}
+              onRosterPointerDown={handleRosterPointerDown}
+              onSlotClear={(slotIndex) => {
+                setTeamSlots((current) => {
+                  const next = [...current];
+                  next[slotIndex] = null;
+                  return next;
+                });
+              }}
+            />
           </div>
         </div>
 
