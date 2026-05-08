@@ -2,6 +2,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import express from "express";
 import { createClient } from 'redis';
+import "./matchmaking.js";
 
 //redis settings
 const redis = createClient({
@@ -21,7 +22,7 @@ const port = Number(process.env.PORT || 4001);
 
 const app = express();
 const httpServer = createServer(app);
-const io = new Server(httpServer, {
+export const io = new Server(httpServer, {
   cors: {
     origin: "*"
   },

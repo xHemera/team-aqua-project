@@ -204,6 +204,11 @@ export default function Home() {
 
   useEffect(() => {
   if (!userPseudo) return;
+
+    socket.on("matchFound", () => {
+      router.push("/game");
+    });
+
     socket.on("ban", (banned) => {
       if (banned === userPseudo)
         handleLogout();
@@ -247,12 +252,19 @@ export default function Home() {
     }, 900);
   };
 
-  const handleStartPvp = () => {
+  const handleStartPvp = async () => {
     setPvpOpen(true);
+    //await redis.rpush("players_queue", JSON.stringify(userPseudo));
   };
 
-  const handleCancelPvp = () => {
+  const handleCancelPvp = async () => {
     setPvpOpen(false);
+    // const playersQueue = await redis.hGetAll("players_queue");
+    // const fieldToDelete = Object.keys(playersQueue).find(
+    //   key => playersQueue[key] === socket.id
+    // );
+    // if (fieldToDelete)
+    //   await redis.hDel("online_users", fieldToDelete);
   };
 
   const handleClosePvp = () => {
