@@ -6,7 +6,7 @@ link everything in characterView Page to DB.
 
 Write documentation on how the DB works for game components
 
-Le bouton est trigger sans meme cliquer dessus???
+Le bouton est trigger sans meme cliquer dessus???Vas
 
 
 
