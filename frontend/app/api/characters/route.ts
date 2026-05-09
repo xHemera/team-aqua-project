@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { CHARACTERS, MAX_CHARACTER_LEVEL, MAX_SKILL_LEVEL, PLAYER_RESOURCES } from "@/app/characters/characters-data";
+import { CHARACTERS, MAX_CHARACTER_LEVEL, MAX_SKILL_LEVEL, PLAYER_RESOURCES } from "@/app/characters/character-roster";
 import { headers } from "next/headers";
 
 type ApiCharacterSkill = {

@@ -11,7 +11,7 @@ import Button from "@/components/atoms/Button";
 import { MineSection } from "@/components/organisms/home/MineSection";
 import { TeamBuilder } from "@/components/organisms/home/TeamBuilder";
 import { ExpeditionTracker } from "@/components/organisms/home/ExpeditionTracker";
-import { CHARACTERS, PLAYER_RESOURCES } from "@/app/characters/characters-data";
+import { CHARACTERS, PLAYER_RESOURCES } from "@/app/characters/character-roster";
 import SidebarShell from "@/components/SidebarShell";
 import {socket} from "../../socket"
 

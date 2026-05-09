@@ -1,8 +1,8 @@
 const ID = "assassin";
 
-const PATH = `gameResources/heroes/${ID}/assets`;
+const PATH = `/gameResources/heroes/${ID}/assets`;
 
-const portrait = `${PATH}/avatar/Charon_Garment1_Small_Icon.webp`;
+const portrait = `${PATH}/avatar/Charon_Garment1_Icon_Small.webp`;
 const body = `${PATH}/body/Charon_Garment1.webp`;
 const spell1Icon = `${PATH}/spells/silenced.png`;
 const spell2Icon = `${PATH}/spells/poison_dagger.png`;

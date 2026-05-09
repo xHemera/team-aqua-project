@@ -1,6 +1,6 @@
 const ID = "template";
 
-const PATH = `gameResources/heroes/${ID}/assets`;
+const PATH = `/gameResources/heroes/${ID}/assets`;
 
 const portrait = `${PATH}/avatar/x.webp`;
 const body = `${PATH}/body/x.webp`;

@@ -1,11 +1,21 @@
+const ID = "mage";
+
+const PATH = `/gameResources/heroes/${ID}/assets`;
+
+const portrait = `${PATH}/avatar/Beryl_Garment1_Small_Icon.webp`;
+const body = `${PATH}/body/Beryl_Garment1.webp`;
+const spell1Icon = `${PATH}/spells/fire_spell.png`;
+const spell2Icon = `${PATH}/spells/mana_replenish.png`;
+const spell3Icon = `${PATH}/spells/counterspell.png`;
+
 export const mage = {
   identity: {
-    id: "mage-1",
+    id: ID,
     name: "Mage",
 
     assets: {
-      portrait: "gameResources/heroes/{_id}/assets/avatar/{_id}.webp",
-      body: "gameResources/heroes/{_id}/assets/body/{_id}.webp",
+      portrait: portrait,
+      body: body,
     },
   },
 
@@ -50,7 +60,7 @@ export const mage = {
       info: {
         name: "Fireball",
 
-        icon: "/spells/fire_spell.png",
+        icon: spell1Icon,
 
         description:
           "Deals {multiplier}x Magical Damage + {flat} bonus Fire damage to a single target with a {burnChance}% chance to apply Burn.",
@@ -59,23 +69,19 @@ export const mage = {
       unlockLevel: 1,
       manaCost: 12,
 
-      scaling: {
-        stat: "magicalDamage",
-
+      scaling: [
         // [damageMultiplier, flatDamagePerLevel, burnChance]
-        ranks: [
-          [1.3, 18, 30],
-          [1.4, 22, 32],
-          [1.5, 26, 34],
-          [1.6, 30, 36],
-          [1.7, 34, 38],
-          [1.8, 38, 40],
-          [1.9, 43, 43],
-          [2.1, 50, 46],
-          [2.3, 58, 50],
-          [2.6, 70, 60],
-        ],
-      },
+        [1.3, 18, 30],
+        [1.4, 22, 32],
+        [1.5, 26, 34],
+        [1.6, 30, 36],
+        [1.7, 34, 38],
+        [1.8, 38, 40],
+        [1.9, 43, 43],
+        [2.1, 50, 46],
+        [2.3, 58, 50],
+        [2.6, 70, 60],
+      ],
     },
 
     {
@@ -86,7 +92,7 @@ export const mage = {
       info: {
         name: "Arcane Missiles",
 
-        icon: "/spells/mana_replenish.png",
+        icon: spell2Icon,
 
         description:
           "Launches {missiles} missiles, each dealing {multiplier}x Magical Damage to random enemies.",
@@ -95,23 +101,19 @@ export const mage = {
       unlockLevel: 8,
       manaCost: 16,
 
-      scaling: {
-        stat: "magicalDamage",
-
+      scaling: [
         // [missileCount, damageMultiplier]
-        ranks: [
-          [2, 1.5],
-          [2, 1.6],
-          [3, 1.6],
-          [3, 1.7],
-          [4, 1.7],
-          [4, 1.8],
-          [5, 1.8],
-          [5, 1.9],
-          [6, 2.0],
-          [7, 2.1],
-        ],
-      },
+        [2, 1.5],
+        [2, 1.6],
+        [3, 1.6],
+        [3, 1.7],
+        [4, 1.7],
+        [4, 1.8],
+        [5, 1.8],
+        [5, 1.9],
+        [6, 2.0],
+        [7, 2.1],
+      ],
     },
 
     {
@@ -122,7 +124,7 @@ export const mage = {
       info: {
         name: "Meteor",
 
-        icon: "/spells/counterspell.png",
+        icon: spell3Icon,
 
         description:
           "Deals {multiplier}x Magical Damage + {flat} bonus damage to all enemies.",
@@ -131,23 +133,19 @@ export const mage = {
       unlockLevel: 15,
       manaCost: 20,
 
-      scaling: {
-        stat: "magicalDamage",
-
+      scaling: [
         // [damageMultiplier, flatDamagePerLevel]
-        ranks: [
-          [2.2, 40],
-          [2.4, 45],
-          [2.6, 50],
-          [2.8, 55],
-          [3.0, 60],
-          [3.2, 66],
-          [3.5, 74],
-          [3.8, 84],
-          [4.2, 96],
-          [4.8, 115],
-        ],
-      },
+        [2.2, 40],
+        [2.4, 45],
+        [2.6, 50],
+        [2.8, 55],
+        [3.0, 60],
+        [3.2, 66],
+        [3.5, 74],
+        [3.8, 84],
+        [4.2, 96],
+        [4.8, 115],
+      ],
     },
   ],
 }

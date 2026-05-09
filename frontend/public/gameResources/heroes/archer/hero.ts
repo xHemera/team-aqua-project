@@ -1,6 +1,6 @@
 const ID = "archer";
 
-const PATH = `gameResources/heroes/${ID}/assets`;
+const PATH = `/gameResources/heroes/${ID}/assets`;
 
 const portrait = `${PATH}/avatar/Paper_Heron_Garment1_Small_Icon.webp`;
 const body = `${PATH}/body/Paper_Heron_Garment1.webp`;
@@ -90,23 +90,19 @@ export const archer = {
         },
         unlockLevel: 5,
         manaCost: 12,
-        scaling: {
-          stat: "physicalDamage",
-
+        scaling: [
           // [multiplier, flatDamagePerLevel]
-          ranks: [
-            [0.8, 10],
-            [0.9, 12],
-            [1.0, 14],
-            [1.1, 16],
-            [1.2, 18],
-            [1.3, 20],
-            [1.4, 22],
-            [1.5, 24],
-            [1.7, 28],
-            [2.0, 35],
-          ],
-        },
+          [0.8, 10],
+          [0.9, 12],
+          [1.0, 14],
+          [1.1, 16],
+          [1.2, 18],
+          [1.3, 20],
+          [1.4, 22],
+          [1.5, 24],
+          [1.7, 28],
+          [2.0, 35],
+        ],
       },
 
       {
@@ -120,21 +116,19 @@ export const archer = {
         },
         unlockLevel: 10,
         manaCost: 15,
-        scaling: {
+        scaling: [
           // [critChance, critDamage, duration]
-          ranks: [
-            [5, 8, 3],
-            [7, 10, 3],
-            [9, 12, 3],
-            [11, 14, 3],
-            [13, 16, 4],
-            [15, 18, 4],
-            [17, 20, 4],
-            [20, 24, 5],
-            [24, 28, 5],
-            [30, 35, 5],
-          ],
-        },
+          [5, 8, 3],
+          [7, 10, 3],
+          [9, 12, 3],
+          [11, 14, 3],
+          [13, 16, 4],
+          [15, 18, 4],
+          [17, 20, 4],
+          [20, 24, 5],
+          [24, 28, 5],
+          [30, 35, 5],
+        ],
       },
     ],
 }

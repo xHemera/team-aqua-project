@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { PLAYER_RESOURCES } from "@/app/characters/characters-data";
+import { PLAYER_RESOURCES } from "@/app/characters/character-roster";
 import { headers } from "next/headers";
 
 const ensureGameState = async (userId: string) => {

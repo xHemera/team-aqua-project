@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MAX_SKILL_LEVEL, PLAYER_RESOURCES } from "./characters-data";
+import { MAX_SKILL_LEVEL, PLAYER_RESOURCES } from "./character-roster";
 import CharacterViewer from "@/components/organisms/characters/CharacterViewer";
 import Sidebar from "@/components/Sidebar";
 import NotificationToast from "@/components/organisms/home/NotificationToast";
