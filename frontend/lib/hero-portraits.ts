@@ -3,14 +3,13 @@
  * Ensures consistent hero-to-portrait mapping across the application.
  */
 
-export const TEAM_PORTRAITS: Record<string, string> = {
-  Knight: "/heroes/Avatar_Sorel.webp",
-  Assassin: "/heroes/Avatar_Wanda.webp",
-  Healer: "/heroes/Avatar_Tulu.webp",
-  Archer: "/heroes/Avatar_Uvhash.webp",
-  Mage: "/heroes/Avatar_Thais.webp",
-};
+import { CHARACTERS } from "@/app/characters/character-roster";
+
+export const TEAM_PORTRAITS: Record<string, string> = Object.fromEntries(
+  CHARACTERS.map((character) => [character.name, character.portrait]),
+);
 
 export const getHeroPortrait = (heroName: string): string => {
-  return TEAM_PORTRAITS[heroName] || TEAM_PORTRAITS.Knight;
+  const fallbackPortrait = CHARACTERS[0]?.portrait ?? "/gameResources/heroes/knight/assets/avatar/Nautika_Garment1_Small_Icon.webp";
+  return TEAM_PORTRAITS[heroName] || fallbackPortrait;
 };

@@ -155,6 +155,10 @@ const getApiCharacters = async (gameStateId: string): Promise<ApiCharacterData[]
       ...templateCharacter,
       id: dbCharacter.id,
       level: dbCharacter.level,
+      stats: {
+        ...templateCharacter.stats,
+        hp: dbCharacter.hp,
+      },
       skills: templateCharacter.skills.map((templateSkill) => {
         const dbSpell = dbSpellsByName.get(templateSkill.name);
 

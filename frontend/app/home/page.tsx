@@ -286,13 +286,36 @@ export default function Home() {
     setExpeditionOpen(false);
   };
 
-  const handleClaimExpeditionReward = () => {
+  const handleClaimExpeditionReward = async () => {
     if (!expeditionReward) {
       return;
     }
 
-    setGold((current) => current + expeditionReward.gold);
+    const goldReward = expeditionReward.gold;
+
+    setGold((current) => current + goldReward);
     setExpeditionReward(null);
+
+    try {
+      const response = await fetch("/api/profile/resources", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ rubisDelta: 0, goldDelta: goldReward }),
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const payload = (await response.json()) as { gold?: number };
+      if (typeof payload.gold === "number") {
+        setGold(payload.gold);
+      }
+    } catch {
+      // Keep optimistic UI update if persistence fails.
+    }
   };
 
   const handleDropToTeamSlot = (slotIndex: number, characterId: string) => {

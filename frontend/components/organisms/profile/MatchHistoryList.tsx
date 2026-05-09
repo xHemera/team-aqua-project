@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { formatDate } from "@/lib/date-utils";
-import { TEAM_PORTRAITS } from "@/lib/hero-portraits";
+import { getHeroPortrait } from "@/lib/hero-portraits";
 
 type MatchHistoryEntry = {
   id: string;
@@ -71,7 +71,7 @@ export function MatchHistoryList({ matches }: MatchHistoryListProps) {
                       {match.playerTeam.map((member) => (
                         <div key={member} className="relative group">
                           <Image
-                            src={TEAM_PORTRAITS[member] || TEAM_PORTRAITS.Knight}
+                            src={getHeroPortrait(member)}
                             alt={member}
                             width={32}
                             height={32}
@@ -93,7 +93,7 @@ export function MatchHistoryList({ matches }: MatchHistoryListProps) {
                       {match.opponentTeam.map((member) => (
                         <div key={member} className="relative group">
                           <Image
-                            src={TEAM_PORTRAITS[member] || TEAM_PORTRAITS.Knight}
+                            src={getHeroPortrait(member)}
                             alt={member}
                             width={32}
                             height={32}
