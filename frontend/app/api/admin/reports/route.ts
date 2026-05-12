@@ -29,7 +29,16 @@ export async function GET()
                             id: true,
                             message: true,
                             user_id: true,
-                            createdAt: true
+                            createdAt: true,
+                            attachments: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    sizeLabel: true,
+                                    type: true,
+                                    previewUrl: true
+                                }
+                            }
                             } 
                         } 
                     }

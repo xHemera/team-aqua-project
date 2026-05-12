@@ -6,11 +6,20 @@ export type User = {
   avatar?: string | null
 };
 
+export type Attachment = {
+  id: string;
+  name: string;
+  sizeLabel: string;
+  type: string;
+  previewUrl: string;
+};
+
 export type Message = {
   id: string;
   user_id: string;
   message: string | null;
   createdAt: Date;
+  attachments: Attachment[];
 };
 
 export type ReportedConv = {
