@@ -421,7 +421,7 @@ export default function SocialPage() {
         currentUser: currentUser.name,
         otherUser: selectedUser,
       });
-      const res = await fetch(`/api/social/otherFriend?${params.toString()}`, {
+      const res = await fetch(`/api/social/friend?${params.toString()}`, {
         method: "GET",
       });
       if (!res.ok)
@@ -433,6 +433,7 @@ export default function SocialPage() {
         setFriendRequestSender(null);
         return;
       }
+      // friend.request_sent = true means OTHER USER sent us a request
       if (friend.request_sent == true)
       {
         setRequest(true);
