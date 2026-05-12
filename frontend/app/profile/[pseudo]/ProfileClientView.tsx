@@ -210,6 +210,7 @@ export default function ProfileClientView({
       sender: userPseudo
     });
     socket.disconnect();
+    await authClient.signOut();
     router.push("/");
   }
 
