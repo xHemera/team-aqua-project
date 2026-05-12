@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { DEFAULT_PROFILE_ICON } from "@/lib/profile-icons";
 import type { type as socialType } from "@/app/social/index";
+import { useRef, useState } from "react";
 
 type ConversationTabProps = {
   user: socialType.User;
@@ -20,10 +21,23 @@ export function ConversationTab({
   onSelect,
 }: ConversationTabProps) {
   const displayAvatar = customUserAvatar || user.image || user.avatar?.url || DEFAULT_PROFILE_ICON.url;
+  const lastClickRef = useRef(0);
+
+  async function select() {
+    const now = Date.now();
+
+    if (now - lastClickRef.current < 1500) {
+      return;
+    }
+
+    lastClickRef.current = now;
+
+    onSelect(user.name);
+  }
 
   return (
     <button
-      onClick={() => onSelect(user.name)}
+      onClick={() => {select();}}
       className={`relative flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 transition-colors ${
         isActive
           ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)] text-white"
