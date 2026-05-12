@@ -379,6 +379,8 @@ clean_all() {
     print_header "Nettoyage complet"
     read -p "⚠️  Cela supprimera tous les volumes (base de données). Continuer? (y/N): " confirm
     if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
+        rm -rf frontend/public/images/*
+        rm -rf frontend/public/profiles/*
         docker compose down -v
         print_success "Nettoyage terminé"
     else
