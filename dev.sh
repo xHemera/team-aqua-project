@@ -341,6 +341,11 @@ show_menu() {
 # Démarrer les services
 start_services() {
     print_header "Démarrage des services"
+    
+    # Créer les dossiers nécessaires s'ils n'existent pas
+    mkdir -p frontend/public/images
+    mkdir -p frontend/public/profiles
+    
     docker compose up --build -d
 
     wait_for_url "http://localhost:3000" "Frontend" 180
