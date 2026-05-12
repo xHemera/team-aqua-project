@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import { MessageBubble } from "@/components/molecules/social/MessageBubble";
 import { DEFAULT_PROFILE_ICON } from "@/lib/profile-icons";
 import type { type as socialType } from "@/app/social/index";
@@ -20,7 +20,7 @@ type MessageThreadProps = {
   onProfileClick: (userName: string) => void;
 };
 
-export function MessageThread({
+export const MessageThread = memo(function MessageThread({
   selectedUser,
   currentUser,
   messages,
@@ -35,6 +35,14 @@ export function MessageThread({
   onProfileClick,
 }: MessageThreadProps) {
   const messageListRef = useRef<HTMLDivElement | null>(null);
+  const selectedUserData = useMemo(
+    () => users.find((user) => user.name === selectedUser),
+    [selectedUser, users],
+  );
+  const lastUserMessageIndex = useMemo(
+    () => messages.findLastIndex((message) => message.user_id === currentUser?.id),
+    [messages, currentUser?.id],
+  );
 
   useEffect(() => {
     if (messageListRef.current) {
@@ -54,16 +62,15 @@ export function MessageThread({
   }
 
   return (
-    <div ref={messageListRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
+    <div ref={messageListRef} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
       {messages.map((msg, index) => {
-        const lastUserMessageIndex = messages.findLastIndex((m) => m.user_id === currentUser?.id);
         const isLastUserMessage = msg.user_id === currentUser?.id && index === lastUserMessageIndex;
         const isOwnMessage = msg.user_id === currentUser?.id;
         const senderName = isOwnMessage ? currentUser?.name : selectedUser;
         const senderAvatar = isOwnMessage
           ? currentUser?.avatar?.url || DEFAULT_PROFILE_ICON.url
-          : users.find((u) => u.name === selectedUser)?.image ||
-            users.find((u) => u.name === selectedUser)?.avatar?.url ||
+          : selectedUserData?.image ||
+            selectedUserData?.avatar?.url ||
             DEFAULT_PROFILE_ICON.url;
 
         return (
@@ -90,8 +97,10 @@ export function MessageThread({
         );
       })}
 
+      <div className="flex-1" />
+
       {isTyping && typer && selectedUser === typer && (
-        <div className="px-5 py-3">
+        <div className="pb-1 pt-3">
           <style>{`
             @keyframes typing-animation {
               0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
@@ -120,6 +129,7 @@ export function MessageThread({
           </div>
         </div>
       )}
+
     </div>
   );
-}
+});
