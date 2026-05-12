@@ -8,7 +8,6 @@ type ProfileHeaderProps = {
   isOwnProfile: boolean;
   badges: string[];
   currentAvatar: string;
-  backgroundStyle: React.CSSProperties;
   onAvatarUploadClick: () => void;
 };
 

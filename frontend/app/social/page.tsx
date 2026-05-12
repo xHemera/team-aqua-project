@@ -12,7 +12,7 @@ import { ConversationList } from "@/components/organisms/social/ConversationList
 import { MessageThread } from "@/components/organisms/social/MessageThread";
 import { FriendRequestBanner } from "@/components/molecules/social/FriendRequestBanner";
 import { DuelRequestBanner } from "@/components/molecules/social/DuelRequestBanner";
-import {type} from "./index"
+import { type } from "./index"
 
 const toSizeLabel = (bytes: number) => {
   if (bytes < 1024) return `${bytes} o`;

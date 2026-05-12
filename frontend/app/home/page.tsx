@@ -484,10 +484,6 @@ export default function Home() {
 
       <SidebarShell />
       {showNotification && notification && notifSender && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
-      <div className="shrink-0 p-3 pl-2">
-        <Sidebar />
-      </div>
-
 
       <main className="relative flex-1 overflow-hidden p-3 pl-0">
         <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[#0c0a0f] via-[#12101a] to-[#0a0810]" />

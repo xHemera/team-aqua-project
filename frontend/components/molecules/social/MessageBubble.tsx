@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { DEFAULT_PROFILE_ICON } from "@/lib/profile-icons";
 import { formatTime } from "@/lib/date-utils";
 import type { type as socialType } from "@/app/social/index";
 
