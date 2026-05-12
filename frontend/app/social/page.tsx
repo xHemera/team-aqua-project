@@ -44,8 +44,6 @@ export default function SocialPage() {
   const [profileViewerUser, setProfileViewerUser] = useState<type.User | null>(null);
   const [request, setRequest] = useState(false);
   const [friendRequestSender, setFriendRequestSender] = useState<string | null>(null);
-  const [waiting, setWaiting] = useState(false);
-  const [friend, setFriend] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [hasBlocked, setHasBlocked] = useState(false);
   const [challenge, setChallenge] = useState(false);
@@ -54,8 +52,9 @@ export default function SocialPage() {
   const [typing, setTyping] = useState(false);
   const [unread, setUnread] = useState(false);
   const [customUserAvatar, setCustomUserAvatar] = useState<string | null>(null);
-  const [reported, setReported] = useState(false);
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
+  const [click, setClick] = useState(true);
+
 
   const MAX_MESSAGE_LENGTH = 500;
   const MAX_DISPLAY_LENGTH = 200;
@@ -136,19 +135,55 @@ export default function SocialPage() {
     })
   }, []);
 
+  useEffect(() => {
+    if (!userPseudo) return;
+    socket.on("ban", (banned) => {
+      if (banned === userPseudo)
+        handleLogout();
+    });
+  }, [userPseudo])
+
+  const handleLogout = async () => {
+    const response = await fetch("/api/profile", {
+        method: "PUT",
+      })
+      const user: unknown = await response.json();
+      if (!response.ok) {
+        const errorMessage =
+        typeof user === "object" && user !== null && "error" in user
+          ? String((user as { error: string }).error ?? "Impossible de charger l'utilisateur")
+          : "Impossible de charger l'utilisateur";
+        throw new Error(errorMessage);
+      }
+    socket.emit("isdisconnecting");
+    socket.disconnect();
+    await authClient.signOut();
+    router.push("/");
+  };
+
   //fetch users and their inboxes
   useEffect(() => {
     async function fetchUsers() {
-    if (!userPseudo) return;
-      const [u, i] = await Promise.all([
-      contact.getUsers(),
-      contact.getInboxes(userPseudo),
-    ]);
-    const cU = u.find(user => user.name === userPseudo);
-    if (!cU) return ;
-    setCurrentUser(cU);
-    setUsers(u);
-    setInboxes(i);
+      if (!userPseudo) return;
+        const [ures, ires] = await Promise.all([
+        fetch("/api/social/users", {
+          method: "GET",
+        }),
+        fetch(`/api/social/inbox?username=${userPseudo}`, {
+          method: "GET",
+        }),
+      ]);
+      if (!ures.ok || !ires.ok)
+          return ;
+      const udata = await ures.json();
+      const idata = await ires.json();
+      const users: type.User[] = udata.users;
+      const inboxes: type.Inbox[] = idata.inboxes;
+      const cU = users.find(user => user.name === userPseudo);
+      if (!cU) return ;
+      setCurrentUser(cU);
+      setUsers(users);
+      setInboxes(inboxes);
     }
     fetchUsers();
 
@@ -245,18 +280,7 @@ export default function SocialPage() {
     socket.on("adding", async ({user, oUser}) => {
       if (user == selectedUser)
       {
-        setWaiting(false);
         setRequest(false)
-        setFriend(true);
-      }
-    });
-
-    //resets status dynamically
-    socket.on("refusing", async ({user, oUser}) => {
-      if (user == selectedUser)
-      {
-        setWaiting(false);
-        setFriend(false);
       }
     });
 
@@ -264,12 +288,10 @@ export default function SocialPage() {
     socket.on("blocked", async ({user, oUser}) => {
       if (user == selectedUser)
         setIsBlocked(true);
-        setFriend(false);
     });
 
     socket.on("blocking", async () => {
       setHasBlocked(true);
-      setFriend(false);
     });
 
     //resets status dynamically
@@ -287,23 +309,14 @@ export default function SocialPage() {
         setChallenge(true);
         setOpponent(sender);
       }
-      if (sender == userPseudo)
-        setWaiting(true);
     });
 
     //send to the game if duel is accepted
     socket.on("accept", async ({user, oUser}) => {
       if (oUser == userPseudo)
       {
-        setWaiting(false);
         router.push("game");
       }
-    });
-
-    //stops the waiting status if duel is refused
-    socket.on("refuse", async ({user, oUser}) => {
-      if (oUser == userPseudo)
-        setWaiting(false);
     });
 
     //sets unread to read if message is read
@@ -321,15 +334,46 @@ export default function SocialPage() {
 
   }, [userPseudo, selectedUser]);
 
-  //sets waiting status
+
+  //scroll the conversation to last message
+  // useEffect(() => {
+  //   if (messageListRef.current)
+  //   {
+  //     messageListRef.current.scrollTo({
+	// 	    top: messageListRef.current.scrollHeight,
+	// 	    behavior: "smooth",
+	// 	  });
+  //   }
+	// }, [currentMessages.length])
+
+  //fetch messages and resets unread messages
+
   useEffect(() => {
     async function fetchmessages()
 		{
 			if (!currentUser || !selectedUser) return;
-			const newMessages = await contact.getMsg(currentUser.name, selectedUser);
+      const params = new URLSearchParams({
+        user: currentUser.name,
+        otherUser: selectedUser,
+      });
+      const [mres, ures] = await Promise.all([
+        fetch(`/api/social/msg?${params.toString()}`, {
+          method: "GET",
+        }),
+        fetch(`api/social/unread`, {
+          method: "PUT",
+          body: JSON.stringify({sender: currentUser.name, receiver: selectedUser})
+        }),
+      ])
+      
+      if (!mres.ok)
+        return;
+      const data = await mres.json();
+      const newMessages: type.Messages[] = data.msgs;
 			if (!newMessages) return;
     	setCurrentMessages(newMessages);
-      contact.resetUnread(currentUser.name, selectedUser)
+      if (!ures.ok)
+        return;
       fetchUnread();
 
       // Load read status from localStorage
@@ -348,40 +392,42 @@ export default function SocialPage() {
         user: userPseudo,
         oUser: selectedUser,
       });
+
     async function isWaiting()
     {
       if (!currentUser || !selectedUser) return;
-      const friend = await contact.getFriendFromOther(currentUser.name, selectedUser);
+      const params = new URLSearchParams({
+        currentUser: currentUser.name,
+        otherUser: selectedUser,
+      });
+      const res = await fetch(`/api/social/otherFriend?${params.toString()}`, {
+        method: "GET",
+      });
+      if (!res.ok)
+        return ;
+      const data = await res.json();
+      const friend: type.Friend = data.friend;
       if (!friend) {
-        setWaiting(false);
         setRequest(false);
         setFriendRequestSender(null);
-        return;
       }
-      if (friend.request_sent == true) setWaiting(true);
-      else setWaiting(false);
-      return;
     }
     isWaiting();
-
-    async function isFriend()
-    {
-      if (!currentUser || !selectedUser) return;
-      const myFriend = await contact.getFriend(currentUser.name, selectedUser);
-      const theirFriend = await contact.getFriendFromOther(currentUser.name, selectedUser);
-      if (!myFriend || !theirFriend) {
-        setFriend(false);
-        return;
-      }
-      if (myFriend.request_sent == false && theirFriend.request_sent == false) setFriend(true);
-      return;
-    }
-    isFriend();
 
     async function isRequesting()
     {
       if (!currentUser || !selectedUser) return;
-      const friend = await contact.getFriend(currentUser.name, selectedUser);
+      const params = new URLSearchParams({
+        currentUser: currentUser.name,
+        otherUser: selectedUser,
+      });
+      const res = await fetch(`/api/social/otherFriend?${params.toString()}`, {
+        method: "GET",
+      });
+      if (!res.ok)
+        return ;
+      const data = await res.json();
+      const friend: type.Friend = data.friend;
       if (!friend) {
         setRequest(false);
         setFriendRequestSender(null);
@@ -402,7 +448,13 @@ export default function SocialPage() {
     async function isBlockedByMe()
     {
       if (!currentUser || !selectedUser) return;
-      const blockedUser = await contact.getUser(selectedUser);
+      const res = await fetch(`api/social/user?username=${selectedUser}`, {
+        method: "GET",
+      });
+      if (!res.ok)
+        return;
+      const data = await res.json();
+      const blockedUser: type.User = data.user;
       if (!blockedUser) return;
       for (const id of currentUser.blockedUsers)
       {
@@ -416,7 +468,13 @@ export default function SocialPage() {
     async function amIBlocked()
     {
       if (!currentUser || !selectedUser) return;
-      const blockingUser = await contact.getUser(selectedUser);
+      const res = await fetch(`api/social/user?username=${selectedUser}`, {
+        method: "GET",
+      });
+      if (!res.ok)
+        return;
+      const data = await res.json();
+      const blockingUser: type.User = data.user;
       if (!blockingUser) return;
       for (const id of blockingUser.blockedUsers)
       {
@@ -426,14 +484,6 @@ export default function SocialPage() {
       return;
     }
     amIBlocked();
-
-    async function isItReported()
-    {
-      if (!currentUser || !selectedUser) return;
-      const r = await contact.getReport(currentUser.name, selectedUser);
-      setReported(r);
-    }
-    isItReported();
   }, [currentUser, selectedUser])
 
 	useEffect(() => {
@@ -464,7 +514,14 @@ export default function SocialPage() {
     async function fetchSelectedUnread()
     {
       if (!currentUser || !selectedUser) return;
-      const unr = await contact.getUnread(currentUser.name, selectedUser);
+        const ures = await fetch(`api/social/unread`, {
+        method: "PUT",
+        body: JSON.stringify({sender: currentUser.name, receiver: selectedUser})
+      });
+      if (!ures.ok)
+        return;
+      const data = await ures.json();
+      const unr: number = data.unread;
       setUnread(unr > 0);
     }
     fetchSelectedUnread();
@@ -473,13 +530,19 @@ export default function SocialPage() {
   async function fetchUnread()
   {
     if (!userPseudo) return;
-    const results = await contact.getUnreadNotif(userPseudo);
+    const mres = await fetch(`/api/social/unreadMap?user=${userPseudo}`, {
+      method: "GET",
+    })
+    if (!mres.ok)
+      return;
+    const udata = await mres.json();
+    const results: Record<string, number> = udata.results;
     setUnreadMap(results);
   }
 
 	//Loading screen while currentUser is not set
 	if (!currentUser)
-		return <div>Loading...</div>;
+		return <div>loading</div>;
 
   //open a add contact modal
   const openAddContactModal = () => {
@@ -522,7 +585,15 @@ export default function SocialPage() {
         return ;
       }
       //check if the inbox already exist
-      if (await contact.alreadyAdded(currentUser.name, inviteUsername) === false)
+      const params = new URLSearchParams({
+        currentUser: currentUser.name,
+        addUser: inviteUsername,
+      });
+
+      const ares = await fetch(`/api/social/contact?${params.toString()}`, {
+        method: "GET",
+      })
+      if (!ares.ok)
       {
         setInviteNotification({
           type: "error",
@@ -530,10 +601,23 @@ export default function SocialPage() {
         });
         return;
       }
+
       //makes a new inbox for both users and updates it
-      contact.addContact(currentUser.name, inviteUsername);
-      const i = await contact.getInboxes(currentUser.name);
-      setInboxes(i);
+      const [cres, ires] = await Promise.all([
+        fetch("/api/social/contact", {
+          method: "POST",
+          body: JSON.stringify({currentUser: currentUser.name, addUser: inviteUsername}),
+        }),
+        fetch(`/api/social/inbox?username=${currentUser.name}`, {
+          method: "GET",
+        }),
+      ])
+      if (!cres.ok)
+        return;
+      if (!ires.ok)
+        return ;
+      const idata = await ires.json();
+      setInboxes(idata.inboxes);
       socket.emit("new_conv", {
         sender: currentUser.name,
         receiver: inviteUsername,
@@ -569,7 +653,12 @@ export default function SocialPage() {
   async function addFriend()
   {
     if (!currentUser || !friendRequestSender) return;
-    contact.acceptFriendRequest(currentUser.name, friendRequestSender);
+    const res = await fetch("api/social/friend", {
+      method: "PATCH",
+      body: JSON.stringify({currentUser: currentUser.name, otherUser: selectedUser}),
+    })
+    if (!res.ok)
+      return;
     socket.emit("friend_added", {
       user: currentUser.name,
       oUser: friendRequestSender
@@ -581,7 +670,15 @@ export default function SocialPage() {
   async function refuseFriendship()
   {
     if (!currentUser || !friendRequestSender) return;
-    contact.denyFriendRequest(currentUser.name, friendRequestSender);
+    const params = new URLSearchParams({
+      currentUser: currentUser.name,
+      otherUser: selectedUser,
+    });
+    const res = await fetch(`api/social/friend?${params.toString()}`, {
+      method: "DELETE",
+    })
+    if (!res.ok)
+      return;
     socket.emit("friend_denied", {
       user: currentUser.name,
       oUser: friendRequestSender
@@ -617,13 +714,25 @@ export default function SocialPage() {
 
     for (const file of files)
     {
-      const id = await contact.addAttachments(file, fileName);
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("url", fileName);
+
+      const res = await fetch("/api/social/attachment", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok)
+        continue;
+      const data = await res.json();
+      const id: string = data.id;
+      const url: string = data.url;
       const buildAttachmentFromFile = (file: File): type.Attachment => ({
         id: id,
         name: `${Date.now()}-${file.name}`,
         sizeLabel: toSizeLabel(file.size),
         type: file.type,
-        previewUrl: URL.createObjectURL(file),
+        previewUrl: url,
       });
       const nextAttachments = files.map(buildAttachmentFromFile);
       setDraftAttachments((prevAttachments) => [...prevAttachments, ...nextAttachments]);
@@ -632,8 +741,13 @@ export default function SocialPage() {
     event.target.value = "";
   };
 
-  const removeDraftAttachment = async (attachmentId: string) => {
-    await contact.removeAttachment(attachmentId);
+  const removeDraftAttachment = async (attachmentId: string, attachmentURL: string) => {
+
+    const res = await fetch(`/api/social/attachment?attachmentId=${attachmentId}&url=${attachmentURL}`, {
+        method: "DELETE",
+      })
+      if (!res.ok)
+        return ;
     setDraftAttachments((prevAttachments) => {
       const target = prevAttachments.find((item) => item.id === attachmentId);
       if (target) {
@@ -650,20 +764,48 @@ export default function SocialPage() {
     if (isBlocked || hasBlocked) return;
     const draftIds = draftAttachments.map(draft => draft.id);
 
-    contact.addMsg(cleanMessage, currentUser.name, selectedUser, draftIds);
+    const params = new URLSearchParams({
+      user: currentUser.name,
+      otherUser: selectedUser,
+    });
+    const response = await fetch("/api/social/msg", {
+        method: "POST",
+        body: JSON.stringify({sender: currentUser.name,
+          msg: cleanMessage, receiver: selectedUser,
+          draftIds: draftIds}),
+      });
+      
 
-    //fetch messages between users
-		const newMessages = await contact.getMsg(currentUser.name, selectedUser);
-    contact.getUnreadNotif(currentUser.name);
-		if (!newMessages) return;
 
+    const data = await response.json();
+    if (!response.ok)
+      return ;
+
+    const [res, ures] = await Promise.all([
+      fetch(`/api/social/msg?${params.toString()}`, {
+        method: "GET",
+      }),
+      fetch(`api/social/unread`, {
+        method: "PUT",
+        body: JSON.stringify({sender: currentUser.name, receiver: selectedUser})
+      }),
+    ]);
+    if (!res.ok)
+      return;
+    const msg = await res.json();
+    const newMessages: type.Messages[] = msg.msgs;
+    if (!newMessages) return;
+    
     setCurrentMessages(newMessages);
 
     socket.emit("notTyping", {
       sender : currentUser.name,
       receiver: selectedUser,
     });
-    contact.resetUnread(currentUser.name, selectedUser);
+
+    //reset unread messages
+    if (!ures.ok)
+      return;
     setUnread(true);
 
     //sends a signal to the other user's socket
@@ -677,13 +819,6 @@ export default function SocialPage() {
     setDraftAttachments([]);
   };
 
-  const reportConv = async () => {
-    if (!currentUser || !selectedUser || reported) return ;
-    setReported(true);
-    contact.reported(currentUser.name, selectedUser);
-    socket.emit("reported");
-  };
-
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (!isBlocked && !hasBlocked && event.key === "Enter") {
       event.preventDefault();
@@ -692,7 +827,13 @@ export default function SocialPage() {
   };
 
   const openProfileViewerForUserName = async (name: string) => {
-    const targetUser = await contact.getUser(name) ?? null;
+    const res = await fetch(`api/social/user?username=${selectedUser}`, {
+      method: "GET",
+    });
+    if (!res.ok)
+      return;
+    const data = await res.json();
+    const targetUser: type.User = data.user;
     setProfileViewerUser(targetUser);
     setShowProfileViewer(true);
   };
@@ -730,6 +871,17 @@ export default function SocialPage() {
         receiver: selectedUser,
       });
     }, 1000);
+  }
+
+  async function onSelect() {
+    if (!click)
+      return;
+
+    setClick(false);
+
+    setTimeout(() => {
+      setClick(true);
+    }, 1500);
   }
 
   return (
@@ -801,6 +953,7 @@ export default function SocialPage() {
 
       <div className="flex w-full justify-center px-4">
         <section className="checkered-bg flex h-[calc(100vh-2rem)] w-[calc(100%-14rem)] flex-col overflow-hidden rounded-3xl border border-[#c9a227]/25 bg-black/15 shadow-2xl">
+
           <ConversationList
             users={users}
             selectedUser={selectedUser}
@@ -814,6 +967,62 @@ export default function SocialPage() {
             }}
             onAddContactClick={openAddContactModal}
           />
+
+          {/* Header avec contacts et boutons
+          <header className="flex items-center border-b border-[#c9a227]/30 px-5 py-3">
+            Contacts scroll horizontalement 
+            <div className="flex-1 overflow-x-auto px-4">
+              <div className="flex gap-2">
+                {
+                  users.map((user) => {
+                  const isActive = selectedUser === user.name;
+                  if (user.name === currentUser.name) return null;
+                  const hasConversation = inboxes.some(inbox => {
+                    const ids = inbox.inboxUser.map(iu => iu.user_id);
+                    return ids.includes(user.id);
+                  });
+                  if (!hasConversation) return null;
+                  return(
+                    <button
+                      key={user.name}
+                      disabled={!click}
+                      onClick={() => {
+                          setSelectedUser(user.name);
+                          if (user.name == notifSender)
+                            setShowNotification(false);
+                          onSelect();
+                        }
+                      }
+                      className={`relative flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 transition-colors ${
+                        isActive
+                          ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)] text-white"
+                          : "border-[#c9a227]/30 bg-[#242033] text-gray-200 hover:bg-[#302a45]"
+                      }`}
+                    >
+                      <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-visible">
+                        <Image
+                          src={user.name === userPseudo && customUserAvatar ? customUserAvatar : (user.image || (user.avatar?.url ?? DEFAULT_PROFILE_ICON.url))}
+                          alt={user.name}
+                          width={32}
+                          height={32}
+                          className="h-8 w-8 rounded-lg border border-[#c9a227]/30 object-cover"
+                          unoptimized
+                        />
+                      </div>
+                      {user.online ? <div>🟢</div> : <div>🔴</div>}
+                      <span className="shrink-0 whitespace-nowrap text-sm font-semibold">{user.name}</span>
+                      {
+                        (unreadMap[user.name] ?? 0) > 0 && (
+                        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
+                          {unreadMap[user.name] ?? 0}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div> */}
+
 
           <section className="flex h-full min-h-0 flex-col">
 
@@ -907,16 +1116,16 @@ export default function SocialPage() {
                 </div>
                 {draftAttachments.length > 0 && (
                   <div className="flex flex-wrap gap-2">
-                    {draftAttachments.map((attachment) => (
+                    {draftAttachments.map((attachment, index) => (
                       <div
-                        key={attachment.id}
+                        key={`${attachment.id}-${index}`}
                         className="inline-flex items-center gap-2 rounded-full border border-[#c9a227]/30 bg-[#242033] px-3 py-1 text-xs text-gray-200"
                       >
                         <i className="fa-regular fa-paperclip" />
                         <span className="max-w-[14rem] truncate">{attachment.name}</span>
                         <span className="opacity-75">({attachment.sizeLabel})</span>
                         <button
-                          onClick={() => removeDraftAttachment(attachment.id)}
+                          onClick={() => removeDraftAttachment(attachment.id, attachment.previewUrl)}
                           className="text-gray-300 transition-colors hover:text-white"
                           aria-label={`Delete ${attachment.name}`}
                         >

@@ -2,6 +2,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import express from "express";
 import { createClient } from 'redis';
+import "./matchmaking.js";
 
 //redis settings
 const redis = createClient({
@@ -21,7 +22,7 @@ const port = Number(process.env.PORT || 4001);
 
 const app = express();
 const httpServer = createServer(app);
-const io = new Server(httpServer, {
+export const io = new Server(httpServer, {
   cors: {
     origin: "*"
   },
@@ -34,7 +35,7 @@ io.on("connection", (socket) => {
   socket.on("login", async (user) => {
     if (typeof user !== 'string' || !user.trim())
     {
-      console.error("Invaid user in login: ", user);
+      console.error("Invalid user in login: ", user);
       return ;
     }
     if (!socket.id) {
@@ -196,13 +197,13 @@ io.on("connection", (socket) => {
   });
 
   //tells that a user has been promoted
-  socket.on("addMod", async (added) => {
-    io.emit("newMod", added);
+  socket.on("addMod", async () => {
+    io.emit("newMod");
   });
 
   //tells that a mod has been removed
-  socket.on("removeMod", async (removed) => {
-    io.emit("noMod", removed);
+  socket.on("removeMod", async () => {
+    io.emit("noMod");
   });
 
   //tells that someone has been banned

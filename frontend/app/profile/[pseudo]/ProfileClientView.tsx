@@ -31,12 +31,9 @@ type ProfileClientViewProps = {
   matchHistory: MatchHistoryEntry[];
 };
 
-const normalizeBackgroundValue = (value: string) => normalizeImageValue(value, defaultBackground);
-
 export default function ProfileClientView({
   profileName,
   initialAvatar,
-  initialBackground,
   isOwnProfile,
   profileBadges,
   matchHistory,
@@ -86,8 +83,24 @@ export default function ProfileClientView({
   }, []);
 
   useEffect(() => {
-    if (!userPseudo || socket.connected) return;
+      if (!userPseudo || socket.connected) return;
+      socket.connect();
+      socket.emit("login", userPseudo);
+      return () => {
+        socket.off("online_users");
+      };
+    }, [userPseudo]);
+    
+  useEffect(() => {
+    if (!userPseudo) return;
+    socket.on("ban", (banned) => {
+      if (banned === userPseudo)
+        handleLogout();
+    });
+  }, [userPseudo]);
 
+
+  useEffect(() => {
     const onBan = (banned: string) => {
       if (banned === userPseudo) {
         void handleLogout();
@@ -180,6 +193,28 @@ export default function ProfileClientView({
     await authClient.signOut();
     router.push("/");
   };
+
+  const deleteProfile = async () => {
+    const response = await fetch("/api/profile", {
+        method: "DELETE",
+      })
+      const user: unknown = await response.json();
+      if (!response.ok) {
+        const errorMessage =
+        typeof user === "object" && user !== null && "error" in user
+          ? String((user as { error: string }).error ?? "Impossible de charger l'utilisateur")
+          : "Impossible de charger l'utilisateur";
+        throw new Error(errorMessage);
+      }
+    socket.emit("has_delete", {
+      sender: userPseudo
+    });
+    socket.disconnect();
+    router.push("/");
+  }
+
+  const totalWins = matchHistory.filter((match) => match.result.toLowerCase() === "win").length;
+  const totalLosses = totalMatches - totalWins;
 
   return (
     <AppPageShell
