@@ -6,13 +6,13 @@ import { socket } from "../../socket"
 import { authClient } from "@/lib/auth-client";
 import AppPageShell from "@/components/AppPageShell";
 import { contact }  from "./index"
-import NotificationToast from "@/components/organisms/home/NotificationToast";
 import ProfileViewerModal from "@/components/organisms/social/ProfileViewer";
 import { ConversationList } from "@/components/organisms/social/ConversationList";
 import { MessageThread } from "@/components/organisms/social/MessageThread";
 import { FriendRequestBanner } from "@/components/molecules/social/FriendRequestBanner";
 import { DuelRequestBanner } from "@/components/molecules/social/DuelRequestBanner";
 import { type } from "./index"
+import { emitGlobalError, emitGlobalNotification } from "@/lib/error-events";
 
 const toSizeLabel = (bytes: number) => {
   if (bytes < 1024) return `${bytes} o`;
@@ -37,9 +37,6 @@ export default function SocialPage() {
   const [inboxes, setInboxes] = useState<type.Inbox[]>([]);
   const [currentUser, setCurrentUser] = useState<type.User | null>(null);
 	const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
-  const [showNotification, setShowNotification] = useState(true);
-  const [notification, setNotification] = useState<string | null>(null);
-  const [notifSender, setNotifSender] = useState<string | null>(null);
   const [showProfileViewer, setShowProfileViewer] = useState(false);
   const [profileViewerUser, setProfileViewerUser] = useState<type.User | null>(null);
   const [request, setRequest] = useState(false);
@@ -226,9 +223,7 @@ export default function SocialPage() {
       }
       else //set variables to send a notification
       {
-        setNotifSender(sender);
-        setNotification(msg);
-        setShowNotification(true);
+        emitGlobalNotification(msg, sender);
         fetchUnread();
       }
     }
@@ -236,7 +231,7 @@ export default function SocialPage() {
     return () => {
       socket.off("received", handler);
     }
-  }, [selectedUser, userPseudo, notification, notifSender]);
+  }, [selectedUser, userPseudo]);
 
   useEffect(() => {
     if (!userPseudo) return;
@@ -562,6 +557,7 @@ export default function SocialPage() {
   const submitContactInvite = async () => {
     const username = inviteUsername.trim();
     if (isInviting || !username) return;
+
     try {
       setIsInviting(true);
 
@@ -575,15 +571,12 @@ export default function SocialPage() {
         error: string;
         user: { name: string; avatarUrl: string | null };
       };
-      //return if we invite ourselves
-      if (payload.error === "vous ne pouvez pas vous inviter")
-      {
-        setInviteNotification({
-          type: "error",
-          message: payload.error,
-        });
-        return ;
+
+      //return if there was an error in the response
+      if (!response.ok) {
+        return;
       }
+
       //check if the inbox already exist
       const params = new URLSearchParams({
         currentUser: currentUser.name,
@@ -595,10 +588,6 @@ export default function SocialPage() {
       })
       if (!ares.ok)
       {
-        setInviteNotification({
-          type: "error",
-          message: payload.error ?? "une discussion a deja ete cree.",
-        });
         return;
       }
 
@@ -623,27 +612,16 @@ export default function SocialPage() {
         receiver: inviteUsername,
       });
 
-      //return if user does not exist
-      if (!response.ok || !payload.user) {
-        setInviteNotification({
-          type: "error",
-          message: payload.error ?? "ce joueur n'existe pas.",
-        });
-        return;
-      }
       const foundName = payload.user.name;
       setSelectedUser(foundName);
       setInviteNotification({
         type: "success",
-        message: "invitation sent",
+        message: "Invitation sent",
       });
       setIsAddContactModalOpen(false);
       setInviteUsername("");
     } catch {
-      setInviteNotification({
-        type: "error",
-        message: "ce joueur n'existe pas",
-      });
+      // Errors are handled by global fetch interception
     } finally {
       setIsInviting(false);
     }
@@ -901,7 +879,6 @@ export default function SocialPage() {
           outline: none !important;
         }
       `}</style>
-      {showNotification && notification && notifSender && (notifSender !== selectedUser) && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       {inviteNotification && (
         <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
           <div
@@ -919,14 +896,19 @@ export default function SocialPage() {
       {isAddContactModalOpen && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 px-4">
           <div className="w-full max-w-md rounded-2xl border border-[#c9a227]/25 bg-[#1b1826] p-5 shadow-2xl">
-            <h3 className="text-lg font-bold text-white">enter a username</h3>
-            <p className="mt-1 text-sm text-gray-300">Enter the username of the player to send an invitation.</p>
+            <h3 className="text-lg font-bold text-white">Enter a username to send DM invitation</h3>
 
             <input
               type="text"
               value={inviteUsername}
               onChange={(event) => setInviteUsername(event.target.value)}
               placeholder="Player username"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !isInviting && inviteUsername.trim().length > 0) {
+                  e.preventDefault();
+                  void submitContactInvite();
+                }
+              }}
               className="mt-4 w-full rounded-xl border border-[#c9a227]/30 bg-[#242033] px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-[var(--accent-color)]"
               autoFocus
             />
@@ -937,7 +919,7 @@ export default function SocialPage() {
                 disabled={isInviting}
                 className="rounded-xl border border-[#c9a227]/30 bg-[#242033] px-4 py-2 text-sm font-semibold text-gray-200 transition-colors hover:bg-[#302a45] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                cancel
+                Cancel
               </button>
               <button
                 onClick={submitContactInvite}
@@ -963,7 +945,6 @@ export default function SocialPage() {
             currentUserName={currentUser?.name ?? ""}
             onSelectUser={(userName) => {
               setSelectedUser(userName);
-              if (userName === notifSender) setShowNotification(false);
             }}
             onAddContactClick={openAddContactModal}
           />

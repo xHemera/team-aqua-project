@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Card from "@/components/atoms/Card";
+import Button from "@/components/atoms/Button";
 
 type ProfileHeaderProps = {
   profileName: string;
@@ -9,6 +10,9 @@ type ProfileHeaderProps = {
   badges: string[];
   currentAvatar: string;
   onAvatarUploadClick: () => void;
+  onLogout: () => void;
+  onDeleteAccount: () => void;
+  isActionLoading?: boolean;
 };
 
 export function ProfileHeader({
@@ -17,6 +21,9 @@ export function ProfileHeader({
   badges,
   currentAvatar,
   onAvatarUploadClick,
+  onLogout,
+  onDeleteAccount,
+  isActionLoading = false,
 }: ProfileHeaderProps) {
   return (
     <Card className="overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#15131d]/92 p-0 shadow-[0_30px_100px_rgba(0,0,0,0.42)] backdrop-blur-xl">
@@ -88,6 +95,31 @@ export function ProfileHeader({
                     {badge}
                   </span>
                 ))}
+              </div>
+            )}
+
+            {isOwnProfile && (
+              <div className="mt-5 flex flex-col gap-3 sm:mt-6 sm:flex-row sm:flex-wrap">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={onLogout}
+                  disabled={isActionLoading}
+                  className="w-full sm:w-auto"
+                >
+                  Log out
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={onDeleteAccount}
+                  disabled={isActionLoading}
+                  className="w-full border-red-500/45 bg-red-950/45 text-red-100 hover:bg-red-900/60 sm:w-auto"
+                >
+                  Delete account
+                </Button>
               </div>
             )}
           </div>
