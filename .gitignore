@@ -21,4 +21,5 @@ frontend/.next/
 .vscode/
 
 #useless
-frontend/public/images
+frontend/public/images/*
+frontend/public/profiles/*

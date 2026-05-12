@@ -15,7 +15,6 @@ import { CHARACTERS, PLAYER_RESOURCES } from "@/app/characters/character-roster"
 import SidebarShell from "@/components/SidebarShell";
 import {socket} from "../../socket"
 import NotificationToast from "@/components/organisms/home/NotificationToast";
-import Sidebar from "@/components/Sidebar";
 
 const PvpMatchmakingModal = dynamic(() => import("@/components/organisms/home/PvpMatchmakingModal"), { ssr: false });
 const ExpeditionModal = dynamic(() => import("@/components/organisms/home/ExpeditionModal"), { ssr: false });
