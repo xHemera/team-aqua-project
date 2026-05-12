@@ -45,6 +45,7 @@ export default function ProfileClientView({
   const [notifSender, setNotifSender] = useState<string | null>(null);
   const [customAvatar, setCustomAvatar] = useState<string | null>(null);
   const [displayAvatar, setDisplayAvatar] = useState(initialAvatar);
+  const [isActionLoading, setIsActionLoading] = useState(false);
   const avatarUploadRef = useRef<HTMLInputElement>(null);
 
   // Add test match for demo purposes if matchHistory exists
@@ -188,16 +189,44 @@ export default function ProfileClientView({
   };
 
   const handleLogout = async () => {
-    socket.emit("isdisconnecting");
-    socket.disconnect();
-    await authClient.signOut();
-    router.push("/");
+    if (isActionLoading) return;
+
+    setIsActionLoading(true);
+    try {
+      socket.emit("isdisconnecting");
+      socket.disconnect();
+      await authClient.signOut();
+      router.push("/");
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const verifyDeleteAccount = () => {
+    const hasConfirmed = window.confirm(
+      "Deleting your account is permanent. This will remove your profile and related data. Continue?",
+    );
+    if (!hasConfirmed) {
+      return false;
+    }
+
+    const typedName = window.prompt(`Type your username (${profileName}) to confirm deletion:`);
+    if (!typedName || typedName.trim() !== profileName) {
+      window.alert("Verification failed. Account deletion has been cancelled.");
+      return false;
+    }
+
+    return true;
   };
 
   const deleteProfile = async () => {
-    const response = await fetch("/api/profile", {
+    if (isActionLoading || !verifyDeleteAccount()) return;
+
+    setIsActionLoading(true);
+    try {
+      const response = await fetch("/api/profile", {
         method: "DELETE",
-      })
+      });
       const user: unknown = await response.json();
       if (!response.ok) {
         const errorMessage =
@@ -206,12 +235,19 @@ export default function ProfileClientView({
           : "Impossible de charger l'utilisateur";
         throw new Error(errorMessage);
       }
-    socket.emit("has_delete", {
-      sender: userPseudo
-    });
-    socket.disconnect();
-    router.push("/");
-  }
+      socket.emit("has_delete", {
+        sender: userPseudo,
+      });
+      socket.disconnect();
+      await authClient.signOut();
+      router.push("/");
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      window.alert("Unable to delete account. Please try again.");
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
 
   const totalWins = matchHistory.filter((match) => match.result.toLowerCase() === "win").length;
   const totalLosses = totalMatches - totalWins;
@@ -236,6 +272,9 @@ export default function ProfileClientView({
           badges={profileBadges}
           currentAvatar={currentAvatar}
           onAvatarUploadClick={() => avatarUploadRef.current?.click()}
+          onLogout={() => void handleLogout()}
+          onDeleteAccount={() => void deleteProfile()}
+          isActionLoading={isActionLoading}
         />
 
         <input
