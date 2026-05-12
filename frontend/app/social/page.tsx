@@ -393,26 +393,51 @@ export default function SocialPage() {
         oUser: selectedUser,
       });
 
-    async function isWaiting()
+    async function checkBlockingStatus()
     {
       if (!currentUser || !selectedUser) return;
-      const params = new URLSearchParams({
-        currentUser: currentUser.name,
-        otherUser: selectedUser,
-      });
-      const res = await fetch(`/api/social/otherFriend?${params.toString()}`, {
+      
+      // Check if I blocked them
+      let iAmBlockingThem = false;
+      const res1 = await fetch(`api/social/user?username=${selectedUser}`, {
         method: "GET",
       });
-      if (!res.ok)
-        return ;
-      const data = await res.json();
-      const friend: type.Friend = data.friend;
-      if (!friend) {
-        setRequest(false);
-        setFriendRequestSender(null);
+      if (res1.ok) {
+        const data1 = await res1.json();
+        const blockedUser: type.User = data1.user;
+        if (blockedUser) {
+          for (const id of currentUser.blockedUsers) {
+            if (id == blockedUser.id) {
+              iAmBlockingThem = true;
+              break;
+            }
+          }
+        }
       }
+      
+      // Check if they blocked me
+      let theyBlockedMe = false;
+      const res2 = await fetch(`api/social/user?username=${selectedUser}`, {
+        method: "GET",
+      });
+      if (res2.ok) {
+        const data2 = await res2.json();
+        const blockingUser: type.User = data2.user;
+        if (blockingUser) {
+          for (const id of blockingUser.blockedUsers) {
+            if (id == currentUser.id) {
+              theyBlockedMe = true;
+              break;
+            }
+          }
+        }
+      }
+      
+      // Update both states at once
+      setHasBlocked(iAmBlockingThem);
+      setIsBlocked(theyBlockedMe);
     }
-    isWaiting();
+    checkBlockingStatus();
 
     async function isRequesting()
     {
@@ -445,46 +470,6 @@ export default function SocialPage() {
       return;
     }
     isRequesting();
-
-    async function isBlockedByMe()
-    {
-      if (!currentUser || !selectedUser) return;
-      const res = await fetch(`api/social/user?username=${selectedUser}`, {
-        method: "GET",
-      });
-      if (!res.ok)
-        return;
-      const data = await res.json();
-      const blockedUser: type.User = data.user;
-      if (!blockedUser) return;
-      for (const id of currentUser.blockedUsers)
-      {
-        if (id == blockedUser.id)
-          setHasBlocked(true);
-      }
-      return;
-    }
-    isBlockedByMe();
-
-    async function amIBlocked()
-    {
-      if (!currentUser || !selectedUser) return;
-      const res = await fetch(`api/social/user?username=${selectedUser}`, {
-        method: "GET",
-      });
-      if (!res.ok)
-        return;
-      const data = await res.json();
-      const blockingUser: type.User = data.user;
-      if (!blockingUser) return;
-      for (const id of blockingUser.blockedUsers)
-      {
-        if (id == currentUser.id)
-          setIsBlocked(true);
-      }
-      return;
-    }
-    amIBlocked();
   }, [currentUser, selectedUser])
 
 	useEffect(() => {
