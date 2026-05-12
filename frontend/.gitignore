@@ -44,9 +44,5 @@ bun-debug.log*
 next-env.d.ts
 
 # User uploaded files
-/public/profiles/*
-!/public/profiles/.gitkeep
-/public/backgrounds/*
-!/public/backgrounds/.gitkeep
-/public/images/*
-!/public/images/.gitkeep
+# /public/profiles/*
+# /public/images/*
