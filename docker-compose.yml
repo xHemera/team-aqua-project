@@ -43,8 +43,7 @@ services:
       bun install --ignore-scripts &&
       bunx prisma generate &&
       bunx prisma migrate deploy --config prisma/prisma.config.ts &&
-      bun run dev &&
-      bun run start -- --hostname 0.0.0.0
+      bun run dev -- --hostname 0.0.0.0
       "
     ports:
       - "3000:3000"

@@ -310,9 +310,16 @@ run_prisma_migrations() {
     local attempts=0
     local max_attempts=12
 
-    docker compose -f docker-compose.yml exec frontend bunx prisma migrate dev --name init --url "$DATABASE_URL";
+    while ! docker compose -f docker-compose.yml exec -T frontend sh -c 'test -x node_modules/.bin/prisma'; do
+        attempts=$((attempts + 1))
+        if [ "$attempts" -ge "$max_attempts" ]; then
+            print_error "Prisma CLI indisponible dans le conteneur frontend"
+            return 1
+        fi
+        sleep 2
+    done
+
     docker compose -f docker-compose.yml exec frontend bunx prisma migrate deploy --config prisma/prisma.config.ts;
-        
 
     print_success "Migrations Prisma appliquées"
 }
@@ -335,8 +342,6 @@ show_menu() {
 start_services() {
     print_header "Démarrage des services"
     docker compose up --build -d
-
-    run_prisma_migrations
 
     wait_for_url "http://localhost:3000" "Frontend" 180
 
