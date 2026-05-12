@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { socket } from "../../socket"
 import { authClient } from "@/lib/auth-client";
@@ -23,6 +23,7 @@ const toSizeLabel = (bytes: number) => {
 export default function SocialPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [selectedUser, setSelectedUser] = useState("");
   const [message, setMessage] = useState("");
@@ -86,7 +87,7 @@ export default function SocialPage() {
     }
   };
 
-  const toggleMessageExpanded = (messageId: string) => {
+  const toggleMessageExpanded = useCallback((messageId: string) => {
     setExpandedMessages((prev) => {
       const next = new Set(prev);
       if (next.has(messageId)) {
@@ -96,7 +97,7 @@ export default function SocialPage() {
       }
       return next;
     });
-  };
+  }, []);
 
   //fetch the current user pseudo
   useEffect(() => {
@@ -522,6 +523,14 @@ export default function SocialPage() {
     fetchSelectedUnread();
   }, [selectedUser])
 
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
+
   async function fetchUnread()
   {
     if (!userPseudo) return;
@@ -534,6 +543,27 @@ export default function SocialPage() {
     const results: Record<string, number> = udata.results;
     setUnreadMap(results);
   }
+
+  const openProfileViewerForUserName = useCallback(async (name: string) => {
+    const res = await fetch(`api/social/user?username=${name}`, {
+      method: "GET",
+    });
+    if (!res.ok)
+      return;
+    const data = await res.json();
+    const targetUser: type.User = data.user;
+    setProfileViewerUser(targetUser);
+    setShowProfileViewer(true);
+  }, []);
+
+  const handleProfileClick = useCallback((userName: string) => {
+    if (userName === currentUser?.name) {
+      router.push(`/profile/${userName}`);
+      return;
+    }
+
+    openProfileViewerForUserName(userName);
+  }, [currentUser?.name, openProfileViewerForUserName, router]);
 
 	//Loading screen while currentUser is not set
 	if (!currentUser)
@@ -804,18 +834,6 @@ export default function SocialPage() {
     }
   };
 
-  const openProfileViewerForUserName = async (name: string) => {
-    const res = await fetch(`api/social/user?username=${selectedUser}`, {
-      method: "GET",
-    });
-    if (!res.ok)
-      return;
-    const data = await res.json();
-    const targetUser: type.User = data.user;
-    setProfileViewerUser(targetUser);
-    setShowProfileViewer(true);
-  };
-
   const acceptDuel = async () => {
     socket.emit("duel_accepted", {
       user: currentUser.name,
@@ -833,17 +851,19 @@ export default function SocialPage() {
   }
 
   const isTyping = async () => {
-    let typingTimeout;
-
     if (!selectedUser || !currentUser)
       return ;
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
     socket.emit("typing", {
       sender : currentUser.name,
       receiver: selectedUser,
     });
-    clearTimeout(typingTimeout);
 
-    typingTimeout = setTimeout(() => {
+    typingTimeoutRef.current = setTimeout(() => {
       socket.emit("notTyping", {
         sender: currentUser.name,
         receiver: selectedUser,
@@ -1035,17 +1055,11 @@ export default function SocialPage() {
               isTyping={typing}
               typer={typer}
               onMessageExpand={toggleMessageExpanded}
-              onProfileClick={(userName) => {
-                if (userName === currentUser?.name) {
-                  router.push(`/profile/${userName}`);
-                } else {
-                  openProfileViewerForUserName(userName);
-                }
-              }}
+              onProfileClick={handleProfileClick}
             />
 
             <footer className="sticky bottom-0 border-t border-[#c9a227]/30 bg-[#15131d] p-4">
-              {selectedUser && (<div className="flex flex-col gap-3">
+              {selectedUser && (<div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2 rounded-full border border-[#c9a227]/30 bg-[#242033] px-2 py-2 focus-within:border-[#c9a227]/30 focus-within:ring-0">
                   <input
                     ref={fileInputRef}
