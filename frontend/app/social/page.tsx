@@ -13,6 +13,7 @@ import { MessageThread } from "@/components/organisms/social/MessageThread";
 import { FriendRequestBanner } from "@/components/molecules/social/FriendRequestBanner";
 import { DuelRequestBanner } from "@/components/molecules/social/DuelRequestBanner";
 import { type } from "./index"
+import { emitGlobalError } from "@/lib/error-events";
 
 const toSizeLabel = (bytes: number) => {
   if (bytes < 1024) return `${bytes} o`;
@@ -562,6 +563,7 @@ export default function SocialPage() {
   const submitContactInvite = async () => {
     const username = inviteUsername.trim();
     if (isInviting || !username) return;
+
     try {
       setIsInviting(true);
 
@@ -578,10 +580,7 @@ export default function SocialPage() {
       //return if we invite ourselves
       if (payload.error === "You cannot invite yourself.")
       {
-        setInviteNotification({
-          type: "error",
-          message: payload.error,
-        });
+        emitGlobalError(payload.error);
         return ;
       }
       //check if the inbox already exist
@@ -595,10 +594,7 @@ export default function SocialPage() {
       })
       if (!ares.ok)
       {
-        setInviteNotification({
-          type: "error",
-          message: payload.error ?? "A discussion has already been created.",
-        });
+        emitGlobalError(payload.error ?? "A discussion has already been created.");
         return;
       }
 
@@ -625,10 +621,7 @@ export default function SocialPage() {
 
       //return if user does not exist
       if (!response.ok || !payload.user) {
-        setInviteNotification({
-          type: "error",
-          message: payload.error ?? "This player does not exist.",
-        });
+        emitGlobalError(payload.error ?? "This player does not exist.");
         return;
       }
       const foundName = payload.user.name;
@@ -640,10 +633,7 @@ export default function SocialPage() {
       setIsAddContactModalOpen(false);
       setInviteUsername("");
     } catch {
-      setInviteNotification({
-        type: "error",
-        message: "This player does not exist or an invitation has already been sent.",
-      });
+      emitGlobalError("This player does not exist or an invitation has already been sent.");
     } finally {
       setIsInviting(false);
     }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Cinzel, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 import AccentPreferenceSync from "./accent-preference-sync";
+import GlobalErrorNotifications from "@/components/GlobalErrorNotifications";
 
 const cinzel = Cinzel({
   variable: "--font-display",
@@ -46,6 +47,7 @@ export default function RootLayout({
         }}
       >
         <AccentPreferenceSync />
+        <GlobalErrorNotifications />
         {children}
       </body>
     </html>
