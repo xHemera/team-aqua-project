@@ -14,6 +14,8 @@ import { ExpeditionTracker } from "@/components/organisms/home/ExpeditionTracker
 import { CHARACTERS, PLAYER_RESOURCES } from "@/app/characters/character-roster";
 import SidebarShell from "@/components/SidebarShell";
 import {socket} from "../../socket"
+import NotificationToast from "@/components/organisms/home/NotificationToast";
+import Sidebar from "@/components/Sidebar";
 
 const PvpMatchmakingModal = dynamic(() => import("@/components/organisms/home/PvpMatchmakingModal"), { ssr: false });
 const ExpeditionModal = dynamic(() => import("@/components/organisms/home/ExpeditionModal"), { ssr: false });
@@ -82,7 +84,6 @@ export default function Home() {
   );
 
   const defaultCharacterId = roster[0]?.id ?? null;
-  const [pseudo, setPseudo] = useState<string>("Hero");
   const [ruby, setRuby] = useState<number>(PLAYER_RESOURCES.ruby);
   const [gold, setGold] = useState<number>(PLAYER_RESOURCES.coin);
 
@@ -113,8 +114,7 @@ export default function Home() {
   useEffect(() => {
     const getUserData = async () => {
       const { data } = await authClient.getSession();
-      if (data?.user?.name) {
-        setPseudo(data.user.name);
+      if (data && data.user.name) {
         setUserPseudo(data.user.name);
       }
     };
@@ -191,7 +191,6 @@ export default function Home() {
     if (!activeExpedition) {
       return;
     }
-
     const interval = window.setInterval(() => {
       setNowTs(Date.now());
     }, 120);
@@ -213,6 +212,37 @@ export default function Home() {
     });
     setActiveExpedition(null);
   }, [activeExpedition, nowTs]);
+
+  useEffect(() => {
+  if (!userPseudo) return;
+
+    socket.on("matchFound", () => {
+      router.push("/game");
+    });
+
+    socket.on("ban", (banned) => {
+      if (banned === userPseudo)
+        handleLogout();
+    });
+  }, [userPseudo])
+
+  const handleLogout = async () => {
+    const response = await fetch("/api/profile", {
+        method: "PUT",
+      })
+      const user: unknown = await response.json();
+      if (!response.ok) {
+        const errorMessage =
+        typeof user === "object" && user !== null && "error" in user
+          ? String((user as { error: string }).error ?? "Impossible de charger l'utilisateur")
+          : "Impossible de charger l'utilisateur";
+        throw new Error(errorMessage);
+      }
+    socket.emit("isdisconnecting");
+    socket.disconnect();
+    await authClient.signOut();
+    router.push("/");
+  };
 
   const expeditionRemainingSeconds = activeExpedition
     ? Math.max(0, Math.ceil((activeExpedition.endsAt - nowTs) / 1000))
@@ -250,16 +280,25 @@ export default function Home() {
     }, 900);
   };
 
-  const handleStartPvp = () => {
+  const handleStartPvp = async () => {
     setPvpOpen(true);
+    const res = await fetch("/api/home", {
+      method: "POST",
+      body: JSON.stringify({userPseudo: userPseudo}),
+    })
+    if (!res.ok)
+      return ; //afficher un message lie a l'erreur
   };
 
-  const handleCancelPvp = () => {
-    setPvpOpen(false);
-  };
-
-  const handleClosePvp = () => {
-    handleCancelPvp();
+  const handleClosePvp = async () => {
+    const res = await fetch(`/api/home?userPseudo=${userPseudo}`, {
+      method: "DELETE",
+    })
+    if (!res.ok)
+    {
+      setPvpOpen(false);
+      return ; //afficher un message lie a l'erreur
+    }
     setPvpOpen(false);
   };
 
@@ -442,7 +481,9 @@ export default function Home() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#0c0a0f] font-serif text-white">
+
       <SidebarShell />
+      {showNotification && notification && notifSender && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
 
       <main className="relative flex-1 overflow-hidden p-3 pl-0">
         <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[#0c0a0f] via-[#12101a] to-[#0a0810]" />
@@ -454,8 +495,9 @@ export default function Home() {
           }}
         />
 
+
         <div className="relative z-10 flex h-full min-h-0 flex-col gap-5 rounded-3xl border border-[#c9a227]/20 bg-black/10 p-5">
-          <MineSection pseudo={pseudo} rubyCount={ruby} goldCount={gold} />
+          <MineSection pseudo={userPseudo ?? "Hero"} rubyCount={ruby} goldCount={gold} />
 
           {/* Main Content Grid */}
           <div className="flex min-h-0 flex-1 flex-col gap-5">
@@ -573,7 +615,6 @@ export default function Home() {
       <PvpMatchmakingModal
         open={pvpOpen}
         onClose={handleClosePvp}
-        onCancel={handleCancelPvp}
       />
 
       <ExpeditionModal

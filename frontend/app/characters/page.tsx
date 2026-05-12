@@ -8,6 +8,7 @@ import NotificationToast from "@/components/organisms/home/NotificationToast";
 import type { CharacterData, PlayerResources } from "@/components/organisms/characters/types";
 import { socket } from "../../socket"
 import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
 
 export default function CharactersPage() {
   const [characters, setCharacters] = useState<CharacterData[]>([]);
@@ -15,6 +16,7 @@ export default function CharactersPage() {
   const [maxSkillLevel, setMaxSkillLevel] = useState<number>(MAX_SKILL_LEVEL);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>("");
   const selectedCharacter = characters.find((c) => c.id === selectedCharacterId) ?? characters[0] ?? null;
+  const router = useRouter();
   const [showNotification, setShowNotification] = useState(true);
   const [notification, setNotification] = useState<string | null>(null);
   const [notifSender, setNotifSender] = useState<string | null>(null);
@@ -102,6 +104,32 @@ export default function CharactersPage() {
     })
   }, [userPseudo])
 
+  useEffect(() => {
+    if (!userPseudo) return;
+    socket.on("ban", (banned) => {
+      if (banned === userPseudo)
+        handleLogout();
+    });
+  }, [userPseudo])
+
+  const handleLogout = async () => {
+    const response = await fetch("/api/profile", {
+        method: "PUT",
+      })
+      const user: unknown = await response.json();
+      if (!response.ok) {
+        const errorMessage =
+        typeof user === "object" && user !== null && "error" in user
+          ? String((user as { error: string }).error ?? "Impossible de charger l'utilisateur")
+          : "Impossible de charger l'utilisateur";
+        throw new Error(errorMessage);
+      }
+    socket.emit("isdisconnecting");
+    socket.disconnect();
+    await authClient.signOut();
+    router.push("/");
+  };
+
   const handleUpgradeSkill = async (skillId: string): Promise<boolean> => {
     const response = await fetch("/api/characters", {
       method: "POST",
@@ -129,19 +157,18 @@ export default function CharactersPage() {
       return false;
     }
 
-    setCharacters((currentCharacters) =>
-      currentCharacters.map((character) => ({
-        ...character,
-        skills: character.skills.map((skill) =>
-          skill.id === payload.spellId
-            ? { ...skill, level: payload.level }
-            : skill,
-        ),
-      })),
-    );
-
+    // setCharacters((currentCharacters) =>
+    //   currentCharacters.map((character) => ({
+    //     ...character,
+    //     skills: character.skills.map((skill) =>
+    //       skill.id === payload.spellId
+    //         ? { ...skill, level: payload.level }
+    //         : skill,
+    //     ),
+    //   })),
+    // );
     return true;
-  };
+  }
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#0c0a0f] font-serif">

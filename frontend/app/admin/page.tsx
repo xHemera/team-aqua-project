@@ -9,9 +9,10 @@ import { manage }  from "./index";
 import { socket } from "../../socket"
 import { authClient } from "@/lib/auth-client";
 import NotificationToast from "@/components/organisms/home/NotificationToast";
+import { useRouter } from "next/navigation";
 
 export default function AdminPage() {
-
+  const router = useRouter();
   const [users, setUsers] = useState<type.User[]>([]);
   const [reports, setReports] = useState<type.ReportedConv[]>([]);
 
@@ -41,10 +42,18 @@ export default function AdminPage() {
 
     async function fetchUsersAndReports()
     {
-      const [u, r] = await Promise.all([
-            manage.getUsers(),
-            manage.getReports(),
+      const [uRes, rRes] = await Promise.all([
+            fetch("/api/admin/users", {
+              method: "GET",
+            }),
+            fetch("/api/admin/reports", {
+              method: "GET",
+            }),
       ])
+      const uData = await uRes.json();
+      const u: type.User[] = uData.users;
+      const rData = await rRes.json();
+      const r: type.ReportedConv[] = rData.reports;
       setUsers(u);
       if (!r)
         setReports([])
@@ -72,6 +81,7 @@ export default function AdminPage() {
   }, [userPseudo])
 
   useEffect(() => {
+    if (!userPseudo) return;
     const cU = users.find(u => u.name === userPseudo);
       if (cU && cU.badges.includes("ADMIN"))
         setCurrentRole("ADMIN");
@@ -90,6 +100,32 @@ export default function AdminPage() {
       socket.off("online_users");
     };
   }, []);
+
+  useEffect(() => {
+    if (!userPseudo) return;
+    socket.on("ban", (banned) => {
+      if (banned === userPseudo)
+        handleLogout();
+    });
+  }, [userPseudo])
+
+  const handleLogout = async () => {
+    const response = await fetch("/api/profile", {
+        method: "PUT",
+      })
+      const user: unknown = await response.json();
+      if (!response.ok) {
+        const errorMessage =
+        typeof user === "object" && user !== null && "error" in user
+          ? String((user as { error: string }).error ?? "Impossible de charger l'utilisateur")
+          : "Impossible de charger l'utilisateur";
+        throw new Error(errorMessage);
+      }
+    socket.emit("isdisconnecting");
+    socket.disconnect();
+    await authClient.signOut();
+    router.push("/");
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -130,7 +166,6 @@ export default function AdminPage() {
       socket.off("ban", fetchUsers);
       socket.off("unban", fetchUsers);
     }
-
   }, []);
 
   const filteredUsers = useMemo(() => {

@@ -23,6 +23,13 @@ export type Avatar = {
   url:					string;
 };
 
+export type Friend = {
+  userId: string;
+  friendId: string;
+  request_sent: boolean;
+  created_at: Date;
+}
+
 export type User = {
   id:           string;
   name:         string;

@@ -33,32 +33,40 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
 
   async function banUser()
   {
-    await manage.banUser(user.name);
-    socket.emit("reviewed");
-    socket.emit("banning", {
-      banned: user.name
-    });
+    const res = await fetch("/api/admin/ban", {
+      method: "PUT",
+      body: JSON.stringify({username: user.name}),
+    })
+    if (!res.ok)
+      return ;
+    socket.emit("banning", user.name);
     return ;
   }
 
   async function unbanUser()
   {
-    await manage.unbanUser(user.name);
+    const res = await fetch("/api/admin/ban", {
+      method: "PATCH",
+      body: JSON.stringify({username: user.name}),
+    })
+    if (!res.ok)
+      return ;
     socket.emit("unbanning");
     return ;
   }
 
   const changeRole = async (id: string, modo: boolean) =>
   {
-    await manage.changeRole(id, modo);
+    const res = await fetch("/api/admin/role", {
+      method: "PATCH",
+      body: JSON.stringify({user: id, isModo: modo}),
+    })
+    if (!res.ok)
+      return ;
     if (modo)
-      socket.emit("removeMod", {
-        removed: user.name
-    });
+      socket.emit("removeMod");
     else
-      socket.emit("addMod", {
-        added: user.name
-    });
+      socket.emit("addMod");
   }
 
   return (
@@ -92,7 +100,7 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
         <Button
           type="button"
           size="sm"
-          variant={isAdmin ? "secondary" : "primary"}
+          variant={isAdmin || currentRole !== "ADMIN" ? "secondary" : "primary"}
           className="h-8 px-3 text-xs"
           onClick={() => {
               if (isAdmin) return;
@@ -105,15 +113,15 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
           }
           title="Action de moderation pour admin"
         >
-          {isAdmin ? "Admin" : isModo ? "demote moderator" : "Promote to moderator"}
+          {isAdmin ? "Admin" : currentRole !== "ADMIN" ? "Moderator" : isModo ? "demote moderator" : "Promote to moderator"}
         </Button>
         <Button
           type="button"
           size="sm"
-          variant={isAdmin ? "secondary" : "primary"}
+          variant={isAdmin || currentRole !== "ADMIN" ? "secondary" : "primary"}
           className="h-9 px-3 text-xs"
           onClick={() => {
-              if (isAdmin)
+              if (isAdmin || currentRole !== "ADMIN")
                 return;
               if (banned)
                 unbanUser()
@@ -124,7 +132,7 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
           }
           title="Ban"
         >
-          {isAdmin ? "Admin" : !banned ? "Ban" : "Unban"}
+          {isAdmin ? "Admin" : currentRole !== "ADMIN" ? "Moderator" : !banned ? "Ban" : "Unban"}
         </Button>
       </div>
     </Card>
