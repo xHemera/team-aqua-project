@@ -502,7 +502,7 @@ export default function Home() {
           {/* Main Content Grid */}
           <div className="flex min-h-0 flex-1 flex-col gap-5">
             {/* Features Row */}
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-4">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 lg:gap-4">
               <button
                 type="button"
                 onClick={handleMine}
@@ -537,6 +537,14 @@ export default function Home() {
                 accentClassName="bg-gradient-to-br from-[#4d2f57]/20 via-[#b15b45]/15 to-transparent"
                 value="Queue"
                 onClick={handleStartPvp}
+              />
+
+              <FeatureActionTile
+                title="Arena"
+                icon="fa-flame"
+                accentClassName="bg-gradient-to-br from-[#5c2f2f]/20 via-[#c75d4d]/15 to-transparent"
+                value="Coming Soon"
+                onClick={() => {}}
               />
 
               <ExpeditionTracker
