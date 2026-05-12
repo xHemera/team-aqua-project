@@ -20,5 +20,6 @@ frontend/.next/
 .DS_Store
 .vscode/
 
-#useless
-frontend/public/images
+# #useless
+frontend/public/images/*
+frontend/public/profiles/*
