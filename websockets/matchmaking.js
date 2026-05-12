@@ -10,10 +10,6 @@ redis.on('error', (err) => console.log('Redis Client Error', err));
 if (!redis.isOpen)
     await redis.connect();
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 redis.on("error", (err) => console.log("Redis error", err));
 
 async function matchmaking()
