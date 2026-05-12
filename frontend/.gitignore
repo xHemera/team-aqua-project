@@ -44,5 +44,5 @@ bun-debug.log*
 next-env.d.ts
 
 # User uploaded files
-# /public/profiles/*
-# /public/images/*
+/public/profiles/*
+/public/images/*
