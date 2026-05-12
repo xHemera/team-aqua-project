@@ -20,8 +20,8 @@ import { io } from "./server.js"
 //         const waitingQueue = await redis.lLen("players_queue");
 //         if (waitingQueue >= 2)
 //         {
-//             const p1 = await redis.lpop("players_queue");
-//             const p2 = await redis.lpop("players_queue");
+//             const p1 = await redis.lPop("players_queue");
+//             const p2 = await redis.lPop("players_queue");
 
 //             const receiverSockP1 = await redis.hGet("online_users", p1);
 //             const receiverSockP2 = await redis.hGet("online_users", p2);
