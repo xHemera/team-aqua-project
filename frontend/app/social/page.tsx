@@ -940,7 +940,7 @@ export default function SocialPage() {
       )}
 
       <div className="flex w-full justify-center px-4">
-        <section className="checkered-bg flex h-[calc(100vh-2rem)] w-[calc(100%-14rem)] flex-col overflow-hidden rounded-3xl border border-[#c9a227]/25 bg-black/15 shadow-2xl">
+        <section className="checkered-bg flex h-[calc(100vh-2rem)] w-full flex-col overflow-hidden rounded-3xl border border-[#c9a227]/25 bg-black/15 shadow-2xl">
 
           <ConversationList
             users={users}
