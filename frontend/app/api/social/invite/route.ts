@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     });
 
     if (!targetUser) {
-      return Response.json({ error: "this player does not exist" }, { status: 404 });
+      return Response.json({ error: "This player does not exist" }, { status: 404 });
     }
 
     if (targetUser.id === session.user.id) {

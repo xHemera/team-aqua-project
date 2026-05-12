@@ -6,14 +6,13 @@ import { socket } from "../../socket"
 import { authClient } from "@/lib/auth-client";
 import AppPageShell from "@/components/AppPageShell";
 import { contact }  from "./index"
-import NotificationToast from "@/components/organisms/home/NotificationToast";
 import ProfileViewerModal from "@/components/organisms/social/ProfileViewer";
 import { ConversationList } from "@/components/organisms/social/ConversationList";
 import { MessageThread } from "@/components/organisms/social/MessageThread";
 import { FriendRequestBanner } from "@/components/molecules/social/FriendRequestBanner";
 import { DuelRequestBanner } from "@/components/molecules/social/DuelRequestBanner";
 import { type } from "./index"
-import { emitGlobalError } from "@/lib/error-events";
+import { emitGlobalError, emitGlobalNotification } from "@/lib/error-events";
 
 const toSizeLabel = (bytes: number) => {
   if (bytes < 1024) return `${bytes} o`;
@@ -38,9 +37,6 @@ export default function SocialPage() {
   const [inboxes, setInboxes] = useState<type.Inbox[]>([]);
   const [currentUser, setCurrentUser] = useState<type.User | null>(null);
 	const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
-  const [showNotification, setShowNotification] = useState(true);
-  const [notification, setNotification] = useState<string | null>(null);
-  const [notifSender, setNotifSender] = useState<string | null>(null);
   const [showProfileViewer, setShowProfileViewer] = useState(false);
   const [profileViewerUser, setProfileViewerUser] = useState<type.User | null>(null);
   const [request, setRequest] = useState(false);
@@ -227,9 +223,7 @@ export default function SocialPage() {
       }
       else //set variables to send a notification
       {
-        setNotifSender(sender);
-        setNotification(msg);
-        setShowNotification(true);
+        emitGlobalNotification(msg, sender);
         fetchUnread();
       }
     }
@@ -237,7 +231,7 @@ export default function SocialPage() {
     return () => {
       socket.off("received", handler);
     }
-  }, [selectedUser, userPseudo, notification, notifSender]);
+  }, [selectedUser, userPseudo]);
 
   useEffect(() => {
     if (!userPseudo) return;
@@ -577,12 +571,12 @@ export default function SocialPage() {
         error: string;
         user: { name: string; avatarUrl: string | null };
       };
-      //return if we invite ourselves
-      if (payload.error === "You cannot invite yourself.")
-      {
-        emitGlobalError(payload.error);
-        return ;
+
+      //return if there was an error in the response
+      if (!response.ok) {
+        return;
       }
+
       //check if the inbox already exist
       const params = new URLSearchParams({
         currentUser: currentUser.name,
@@ -594,7 +588,6 @@ export default function SocialPage() {
       })
       if (!ares.ok)
       {
-        emitGlobalError(payload.error ?? "A discussion has already been created.");
         return;
       }
 
@@ -619,11 +612,6 @@ export default function SocialPage() {
         receiver: inviteUsername,
       });
 
-      //return if user does not exist
-      if (!response.ok || !payload.user) {
-        emitGlobalError(payload.error ?? "This player does not exist.");
-        return;
-      }
       const foundName = payload.user.name;
       setSelectedUser(foundName);
       setInviteNotification({
@@ -633,7 +621,7 @@ export default function SocialPage() {
       setIsAddContactModalOpen(false);
       setInviteUsername("");
     } catch {
-      emitGlobalError("This player does not exist or an invitation has already been sent.");
+      // Errors are handled by global fetch interception
     } finally {
       setIsInviting(false);
     }
@@ -891,7 +879,6 @@ export default function SocialPage() {
           outline: none !important;
         }
       `}</style>
-      {showNotification && notification && notifSender && (notifSender !== selectedUser) && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       {inviteNotification && (
         <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
           <div
@@ -958,7 +945,6 @@ export default function SocialPage() {
             currentUserName={currentUser?.name ?? ""}
             onSelectUser={(userName) => {
               setSelectedUser(userName);
-              if (userName === notifSender) setShowNotification(false);
             }}
             onAddContactClick={openAddContactModal}
           />

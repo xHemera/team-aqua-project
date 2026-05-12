@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import NotificationToast from "@/components/organisms/home/NotificationToast";
-import { subscribeToGlobalErrors } from "@/lib/error-events";
+import { subscribeToGlobalErrors, subscribeToGlobalNotifications } from "@/lib/error-events";
 
 const DEFAULT_ERROR_MESSAGE = "An unexpected error occurred.";
 const NETWORK_ERROR_MESSAGE = "Network error. Please try again.";
@@ -55,22 +55,58 @@ const getErrorMessageFromResponse = async (response: Response): Promise<string |
   return null;
 };
 
+type ErrorNotification = {
+  id: string;
+  message: string;
+};
+
+type NormalNotification = {
+  id: string;
+  message: string;
+  sender: string;
+};
+
+type QueuedNotification = (ErrorNotification | NormalNotification) & { variant: "error" | "default" };
+
 export default function GlobalErrorNotifications() {
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<QueuedNotification[]>([]);
+  const nextIdRef = useCallback(() => Math.random().toString(36).slice(2), []);
 
   const showError = useCallback((message?: string) => {
-    setErrorMessage(normalizeErrorMessage(message));
-  }, []);
-
-  useEffect(() => {
-    if (!errorMessage) return;
+    const normalizedMessage = normalizeErrorMessage(message);
+    const newNotif: QueuedNotification = {
+      id: nextIdRef(),
+      message: normalizedMessage,
+      variant: "error",
+    } as QueuedNotification;
+    setNotifications((prev) => [...prev, newNotif]);
 
     const timeoutId = setTimeout(() => {
-      setErrorMessage(null);
+      setNotifications((prev) => prev.filter((n) => n.id !== newNotif.id));
     }, 4500);
 
     return () => clearTimeout(timeoutId);
-  }, [errorMessage]);
+  }, [nextIdRef]);
+
+  const showNotification = useCallback((message: string, sender: string) => {
+    const newNotif: QueuedNotification = {
+      id: nextIdRef(),
+      message,
+      sender,
+      variant: "default",
+    } as QueuedNotification;
+    setNotifications((prev) => [...prev, newNotif]);
+
+    const timeoutId = setTimeout(() => {
+      setNotifications((prev) => prev.filter((n) => n.id !== newNotif.id));
+    }, 4500);
+
+    return () => clearTimeout(timeoutId);
+  }, [nextIdRef]);
+
+  const removeNotification = useCallback((id: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  }, []);
 
   useEffect(() => {
     const originalFetch = window.fetch.bind(window);
@@ -121,25 +157,29 @@ export default function GlobalErrorNotifications() {
 
     window.addEventListener("error", onError);
     window.addEventListener("unhandledrejection", onUnhandledRejection);
-    const unsubscribe = subscribeToGlobalErrors(showError);
+    const unsubscribeErrors = subscribeToGlobalErrors(showError);
+    const unsubscribeNotifications = subscribeToGlobalNotifications(showNotification);
 
     return () => {
       window.removeEventListener("error", onError);
       window.removeEventListener("unhandledrejection", onUnhandledRejection);
-      unsubscribe();
+      unsubscribeErrors();
+      unsubscribeNotifications();
     };
-  }, [showError]);
-
-  if (!errorMessage) {
-    return null;
-  }
+  }, [showError, showNotification]);
 
   return (
-    <NotificationToast
-      onClose={() => setErrorMessage(null)}
-      msg={errorMessage}
-      sender="System"
-      variant="error"
-    />
+    <>
+      {notifications.map((notif, index) => (
+        <NotificationToast
+          key={notif.id}
+          onClose={() => removeNotification(notif.id)}
+          msg={notif.message}
+          sender={notif.variant === "error" ? "System" : (notif as NormalNotification).sender}
+          variant={notif.variant}
+          stackIndex={index}
+        />
+      ))}
+    </>
   );
 }
