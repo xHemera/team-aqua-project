@@ -4,14 +4,12 @@ import FeatureModalFrame from "@/components/molecules/home/FeatureModalFrame";
 type PvpMatchmakingModalProps = {
   open: boolean;
   onClose: () => void;
-  onCancel: () => void;
 };
 
 // Organism: modal PvP front-only avec etat matchmaking simule.
 export default function PvpMatchmakingModal({
   open,
   onClose,
-  onCancel,
 }: PvpMatchmakingModalProps) {
   return (
     <FeatureModalFrame open={open} title="PvP Matchmaking" icon="fa-swords" onClose={onClose}>
@@ -21,12 +19,6 @@ export default function PvpMatchmakingModal({
             <i className="fa-solid fa-spinner fa-spin text-[#e6c55a]" aria-hidden="true" />
             <span>Searching opponent...</span>
           </div>
-        </div>
-
-        <div className="flex gap-3">
-          <Button type="button" variant="secondary" onClick={onCancel} className="flex-1 font-bold uppercase tracking-wide">
-            Cancel
-          </Button>
         </div>
       </div>
     </FeatureModalFrame>

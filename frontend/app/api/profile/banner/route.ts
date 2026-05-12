@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   ?.split(",")[0]
   .trim() || "unknown";
 
-  const allowed = await rateLimit(redis, `rl:${ip}`, 20, 60);
+  const allowed = await rateLimit(redis, `rl:banner${ip}`, 20, 60);
 
   if (!allowed) {
       console.log("Too many requests");
@@ -69,6 +69,18 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
+  const h = await headers();
+  const ip = h
+  .get("x-forwarded-for")
+  ?.split(",")[0]
+  .trim() || "unknown";
+
+  const allowed = await rateLimit(redis, `rl:banner${ip}`, 20, 60);
+
+  if (!allowed) {
+      console.log("Too many requests");
+      return Response.json({error: "Too many request"}, {status: 429});
+  }
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");

@@ -12,7 +12,7 @@ export async function PUT()
     ?.split(",")[0]
     .trim() || "unknown";
 
-    const allowed = await rateLimit(redis, `rl:${ip}`, 20, 60);
+    const allowed = await rateLimit(redis, `rl:user${ip}`, 20, 60);
 
     if (!allowed) {
         console.log("Too many requests");

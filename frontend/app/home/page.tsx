@@ -84,7 +84,6 @@ export default function Home() {
   );
 
   const defaultCharacterId = roster[0]?.id ?? null;
-  const [pseudo, setPseudo] = useState<string>("Hero");
   const [ruby, setRuby] = useState<number>(PLAYER_RESOURCES.ruby);
   const [gold, setGold] = useState<number>(PLAYER_RESOURCES.coin);
 
@@ -117,7 +116,7 @@ export default function Home() {
     const getUserData = async () => {
       const { data } = await authClient.getSession();
       if (data?.user?.name) {
-        setPseudo(data.user.name);
+        setUserPseudo(data.user.name);
       }
     };
     void getUserData();
@@ -254,21 +253,23 @@ export default function Home() {
 
   const handleStartPvp = async () => {
     setPvpOpen(true);
-    //await redis.rpush("players_queue", JSON.stringify(userPseudo));
+    const res = await fetch("/api/home", {
+      method: "POST",
+      body: JSON.stringify({userPseudo: userPseudo}),
+    })
+    if (!res.ok)
+      return ; //afficher un message lie a l'erreur
   };
 
-  const handleCancelPvp = async () => {
-    setPvpOpen(false);
-    // const playersQueue = await redis.hGetAll("players_queue");
-    // const fieldToDelete = Object.keys(playersQueue).find(
-    //   key => playersQueue[key] === socket.id
-    // );
-    // if (fieldToDelete)
-    //   await redis.hDel("online_users", fieldToDelete);
-  };
-
-  const handleClosePvp = () => {
-    handleCancelPvp();
+  const handleClosePvp = async () => {
+    const res = await fetch(`/api/home?userPseudo=${userPseudo}`, {
+      method: "DELETE",
+    })
+    if (!res.ok)
+    {
+      setPvpOpen(false);
+      return ; //afficher un message lie a l'erreur
+    }
     setPvpOpen(false);
   };
 
@@ -431,6 +432,7 @@ export default function Home() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#0c0a0f] font-serif text-white">
+      {showNotification && notification && notifSender && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       <div className="shrink-0 p-3 pl-2">
         <Sidebar />
       </div>
@@ -448,7 +450,7 @@ export default function Home() {
         <div className="relative z-10 flex h-full min-h-0 flex-col gap-4 rounded-3xl border border-[#c9a227]/25 bg-black/15 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#c9a227]/30 bg-[#120f17]/85 px-4 py-3">
             <div className="text-sm uppercase tracking-[0.12em] text-[#ead9aa]">
-              {pseudo}
+              {userPseudo ?? "Hero"}
             </div>
             <div className="flex items-center gap-3 text-sm font-semibold text-[#f5e6c8]">
               <span className="inline-flex items-center gap-2 rounded-lg border border-[#6a5b81] bg-[#1e1828] px-3 py-1.5">
@@ -700,7 +702,6 @@ export default function Home() {
       <PvpMatchmakingModal
         open={pvpOpen}
         onClose={handleClosePvp}
-        onCancel={handleCancelPvp}
       />
 
       <ExpeditionModal

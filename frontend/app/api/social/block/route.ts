@@ -12,7 +12,7 @@ export async function PUT(req: Request)
     ?.split(",")[0]
     .trim() || "unknown";
 
-    const allowed = await rateLimit(redis, `rl:${ip}`, 20, 1);
+    const allowed = await rateLimit(redis, `rl:block${ip}`, 20, 1);
 
     if (!allowed) {
         console.log("Too many requests");
@@ -58,7 +58,7 @@ export async function PATCH(req: Request)
     ?.split(",")[0]
     .trim() || "unknown";
 
-    const allowed = await rateLimit(redis, `rl:${ip}`, 20, 1);
+    const allowed = await rateLimit(redis, `rl:block${ip}`, 20, 1);
 
     if (!allowed) {
         console.log("Too many requests");
@@ -104,7 +104,7 @@ export async function DELETE(req: Request)
     ?.split(",")[0]
     .trim() || "unknown";
 
-    const allowed = await rateLimit(redis, `rl:${ip}`, 20, 1);
+    const allowed = await rateLimit(redis, `rl:block${ip}`, 20, 1);
 
     if (!allowed) {
         console.log("Too many requests");

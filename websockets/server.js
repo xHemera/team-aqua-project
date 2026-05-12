@@ -35,7 +35,7 @@ io.on("connection", (socket) => {
   socket.on("login", async (user) => {
     if (typeof user !== 'string' || !user.trim())
     {
-      console.error("Invaid user in login: ", user);
+      console.error("Invalid user in login: ", user);
       return ;
     }
     if (!socket.id) {
