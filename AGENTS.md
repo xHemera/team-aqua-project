@@ -4,9 +4,11 @@ This repository is Kyogre, a full-stack app with a Next.js frontend in `frontend
 
 ## Start Here
 - Prefer the existing docs for details instead of duplicating them: [README.md](README.md), [docs/frontend-overview.md](docs/frontend-overview.md), [docs/components-guide.md](docs/components-guide.md), [docs/hooks-guide.md](docs/hooks-guide.md), [docs/authentication-guide.md](docs/authentication-guide.md), [docs/styling-guide.md](docs/styling-guide.md).
+- Try to follow docs and code patterns as closely as possible; if you need to deviate, the reason must be explicit, clear, and direct.
 - This app is first and foremost a turn-based RPG with a party of 3 characters; the game engine is being built in pure TypeScript and is still under active development.
 - Use Server Components by default in the Next.js app; only add Client Components when browser APIs, hooks, or interactive state are required.
 - Keep UI changes aligned with the atomic design structure in `frontend/components/` and the existing medieval fantasy theme in `frontend/app/globals.css` and `frontend/app/layout.tsx`.
+- Design-wise stay mobile-first, UX friendly and consistent with the existing style; if you need to add new styles, prefer Tailwind utility classes and only add custom CSS when necessary.
 
 ## Useful Commands
 - Start the stack from the repo root with `docker compose up --build -d` or `./dev.sh`.
@@ -17,6 +19,7 @@ This repository is Kyogre, a full-stack app with a Next.js frontend in `frontend
 - TypeScript path alias `@/*` maps to `frontend/*`.
 - Auth is Better Auth + Prisma; use server-side session checks for protected routes and API handlers.
 - Avoid touching websockets, the database, or backend code as much as possible; if a change is necessary there, the reason must be explicit, clear, and direct.
+- If needed update the docs in `docs/` to reflect any changes or new patterns, but avoid duplicating information that already exists in the code or other docs.
 - Prefer shared hooks in `frontend/hooks/` and reusable UI primitives over one-off page logic.
 - Match existing localStorage patterns that avoid hydration mismatches by deferring reads into effects.
 - Keep remote image and runtime assumptions aligned with `frontend/next.config.ts`, `frontend/socket.js`, and the Docker compose setup.
