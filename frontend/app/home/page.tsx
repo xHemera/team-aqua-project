@@ -476,9 +476,9 @@ export default function Home() {
                       className="text-2xl font-black uppercase tracking-[0.14em] text-[#f5e6c8]"
                       style={{ fontFamily: "var(--font-display), serif" }}
                     >
-                      Forge
+                      Mine
                     </span>
-                    <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#c9b48a]">Mine Crystals</span>
+                    <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#c9b48a]">Get Crystals</span>
                   </div>
                   <i className="fa-solid fa-pickaxe text-lg text-[#e6c55a] drop-shadow-lg" aria-hidden="true" />
                 </div>

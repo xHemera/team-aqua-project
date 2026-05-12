@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import type { ReactNode } from "react";
 
 type FeatureModalFrameProps = {
@@ -10,6 +11,22 @@ type FeatureModalFrameProps = {
 
 // Molecule: frame modal reutilisable pour les features de la Home.
 export default function FeatureModalFrame({ open, title, icon, onClose, children }: FeatureModalFrameProps) {
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.code === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [open, onClose]);
   if (!open) {
     return null;
   }

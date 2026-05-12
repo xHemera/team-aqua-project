@@ -22,12 +22,6 @@ export default function PvpMatchmakingModal({
             <span>Searching opponent...</span>
           </div>
         </div>
-
-        <div className="flex gap-3">
-          <Button type="button" variant="secondary" onClick={onCancel} className="flex-1 font-bold uppercase tracking-wide">
-            Cancel
-          </Button>
-        </div>
       </div>
     </FeatureModalFrame>
   );
