@@ -576,7 +576,7 @@ export default function SocialPage() {
         user: { name: string; avatarUrl: string | null };
       };
       //return if we invite ourselves
-      if (payload.error === "vous ne pouvez pas vous inviter")
+      if (payload.error === "You cannot invite yourself.")
       {
         setInviteNotification({
           type: "error",
@@ -597,7 +597,7 @@ export default function SocialPage() {
       {
         setInviteNotification({
           type: "error",
-          message: payload.error ?? "une discussion a deja ete cree.",
+          message: payload.error ?? "A discussion has already been created.",
         });
         return;
       }
@@ -627,7 +627,7 @@ export default function SocialPage() {
       if (!response.ok || !payload.user) {
         setInviteNotification({
           type: "error",
-          message: payload.error ?? "ce joueur n'existe pas.",
+          message: payload.error ?? "This player does not exist.",
         });
         return;
       }
@@ -635,14 +635,14 @@ export default function SocialPage() {
       setSelectedUser(foundName);
       setInviteNotification({
         type: "success",
-        message: "invitation sent",
+        message: "Invitation sent",
       });
       setIsAddContactModalOpen(false);
       setInviteUsername("");
     } catch {
       setInviteNotification({
         type: "error",
-        message: "ce joueur n'existe pas",
+        message: "This player does not exist or an invitation has already been sent.",
       });
     } finally {
       setIsInviting(false);
@@ -919,14 +919,19 @@ export default function SocialPage() {
       {isAddContactModalOpen && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 px-4">
           <div className="w-full max-w-md rounded-2xl border border-[#c9a227]/25 bg-[#1b1826] p-5 shadow-2xl">
-            <h3 className="text-lg font-bold text-white">enter a username</h3>
-            <p className="mt-1 text-sm text-gray-300">Enter the username of the player to send an invitation.</p>
+            <h3 className="text-lg font-bold text-white">Enter a username to send DM invitation</h3>
 
             <input
               type="text"
               value={inviteUsername}
               onChange={(event) => setInviteUsername(event.target.value)}
               placeholder="Player username"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !isInviting && inviteUsername.trim().length > 0) {
+                  e.preventDefault();
+                  void submitContactInvite();
+                }
+              }}
               className="mt-4 w-full rounded-xl border border-[#c9a227]/30 bg-[#242033] px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-[var(--accent-color)]"
               autoFocus
             />
@@ -937,7 +942,7 @@ export default function SocialPage() {
                 disabled={isInviting}
                 className="rounded-xl border border-[#c9a227]/30 bg-[#242033] px-4 py-2 text-sm font-semibold text-gray-200 transition-colors hover:bg-[#302a45] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                cancel
+                Cancel
               </button>
               <button
                 onClick={submitContactInvite}
