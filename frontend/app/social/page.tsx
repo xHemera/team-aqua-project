@@ -908,6 +908,10 @@ export default function SocialPage() {
                   e.preventDefault();
                   void submitContactInvite();
                 }
+                if (e.key === "Escape" && !isInviting) {
+                  e.preventDefault();
+                  setIsAddContactModalOpen(false);
+                }
               }}
               className="mt-4 w-full rounded-xl border border-[#c9a227]/30 bg-[#242033] px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-[var(--accent-color)]"
               autoFocus
