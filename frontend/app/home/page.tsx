@@ -216,6 +216,7 @@ export default function Home() {
   if (!userPseudo) return;
 
     socket.on("matchFound", () => {
+      console.log("Received");
       router.push("/game");
     });
 
@@ -280,6 +281,10 @@ export default function Home() {
   };
 
   const handleStartPvp = async () => {
+    if (!userPseudo)
+    {
+      return ;
+    }
     setPvpOpen(true);
     const res = await fetch("/api/home", {
       method: "POST",

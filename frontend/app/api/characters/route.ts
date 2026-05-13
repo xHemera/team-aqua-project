@@ -74,13 +74,6 @@ const ensureCharacterRoster = async (gameStateId: string) => {
         name: templateCharacter.name,
         hp: templateCharacter.stats.hp,
         level: templateCharacter.level,
-        countering: false,
-        silenced: false,
-        poisened: false,
-        berserk: false,
-        aBoost: 0,
-        dBoost: 0,
-        nturnEffect: 0,
         spells: {
           create: templateCharacter.skills.map((skill) => ({
             name: skill.name,
