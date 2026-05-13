@@ -157,16 +157,6 @@ export default function CharactersPage() {
       return false;
     }
 
-    // setCharacters((currentCharacters) =>
-    //   currentCharacters.map((character) => ({
-    //     ...character,
-    //     skills: character.skills.map((skill) =>
-    //       skill.id === payload.spellId
-    //         ? { ...skill, level: payload.level }
-    //         : skill,
-    //     ),
-    //   })),
-    // );
     return true;
   }
 

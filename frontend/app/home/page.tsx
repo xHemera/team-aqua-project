@@ -3,11 +3,10 @@
 import Image from "next/image";
 import dynamic from "next/dynamic";
 
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import FeatureActionTile from "@/components/atoms/home/FeatureActionTile";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import Button from "@/components/atoms/Button";
 import { MineSection } from "@/components/organisms/home/MineSection";
 import { TeamBuilder } from "@/components/organisms/home/TeamBuilder";
 import { ExpeditionTracker } from "@/components/organisms/home/ExpeditionTracker";

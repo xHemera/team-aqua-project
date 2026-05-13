@@ -71,7 +71,7 @@ export default function ProfileClientView({
   useEffect(() => {
     const getUserData = async () => {
       const { data } = await authClient.getSession();
-      if (data?.user?.name) {
+      if (data && data.user.name) {
         setUserPseudo(data.user.name);
       }
     };
