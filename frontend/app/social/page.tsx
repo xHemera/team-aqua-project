@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { socket } from "../../socket"
 import { authClient } from "@/lib/auth-client";
@@ -23,7 +23,6 @@ const toSizeLabel = (bytes: number) => {
 export default function SocialPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [selectedUser, setSelectedUser] = useState("");
   const [message, setMessage] = useState("");
@@ -87,7 +86,7 @@ export default function SocialPage() {
     }
   };
 
-  const toggleMessageExpanded = useCallback((messageId: string) => {
+  const toggleMessageExpanded = (messageId: string) => {
     setExpandedMessages((prev) => {
       const next = new Set(prev);
       if (next.has(messageId)) {
@@ -97,7 +96,7 @@ export default function SocialPage() {
       }
       return next;
     });
-  }, []);
+  };
 
   //fetch the current user pseudo
   useEffect(() => {
@@ -187,16 +186,16 @@ export default function SocialPage() {
 
     //connect the socket
     if (socket.connected) return;
-    socket.connect();
-		socket.emit("login", userPseudo);
+      socket.connect();
+      socket.emit("login", userPseudo);
 
-		socket.on("online_users", (users) => {
-			console.log("Users from Redis:", users);
-		});
+      socket.on("online_users", (users) => {
+        console.log("Users from Redis:", users);
+      });
 
-		return () => {
-			socket.off("online_users");
-		};
+      return () => {
+        socket.off("online_users");
+      };
   }, [userPseudo]);
 
   //render messages sent by other users
@@ -389,51 +388,26 @@ export default function SocialPage() {
         oUser: selectedUser,
       });
 
-    async function checkBlockingStatus()
+    async function isWaiting()
     {
       if (!currentUser || !selectedUser) return;
-      
-      // Check if I blocked them
-      let iAmBlockingThem = false;
-      const res1 = await fetch(`api/social/user?username=${selectedUser}`, {
+      const params = new URLSearchParams({
+        currentUser: currentUser.name,
+        otherUser: selectedUser,
+      });
+      const res = await fetch(`/api/social/otherFriend?${params.toString()}`, {
         method: "GET",
       });
-      if (res1.ok) {
-        const data1 = await res1.json();
-        const blockedUser: type.User = data1.user;
-        if (blockedUser) {
-          for (const id of currentUser.blockedUsers) {
-            if (id == blockedUser.id) {
-              iAmBlockingThem = true;
-              break;
-            }
-          }
-        }
+      if (!res.ok)
+        return ;
+      const data = await res.json();
+      const friend: type.Friend = data.friend;
+      if (!friend) {
+        setRequest(false);
+        setFriendRequestSender(null);
       }
-      
-      // Check if they blocked me
-      let theyBlockedMe = false;
-      const res2 = await fetch(`api/social/user?username=${selectedUser}`, {
-        method: "GET",
-      });
-      if (res2.ok) {
-        const data2 = await res2.json();
-        const blockingUser: type.User = data2.user;
-        if (blockingUser) {
-          for (const id of blockingUser.blockedUsers) {
-            if (id == currentUser.id) {
-              theyBlockedMe = true;
-              break;
-            }
-          }
-        }
-      }
-      
-      // Update both states at once
-      setHasBlocked(iAmBlockingThem);
-      setIsBlocked(theyBlockedMe);
     }
-    checkBlockingStatus();
+    isWaiting();
 
     async function isRequesting()
     {
@@ -442,7 +416,7 @@ export default function SocialPage() {
         currentUser: currentUser.name,
         otherUser: selectedUser,
       });
-      const res = await fetch(`/api/social/friend?${params.toString()}`, {
+      const res = await fetch(`/api/social/otherFriend?${params.toString()}`, {
         method: "GET",
       });
       if (!res.ok)
@@ -454,7 +428,6 @@ export default function SocialPage() {
         setFriendRequestSender(null);
         return;
       }
-      // friend.request_sent = true means OTHER USER sent us a request
       if (friend.request_sent == true)
       {
         setRequest(true);
@@ -466,6 +439,46 @@ export default function SocialPage() {
       return;
     }
     isRequesting();
+
+    async function isBlockedByMe()
+    {
+      if (!currentUser || !selectedUser) return;
+      const res = await fetch(`api/social/user?username=${selectedUser}`, {
+        method: "GET",
+      });
+      if (!res.ok)
+        return;
+      const data = await res.json();
+      const blockedUser: type.User = data.user;
+      if (!blockedUser) return;
+      for (const id of currentUser.blockedUsers)
+      {
+        if (id == blockedUser.id)
+          setHasBlocked(true);
+      }
+      return;
+    }
+    isBlockedByMe();
+
+    async function amIBlocked()
+    {
+      if (!currentUser || !selectedUser) return;
+      const res = await fetch(`api/social/user?username=${selectedUser}`, {
+        method: "GET",
+      });
+      if (!res.ok)
+        return;
+      const data = await res.json();
+      const blockingUser: type.User = data.user;
+      if (!blockingUser) return;
+      for (const id of blockingUser.blockedUsers)
+      {
+        if (id == currentUser.id)
+          setIsBlocked(true);
+      }
+      return;
+    }
+    amIBlocked();
   }, [currentUser, selectedUser])
 
 	useEffect(() => {
@@ -509,14 +522,6 @@ export default function SocialPage() {
     fetchSelectedUnread();
   }, [selectedUser])
 
-  useEffect(() => {
-    return () => {
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-    };
-  }, []);
-
   async function fetchUnread()
   {
     if (!userPseudo) return;
@@ -529,27 +534,6 @@ export default function SocialPage() {
     const results: Record<string, number> = udata.results;
     setUnreadMap(results);
   }
-
-  const openProfileViewerForUserName = useCallback(async (name: string) => {
-    const res = await fetch(`api/social/user?username=${name}`, {
-      method: "GET",
-    });
-    if (!res.ok)
-      return;
-    const data = await res.json();
-    const targetUser: type.User = data.user;
-    setProfileViewerUser(targetUser);
-    setShowProfileViewer(true);
-  }, []);
-
-  const handleProfileClick = useCallback((userName: string) => {
-    if (userName === currentUser?.name) {
-      router.push(`/profile/${userName}`);
-      return;
-    }
-
-    openProfileViewerForUserName(userName);
-  }, [currentUser?.name, openProfileViewerForUserName, router]);
 
 	//Loading screen while currentUser is not set
 	if (!currentUser)
@@ -768,8 +752,6 @@ export default function SocialPage() {
           msg: cleanMessage, receiver: selectedUser,
           draftIds: draftIds}),
       });
-      
-
 
     const data = await response.json();
     if (!response.ok)
@@ -820,6 +802,18 @@ export default function SocialPage() {
     }
   };
 
+  const openProfileViewerForUserName = async (name: string) => {
+    const res = await fetch(`api/social/user?username=${selectedUser}`, {
+      method: "GET",
+    });
+    if (!res.ok)
+      return;
+    const data = await res.json();
+    const targetUser: type.User = data.user;
+    setProfileViewerUser(targetUser);
+    setShowProfileViewer(true);
+  };
+
   const acceptDuel = async () => {
     socket.emit("duel_accepted", {
       user: currentUser.name,
@@ -837,19 +831,17 @@ export default function SocialPage() {
   }
 
   const isTyping = async () => {
+    let typingTimeout;
+
     if (!selectedUser || !currentUser)
       return ;
-
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
     socket.emit("typing", {
       sender : currentUser.name,
       receiver: selectedUser,
     });
+    clearTimeout(typingTimeout);
 
-    typingTimeoutRef.current = setTimeout(() => {
+    typingTimeout = setTimeout(() => {
       socket.emit("notTyping", {
         sender: currentUser.name,
         receiver: selectedUser,
@@ -945,7 +937,7 @@ export default function SocialPage() {
 
       
       <div className="flex w-full justify-center px-4">
-        <section className="checkered-bg flex h-[calc(100vh-2rem)] w-full flex-col overflow-hidden rounded-3xl border border-[#c9a227]/25 bg-black/15 shadow-2xl">
+        <section className="checkered-bg flex h-[calc(100vh-2rem)] w-[calc(100%-14rem)] flex-col overflow-hidden rounded-3xl border border-[#c9a227]/25 bg-black/15 shadow-2xl">
 
             <ConversationList
               users={users}
@@ -990,11 +982,17 @@ export default function SocialPage() {
               isTyping={typing}
               typer={typer}
               onMessageExpand={toggleMessageExpanded}
-              onProfileClick={handleProfileClick}
+              onProfileClick={(userName) => {
+                if (userName === currentUser?.name) {
+                  router.push(`/profile/${userName}`);
+                } else {
+                  openProfileViewerForUserName(userName);
+                }
+              }}
             />
 
             <footer className="sticky bottom-0 border-t border-[#c9a227]/30 bg-[#15131d] p-4">
-              {selectedUser && (<div className="flex flex-col gap-2">
+              {selectedUser && (<div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2 rounded-full border border-[#c9a227]/30 bg-[#242033] px-2 py-2 focus-within:border-[#c9a227]/30 focus-within:ring-0">
                   <input
                     ref={fileInputRef}
