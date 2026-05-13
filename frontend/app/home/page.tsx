@@ -141,7 +141,6 @@ export default function Home() {
       };
     }, [userPseudo]);
 
-  //render messages sent by other users
   useEffect(() => {
     if (!userPseudo) return;
     const storedTeam = localStorage.getItem(STORAGE_KEYS.team);
