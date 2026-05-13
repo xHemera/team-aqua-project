@@ -23,12 +23,10 @@ async function matchmaking()
             const player1 = JSON.parse(p1.element);
             const player2 = JSON.parse(p2.element);
 
-            const receiverSockP1 = await redis.hGet("online_users", player1);
-            const receiverSockP2 = await redis.hGet("online_users", player2);
-            if (receiverSockP1 && receiverSockP2)
+            if (player1 && player2)
             {
-                io.to(receiverSockP1).emit("matchFound");
-                io.to(receiverSockP2).emit("matchFound");
+                io.to(player1).emit("matchFound");
+                io.to(player2).emit("matchFound");
             }
         }
         catch (err) {
