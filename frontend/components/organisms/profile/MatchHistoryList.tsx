@@ -62,49 +62,39 @@ export function MatchHistoryList({ matches }: MatchHistoryListProps) {
                 </div>
 
                 {/* Teams */}
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-xl border border-white/10 bg-black/30 px-5 py-4">
-                    <p className="mb-3 text-xs uppercase tracking-[0.24em] text-[#c9a227]/80 font-semibold">
-                      Votre équipe
-                    </p>
-                    <div className="flex flex-wrap items-center gap-3">
-                      {match.playerTeam.map((member) => (
-                        <div key={member} className="relative group">
-                          <Image
-                            src={getHeroPortrait(member)}
-                            alt={member}
-                            width={32}
-                            height={32}
-                            className="h-8 w-8 rounded-lg border border-white/20 shadow-lg transition-transform group-hover:scale-125"
-                          />
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 rounded text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                            {member}
-                          </div>
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="flex flex-wrap items-center justify-center gap-4 py-4">
+                    {match.playerTeam.map((member) => (
+                      <div key={member} className="relative group">
+                        <Image
+                          src={getHeroPortrait(member)}
+                          alt={member}
+                          width={64}
+                          height={64}
+                          className="h-16 w-16 rounded-lg border-2 border-white/20 shadow-lg transition-transform group-hover:scale-110"
+                        />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-black/90 rounded text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                          {member}
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
 
-                  <div className="rounded-xl border border-white/10 bg-black/30 px-5 py-4">
-                    <p className="mb-3 text-xs uppercase tracking-[0.24em] text-[#c9a227]/80 font-semibold">
-                      Équipe adverse
-                    </p>
-                    <div className="flex flex-wrap items-center gap-3">
-                      {match.opponentTeam.map((member) => (
-                        <div key={member} className="relative group">
-                          <Image
-                            src={getHeroPortrait(member)}
-                            alt={member}
-                            width={32}
-                            height={32}
-                            className="h-8 w-8 rounded-lg border border-white/20 shadow-lg transition-transform group-hover:scale-125"
-                          />
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 rounded text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                            {member}
-                          </div>
+                  <div className="flex flex-wrap items-center justify-center gap-4 py-4">
+                    {match.opponentTeam.map((member) => (
+                      <div key={member} className="relative group">
+                        <Image
+                          src={getHeroPortrait(member)}
+                          alt={member}
+                          width={64}
+                          height={64}
+                          className="h-16 w-16 rounded-lg border-2 border-white/20 shadow-lg transition-transform group-hover:scale-110"
+                        />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-black/90 rounded text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                          {member}
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>

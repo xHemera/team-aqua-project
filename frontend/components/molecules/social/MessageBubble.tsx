@@ -37,6 +37,10 @@ export function MessageBubble({
 
   const displayAvatar = isOwnMessage && customUserAvatar ? customUserAvatar : senderAvatar;
 
+  const isImageFile = (attachment: socialType.Attachment) => {
+    return attachment.type.startsWith("image/");
+  };
+
   return (
     <div className={`flex flex-col ${isOwnMessage ? "items-end" : "items-start"}`}>
       <button
@@ -86,23 +90,35 @@ export function MessageBubble({
           {message.attachments.length > 0 && (
             <div className={`mt-2 grid gap-2 ${message.attachments.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
               {message.attachments.map((attachment) => (
-                <div
+                <button
                   key={attachment.id}
-                  className={`rounded-lg border p-2 ${
+                  type="button"
+                  onClick={() => window.open(attachment.previewUrl, "_blank")}
+                  className={`rounded-lg border p-2 cursor-pointer transition-opacity hover:opacity-80 ${
                     isOwnMessage ? "border-white/30 bg-white/10" : "border-[#c9a227]/30 bg-[#15131d]"
                   }`}
                 >
-                  <Image
-                    src={`${attachment.previewUrl}`}
-                    alt={attachment.name}
-                    width={320}
-                    height={220}
-                    className="h-28 w-full rounded-md object-cover"
-                    unoptimized
-                  />
-                  <p className="mt-2 truncate text-xs font-semibold">{attachment.name}</p>
-                  <p className="text-[11px] opacity-75">{attachment.sizeLabel}</p>
-                </div>
+                  {isImageFile(attachment) ? (
+                    <>
+                      <Image
+                        src={`${attachment.previewUrl}`}
+                        alt={attachment.name}
+                        width={320}
+                        height={220}
+                        className="h-28 w-full rounded-md object-cover"
+                        unoptimized
+                      />
+                      <p className="mt-2 truncate text-xs font-semibold">{attachment.name}</p>
+                      <p className="text-[11px] opacity-75">{attachment.sizeLabel}</p>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-6">
+                      <i className="fa-solid fa-file text-2xl mb-2"></i>
+                      <p className="truncate text-xs font-semibold">{attachment.name}</p>
+                      <p className="text-[11px] opacity-75">{attachment.sizeLabel}</p>
+                    </div>
+                  )}
+                </button>
               ))}
             </div>
           )}
