@@ -6,21 +6,25 @@ export interface ModEntry {
     turn:	number;
 }
 
+export type PoisonEntry = ModEntry;
+
 export class CharacterInstance {
-    uid:			string;
-    character:		CharacterData;
-    owner:			number;
-	currentHp:		number;
-	currentMp:		number;
-    phyMod:			ModEntry[] = [];
-    magMod:			ModEntry[] = [];
-    phyResMod:		ModEntry[] = [];
-    magResMod:		ModEntry[] = [];
-	critChanceMod:	ModEntry[] = [];
-	critDamageMod:	ModEntry[] = [];
-    spdMod:			ModEntry[] = [];
-	poisonMod:		ModEntry[] = [];
-	spells:			Map<string, Spell> = new Map();
+    uid:				string;
+    character:			CharacterData;
+    owner:				number;
+	currentHp:			number;
+	currentMp:			number;
+    phyMod:				ModEntry[] = [];
+    magMod:				ModEntry[] = [];
+    phyResMod:			ModEntry[] = [];
+    magResMod:			ModEntry[] = [];
+	critChanceMod:		ModEntry[] = [];
+	critDamageMod:		ModEntry[] = [];
+    spdMod:				ModEntry[] = [];
+	poison:				PoisonEntry[] = [];
+	invisible:			number = 0;
+	nextAttackBonus:	number = 0;
+	spells:				Map<string, Spell> = new Map();
 
     constructor(uid: string, character: CharacterData, owner: number) {
         this.uid       = uid;
