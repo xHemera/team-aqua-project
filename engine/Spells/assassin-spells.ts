@@ -44,3 +44,20 @@ export class VenomBlade extends Spell {
 		});
 	}
 }
+
+export class PhantomStep extends Spell {
+    constructor() {
+		super();
+        this.id        = "s3";
+        this.name      = "Phantom Step";
+        this.mpCost    = 18;
+        this.targeting = "self";
+    }
+
+	applyEffect(idUser: CharacterInstance, idTargets: CharacterInstance[]): void {
+        const skillLevel = idUser.character.skills.find(s => s.id === "s3")?.level ?? 1;
+
+        idUser.invisible       = 1 + Math.floor(skillLevel / 3);
+        idUser.nextAttackBonus = skillLevel * 15;
+    }
+}
