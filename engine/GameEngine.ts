@@ -21,11 +21,19 @@ function tickAllMods(character: CharacterInstance): void {
 	character.magResMod		= tick(character.magResMod);
 	character.critChanceMod	= tick(character.critChanceMod);
 	character.critDamageMod = tick(character.critDamageMod);
-	//calcul du dot de poison au debut de chaque tour
-	character.poisonMod.forEach( instance => {
-			character.currentHp = Math.max(0, character.currentHp - instance.value)
-	});
-	character.poisonMod = tick(character.poisonMod);
+
+	if (character.invisible > 0) character.invisible -=1;
+}
+
+function tickPoison(state: GameState): GameState {
+    state.players.flatMap(p => p.characters).forEach(character => {
+        const totalDamage    = character.poison.reduce((acc, { value }) => acc + value, 0);
+        character.currentHp  = Math.max(0, character.currentHp - totalDamage);
+        character.poison     = character.poison
+            .map(e => ({ ...e, turn: e.turn - 1 }))
+            .filter(e => e.turn > 0);
+    });
+    return state;
 }
 
 function removeDeadCharacters(state: GameState): GameState {
@@ -96,7 +104,8 @@ export function processAction(state: GameState, action: GameAction): GameState {
 
 	tickAllMods(user);
 
-	let newState = removeDeadCharacters(state);
+	let newState = tickPoison(state);
+		newState = removeDeadCharacters(state);
 		newState = checkWinner(newState);
 	
 	if (newState.gamePhase === "end") return newState;
