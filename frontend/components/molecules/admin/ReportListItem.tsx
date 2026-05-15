@@ -1,8 +1,8 @@
 import StatusPill from "@/components/atoms/StatusPill";
-import type { ReportedConversation } from "@/app/admin/types";
+import type { type } from "@/app/admin/index";
 
 type ReportListItemProps = {
-  report: ReportedConversation;
+  report: type.ReportedConv;
   active: boolean;
   onSelect: (id: string) => void;
 };
@@ -20,12 +20,11 @@ export default function ReportListItem({ report, active, onSelect }: ReportListI
     >
       <div className="mb-1 flex items-center justify-between gap-2">
         <p className="truncate text-sm font-semibold text-white">
-          @{report.reporter} / @{report.targetUser}
+          @{report.reporter} / @{report.reportedUser}
         </p>
-        <StatusPill status={report.status} />
       </div>
       <p className="truncate text-xs text-gray-300">{report.reason}</p>
-      <p className="mt-1 truncate text-xs text-gray-400">{report.preview}</p>
+      <p className="mt-1 truncate text-xs text-gray-400">{report.inbox.last_message}</p>
     </button>
   );
 }

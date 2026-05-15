@@ -236,7 +236,7 @@ render_compact_menu() {
     echo ""
     echo -e "${MAGENTA}${BOLD}Actions${NC}"
     echo -e "${GREEN}[1]${NC}  Start   ${YELLOW}[2]${NC}  Restart   ${RED}[3]${NC}  Stop   ${CYAN}[4]${NC} 󰃢 Clean"
-    echo -e "${GREEN}[5]${NC}  Logs    ${YELLOW}[6]${NC}  Statut    ${CYAN}[7]${NC} 󱙋 DB     ${MAGENTA}[8]${NC}  Admin"
+    echo -e "${GREEN}[5]${NC}  Logs    ${YELLOW}[6]${NC}  Statut    ${RED}[7]${NC} 󱙋 DB"
     echo ""
     echo -e "${DIM}Raccourcis: [r] Rafraîchir • [q] Quitter${NC}"
     echo -ne "${BOLD}${CYAN}Choix:${NC} "
@@ -310,9 +310,16 @@ run_prisma_migrations() {
     local attempts=0
     local max_attempts=12
 
-    docker compose -f docker-compose.yml exec frontend bunx prisma migrate dev --name init --url "$DATABASE_URL";
+    while ! docker compose -f docker-compose.yml exec -T frontend sh -c 'test -x node_modules/.bin/prisma'; do
+        attempts=$((attempts + 1))
+        if [ "$attempts" -ge "$max_attempts" ]; then
+            print_error "Prisma CLI indisponible dans le conteneur frontend"
+            return 1
+        fi
+        sleep 2
+    done
+
     docker compose -f docker-compose.yml exec frontend bunx prisma migrate deploy --config prisma/prisma.config.ts;
-        
 
     print_success "Migrations Prisma appliquées"
 }
@@ -334,9 +341,12 @@ show_menu() {
 # Démarrer les services
 start_services() {
     print_header "Démarrage des services"
+    
+    # Créer les dossiers nécessaires s'ils n'existent pas
+    mkdir -p frontend/public/images
+    mkdir -p frontend/public/profiles
+    
     docker compose up --build -d
-
-    run_prisma_migrations
 
     wait_for_url "http://localhost:3000" "Frontend" 180
 
@@ -369,6 +379,8 @@ clean_all() {
     print_header "Nettoyage complet"
     read -p "⚠️  Cela supprimera tous les volumes (base de données). Continuer? (y/N): " confirm
     if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
+        rm -rf frontend/public/images/*
+        rm -rf frontend/public/profiles/*
         docker compose down -v
         print_success "Nettoyage terminé"
     else
@@ -423,22 +435,6 @@ access_db() {
     docker compose exec db psql -U postgres -d aqua_temp
 }
 
-# Créer un admin
-create_admin() {
-    print_header "Création d'un administrateur"
-    read -p "Email: " email
-
-    if [ -z "$email" ]; then
-        print_error "Email requis"
-        return
-    fi
-
-    docker compose exec -T db psql -U postgres -d aqua_temp -v user_email="$email" -c \
-        "UPDATE \"user\" SET role = 'admin' WHERE email = :'user_email';"
-
-    print_success "Utilisateur $email promu admin"
-}
-
 # Tester les services
 test_services() {
     print_header "Test des services"
@@ -467,7 +463,6 @@ main() {
             5) show_logs ;;
             6) check_status ;;
             7) access_db ;;
-            8) create_admin ;;
             0) print_success "Au revoir!"; exit 0 ;;
             *) print_error "Choix invalide" ;;
         esac

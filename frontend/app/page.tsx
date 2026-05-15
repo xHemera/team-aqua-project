@@ -30,6 +30,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     const fetchUsers = async () => {
+
       const response = await fetch("/api/users", {
         method: "GET"
       })
@@ -37,7 +38,7 @@ export default function LoginPage() {
       if (!response.ok) {
       const errorMessage =
         typeof data === "object" && data !== null && "error" in data
-          ? String((data as { error?: string }).error ?? "Impossible de charger les utilisateurs")
+          ? String((data as { error: string }).error ?? "Impossible de charger les utilisateurs")
           : "Impossible de charger les utilisateurs";
         throw new Error(errorMessage);
       }
@@ -67,6 +68,43 @@ export default function LoginPage() {
         await fetch("/api/users", {
           method: "POST",
         })
+        if (!response.ok) {
+          const data: unknown = await response.json();
+          const errorMessage =
+            typeof data === "object" && data !== null && "error" in data
+              ? String((data as { error?: string }).error ?? "Impossible de charger les utilisateurs")
+              : "Impossible de charger les utilisateurs";
+            throw new Error(errorMessage);
+        }
+        //cette ligne et soit necessaire, soit elle casse tout
+        //const data: unknown = await response.json();
+        const users = data as User[];
+        if (users.length === 0)
+        {
+            try {
+              await authClient.signUp.email({
+                name: "Xoco",
+                email: "Xoco@gmail.com",
+                password: "12345678",
+              });
+              await authClient.signUp.email({
+                name: "Hemera",
+                email: "hemera@gmail.com",
+                password: "12345678",
+              });
+          }
+
+          catch {
+            setMessage("Registration error");
+            return;
+          }
+          setIsRegisterMode(false);
+          setPassword("");
+          setName("");
+          await fetch("/api/users", {
+            method: "POST",
+          })
+        }
       }
     }
     fetchUsers();
@@ -77,7 +115,7 @@ export default function LoginPage() {
     const checkSession = async () => {
       try {
         const session = await authClient.getSession();
-        if (session?.data?.session) {
+        if (session && session.data && session.data.session) {
           router.push("/home");
         }
       } catch {
@@ -120,6 +158,7 @@ export default function LoginPage() {
       if (error) {
         setMessage(error.message ?? "Registration error");
       } else {
+        socket.emit("creation");
         setMessage("Account created successfully! You can now sign in.");
         setIsRegisterMode(false);
         setPassword("");
@@ -136,20 +175,30 @@ export default function LoginPage() {
         setMessage(error.message ?? "Sign-in error");
       }
       else {
-        setMessage("Signed in successfully!");
-        setPseudo(data.user.name || "user");
         const response = await fetch("/api/user", {
           method: "PUT"
         })
         const user: unknown = await response.json();
         if (!response.ok) {
+          if (response.status === 403)
+          {
+            setMessage("This account has been banned");
+            await authClient.signOut();
+            setLoading(false);
+            return;
+          }
         const errorMessage =
           typeof user === "object" && user !== null && "error" in user
             ? String((user as { error: string }).error ?? "Impossible de charger l'utilisateur")
             : "Impossible de charger l'utilisateur";
           throw new Error(errorMessage);
         }
-        setTimeout(() => router.push(`/profile/${data.user.name}`), 500);
+        else {
+          socket.emit("isconnecting");
+          setMessage("Signed in successfully!");
+          setPseudo(data.user.name || "user");
+          setTimeout(() => router.push(`/profile/${data.user.name}`), 500);
+        }
       }
     }
     setLoading(false);

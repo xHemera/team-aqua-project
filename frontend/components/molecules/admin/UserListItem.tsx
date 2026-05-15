@@ -1,21 +1,73 @@
 import Button from "@/components/atoms/Button";
 import Card from "@/components/atoms/Card";
-import type { AdminUser } from "@/app/admin/types";
+import type { User } from "@/app/admin/types";
+import { useEffect, useState } from "react";
+import { socket } from "../../../socket"
+import { manage }  from "../../../app/admin/index";
 
 type UserListItemProps = {
-  user: AdminUser;
+  user: User;
   onViewProfile: (pseudo: string) => void;
+  currentRole: string;
 };
 
 const getBadgeLabel = (badges: string[]) => {
   if (badges.includes("ADMIN")) return "Admin";
+  if (badges.includes("MODERATOR")) return "Moderator";
   if (badges.length > 0) return badges[0];
   return "User";
 };
 
-export default function UserListItem({ user, onViewProfile }: UserListItemProps) {
-  const badgeLabel = getBadgeLabel(user.badges);
-  const isAdmin = user.badges.includes("ADMIN");
+export default function UserListItem({ user, onViewProfile, currentRole }: UserListItemProps) {
+  const [badgeLabel, setBadgeLabel] = useState<string[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isModo, setIsModo] = useState(false);
+  const [banned, setBanned] = useState(false);
+
+  useEffect(() => {
+    setIsAdmin(user.badges.includes("ADMIN"));
+    setIsModo(user.badges.includes("MODERATOR"));
+    setBanned(user.banned);
+    setBadgeLabel([getBadgeLabel(user.badges)]);
+  }, [user])
+
+  async function banUser()
+  {
+    const res = await fetch("/api/admin/ban", {
+      method: "PUT",
+      body: JSON.stringify({username: user.name}),
+    })
+    if (!res.ok)
+      return ;
+    socket.emit("banning", user.name);
+    return ;
+  }
+
+  async function unbanUser()
+  {
+    const res = await fetch("/api/admin/ban", {
+      method: "PATCH",
+      body: JSON.stringify({username: user.name}),
+    })
+    if (!res.ok)
+      return ;
+    socket.emit("unbanning");
+    return ;
+  }
+
+  const changeRole = async (id: string, modo: boolean) =>
+  {
+    const res = await fetch("/api/admin/role", {
+      method: "PATCH",
+      body: JSON.stringify({user: id, isModo: modo}),
+    })
+    if (!res.ok)
+      return ;
+    if (modo)
+      socket.emit("removeMod");
+    else
+      socket.emit("addMod");
+  }
 
   return (
     <Card className="flex items-center justify-between gap-3 rounded-xl bg-[#1c1827] p-3">
@@ -23,14 +75,14 @@ export default function UserListItem({ user, onViewProfile }: UserListItemProps)
         <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-[#3c3650] bg-[#242033]">
           {user.avatar ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={user.avatar} alt={user.pseudo} className="h-full w-full object-cover" />
+            <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
           ) : (
             <i className="fa-regular fa-user text-lg text-gray-400" />
           )}
         </div>
 
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-white">{user.pseudo}</p>
+          <p className="truncate text-sm font-semibold text-white">{user.name}</p>
           <p className="text-xs text-gray-400">{badgeLabel}</p>
         </div>
       </div>
@@ -41,19 +93,46 @@ export default function UserListItem({ user, onViewProfile }: UserListItemProps)
           size="sm"
           variant="ghost"
           className="h-8 px-3 text-xs"
-          onClick={() => onViewProfile(user.pseudo)}
+          onClick={() => onViewProfile(user.name)}
         >
-          Voir profil
+          See profile
         </Button>
         <Button
           type="button"
           size="sm"
-          variant={isAdmin ? "secondary" : "primary"}
+          variant={isAdmin || currentRole !== "ADMIN" ? "secondary" : "primary"}
           className="h-8 px-3 text-xs"
-          disabled
-          title="Action de moderation a connecter a une API admin"
+          onClick={() => {
+              if (isAdmin) return;
+              if (currentRole === "ADMIN")
+              {
+                changeRole(user.id, isModo);
+                setIsModo(!isModo);
+              }
+            }
+          }
+          title="Action de moderation pour admin"
         >
-          {isAdmin ? "Retirer admin" : "Promouvoir admin"}
+          {isAdmin ? "Admin" : currentRole !== "ADMIN" ? "Moderator" : isModo ? "demote moderator" : "Promote to moderator"}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={isAdmin || currentRole !== "ADMIN" ? "secondary" : "primary"}
+          className="h-9 px-3 text-xs"
+          onClick={() => {
+              if (isAdmin || currentRole !== "ADMIN")
+                return;
+              if (banned)
+                unbanUser()
+              else
+                banUser(); 
+              setBanned(!banned);
+            }
+          }
+          title="Ban"
+        >
+          {isAdmin ? "Admin" : currentRole !== "ADMIN" ? "Moderator" : !banned ? "Ban" : "Unban"}
         </Button>
       </div>
     </Card>

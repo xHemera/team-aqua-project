@@ -1,18 +1,17 @@
-"use client";
-
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import Button from "@/components/atoms/Button";
 import Card from "@/components/atoms/Card";
 import IconButton from "@/components/atoms/IconButton";
 import { socket } from "../../../socket"
-import { contact }  from "../../../app/social/index"
 import NotificationToast from "@/components/organisms/home/NotificationToast";
 import Validate from "../Validate";
 import { useRouter } from "next/navigation";
+import {type} from "@/app/social/index"
+import { emitGlobalError } from "@/lib/error-events";
 
 type Avatar = {
-  url:					string;
+  url:  string;
 };
 
 type User = {
@@ -20,8 +19,7 @@ type User = {
   name:          			string;
   badges:             string[];
   blockedUsers:       string[];
-  avatar:        			Avatar | null;
-};
+  avatar:        			Avatar | null;  image?:        				string | null;};
 
 type ProfileViewerModalProps = {
   open: boolean;
@@ -46,8 +44,6 @@ export default function ProfileViewerModal({
   badges = [],
 }: ProfileViewerModalProps) {
   const router = useRouter();
-  const [request, setRequest] = useState(false);
-  const [waiting, setWaiting] = useState(false);
   const [friend, setFriend] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [hasBlocked, setHasBlocked] = useState(false);
@@ -65,17 +61,10 @@ export default function ProfileViewerModal({
       }
     });
 
-    //adds the request live
-    socket.on("request", async ({user, oUser}) => {
-      if (oUser == currentUser.name)
-        setRequest(true);
-    });
-
     //adds match button live
     socket.on("adding", async ({user, oUser}) => {
       if (user == inputUser.name)
       {
-        setWaiting(false);
         setFriend(true);
       }
     });
@@ -84,7 +73,6 @@ export default function ProfileViewerModal({
     socket.on("refusing", async ({user, oUser}) => {
       if (oUser == inputUser.name)
       {
-        setWaiting(false);
         setFriend(false);
       }
     });
@@ -110,47 +98,37 @@ export default function ProfileViewerModal({
       });
   }, [currentUser, inputUser]);
 
-  //sets waiting status
-  useEffect(() => {
-    async function isWaiting()
-    {
-      if (!currentUser || !inputUser) return;
-      const friend = await contact.getFriendFromOther(currentUser.name, inputUser.name);
-      if (!friend) return;
-      if (friend.request_sent == true) setWaiting(true);
-      return;
-    }
-    isWaiting();
-  }, [inputUser, currentUser])
 
   //sets friend status
   useEffect(() => {
     async function isFriend()
     {
       if (!currentUser || !inputUser) return;
-      const myFriend = await contact.getFriend(currentUser.name, inputUser.name);
-      const theirFriend = await contact.getFriendFromOther(currentUser.name, inputUser.name);
+     const params = new URLSearchParams({
+        currentUser: currentUser.name,
+        otherUser: inputUser.name,
+      });
+
+      const [fres, tres] = await Promise.all([
+        fetch(`/api/social/friend?${params.toString()}`, {
+          method: "GET",
+        }),
+        fetch(`/api/social/otherFriend?${params.toString()}`, {
+          method: "GET",
+        }),
+      ]);
+      if (!fres.ok || !tres.ok)
+        return ;
+      const fdata = await fres.json();
+      const tdata = await tres.json();
+      const myFriend: type.Friend = fdata.friend;
+      const theirFriend: type.Friend = tdata.friend;
       if (!myFriend || !theirFriend) {setFriend(false); return;}
       if (myFriend.request_sent == false && theirFriend.request_sent == false) setFriend(true);
       return;
     }
     isFriend();
   }, [currentUser, inputUser])
-
-  //sets request status
-  useEffect(() => {
-    async function isRequesting()
-    {
-			//console.error("Before check: ", request);
-      if (!currentUser || !inputUser) return;
-      const friend = await contact.getFriend(currentUser.name, inputUser.name);
-      if (!friend) return;
-      if (friend.request_sent == true) setRequest(true);
-			//console.error("After check: ", request);
-      return;
-    }
-    isRequesting();
-  }, [inputUser, currentUser])
 
   //sets blocked status
   useEffect(() => {
@@ -199,26 +177,42 @@ export default function ProfileViewerModal({
       onClose();
       return;
     }
-    contact.addFriend(currentUser.name, inputUser.name);
+    const res = await fetch("api/social/friend", {
+      method: "POST",
+      body: JSON.stringify({currentUser: currentUser.name, otherUser: inputUser.name}),
+    })
+    if (!res.ok)
+    {
+      emitGlobalError("Could not send friend request");
+      return;
+    }
     socket.emit("friend_request", {
       user: currentUser.name,
       oUser: inputUser.name
     });
-    setWaiting(true);
-		setRequest(false);
     onClose();
   }
 
   async function refuseFriendship()
   {
     if (!currentUser || !inputUser) return;
-    contact.denyFriendRequest(currentUser.name, inputUser.name);
+    const params = new URLSearchParams({
+      currentUser: currentUser.name,
+      otherUser: inputUser.name,
+    });
+    const res = await fetch(`api/social/friend?${params.toString()}`, {
+      method: "DELETE",
+    })
+    if (!res.ok)
+    {
+      emitGlobalError("Could not delete friendship");
+      return;
+    }
     socket.emit("friend_denied", {
       user: currentUser.name,
       oUser: inputUser.name
     });
     setFriend(false);
-    setRequest(false);
     setOpenRemove(false)
     onClose();
   }
@@ -228,11 +222,35 @@ export default function ProfileViewerModal({
     if (!currentUser || !inputUser) return;
     if (hasBlocked === false)
     {
-      const oUser = await contact.getFriend(currentUser.name, inputUser.name);
+      const params = new URLSearchParams({
+        currentUser: currentUser.name,
+        otherUser: inputUser.name,
+      });
+      const fres = await fetch(`/api/social/otherFriend?${params.toString()}`, {
+        method: "GET",
+      });
+      if (!fres.ok)
+        return ;
+      const fdata = await fres.json();
+      const oUser: type.Friend = fdata.friend;
       if (oUser)
-        contact.blockFriend(currentUser.name, inputUser.name);
+      {
+        const bres = await fetch(`/api/social/block?${params}`, {
+          method: "DELETE",
+        })
+        if (!bres)
+          return;
+      }
+
       else
-        contact.blockUser(currentUser.name, inputUser.name);
+      {
+        const bres = await fetch("/api/social/block", {
+          method: "PATCH",
+          body: JSON.stringify({currentUser: currentUser.name, otherUser: inputUser.name}),
+        })
+        if (!bres)
+          return;
+      }
       socket.emit("friend_or_user_blocked", {
         user: currentUser.name,
         oUser: inputUser.name
@@ -243,7 +261,12 @@ export default function ProfileViewerModal({
     }
     else
     {
-      contact.unblockUser(currentUser.name, inputUser.name);
+      const bres = await fetch("/api/social/block", {
+          method: "PUT",
+          body: JSON.stringify({currentUser: currentUser.name, otherUser: inputUser.name}),
+        })
+        if (!bres)
+          return;
       socket.emit("user_unblocked", {
         user: currentUser.name,
         oUser: inputUser.name
@@ -271,7 +294,7 @@ export default function ProfileViewerModal({
   const displayedUser = inputUser;
 
   const displayedPseudo = displayedUser?.name ?? pseudo;
-  const displayedAvatarUrl = displayedUser?.avatar?.url ?? avatarUrl;
+  const displayedAvatarUrl = (displayedUser?.image || displayedUser?.avatar?.url) ?? avatarUrl;
   const displayedBadges = displayedUser?.badges ?? badges;
 
   if (!open) {
@@ -279,6 +302,7 @@ export default function ProfileViewerModal({
   }
 
   return (
+    <>
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={onClose}>
       {inputUser && showNotification && notification && notifSender && (notifSender !== inputUser.name) && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       <Card
@@ -291,7 +315,7 @@ export default function ProfileViewerModal({
         <div className="flex flex-col gap-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 items-center gap-4">
-              <div className="relative h-16 w-16 overflow-hidden rounded-2xl border border-[color:var(--accent-border)] bg-[#242033]">
+              <div className="relative h-16 w-16 transition-transform hover:scale-110  overflow-hidden rounded-2xl border border-[color:var(--accent-border)] bg-[#242033]">
                 {displayedAvatarUrl ? (
                   <Image
                     src={displayedAvatarUrl}
@@ -299,7 +323,7 @@ export default function ProfileViewerModal({
                     fill
                     className="object-cover"
                     unoptimized
-                    onClick={() =>handleProfileClick()}
+                    onClick={() => handleProfileClick()}
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-lg font-black text-white">
@@ -379,6 +403,43 @@ export default function ProfileViewerModal({
               <i className={`fa-solid ${hasBlocked ? "fa-circle-check" : "fa-ban"} text-lg`} />
             </IconButton>
 
+            <IconButton
+              type="button"
+              size="lg"
+              title="Report user"
+              aria-label="Report user"
+              className="border-orange-500/70 bg-orange-900/20 text-orange-200 hover:bg-orange-900/35"
+              onClick={async () => {
+                if (!currentUser || !inputUser) return;
+                const res = await fetch("/api/social/report", {
+                  method: "POST",
+                  body: JSON.stringify({user: currentUser.name, reportedUser: inputUser.name})
+                });
+                if (res.status === 201)
+                {
+                  setReportNotification({
+                    type: "success",
+                    message: "User reported successfully.",
+                  });
+                  socket.emit("reported");
+                }
+                else if (res.status === 409) {
+                  setReportNotification({
+                    type: "error",
+                    message: "You can't report this user before he gets reviewed.",
+                  });
+                }
+                else {
+                  setReportNotification({
+                    type: "error",
+                    message: "Could not report.",
+                  });
+                }
+              }}
+            >
+              <i className="fa-solid fa-flag text-lg" />
+            </IconButton>
+
             {friend && <IconButton
               onClick={sendChallenge}
               className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)]"
@@ -390,5 +451,6 @@ export default function ProfileViewerModal({
         </div>
       </Card>
     </div>
+    </>
   );
 }

@@ -1,10 +1,25 @@
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { resolveProfileIcon } from "@/lib/profile-icons";
+import { rateLimit } from "@/lib/rateLimit";
+import { redis } from "@/lib/redis";
 import type { Prisma } from "@prisma/client";
 import { headers } from "next/headers";
 
 export async function GET() {
+  const h = await headers();
+  const ip = h
+  .get("x-forwarded-for")
+  ?.split(",")[0]
+  .trim() || "unknown";
+
+  const allowed = await rateLimit(redis, `rl:profile${ip}`, 5, 1);
+
+  if (!allowed) {
+      console.log("Too many requests");
+      return Response.json({error: "Too many request"}, {status: 429});
+  }
+
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session || !session.user) {
@@ -57,7 +72,7 @@ export async function GET() {
         accent: avatarMeta.accent,
         accentHover: avatarMeta.accentHover,
       },
-    });
+    }, {status: 200});
   } catch (error) {
     console.error("Error fetching profile:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
@@ -66,10 +81,23 @@ export async function GET() {
 
 export async function PUT()
 {
-const session = await auth.api.getSession({ headers: await headers() });
-if (!session || !session.user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-}
+    const h = await headers();
+    const ip = h
+    .get("x-forwarded-for")
+    ?.split(",")[0]
+    .trim() || "unknown";
+
+    const allowed = await rateLimit(redis, `rl:profile${ip}`, 20, 60);
+
+    if (!allowed) {
+        console.log("Too many requests");
+        return Response.json({error: "Too many request"}, {status: 429});
+    }
+
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session || !session.user) {
+        return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const user = await prisma.user.update({
         where: { id: session.user.id },
         data: {
@@ -81,6 +109,19 @@ if (!session || !session.user) {
 }
 
 export async function PATCH(request: Request) {
+  const h = await headers();
+  const ip = h
+  .get("x-forwarded-for")
+  ?.split(",")[0]
+  .trim() || "unknown";
+
+  const allowed = await rateLimit(redis, `rl:profile${ip}`, 20, 60);
+
+  if (!allowed) {
+      console.log("Too many requests");
+      return Response.json({error: "Too many request"}, {status: 429});
+  }
+
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session || !session.user) {
@@ -88,10 +129,11 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
-    const { avatarId, profileBackground, profileBanner } = body as {
-      avatarId: string;
+    const { avatarId, profileBackground, profileBanner, imageUrl } = body as {
+      avatarId?: string;
       profileBackground?: string | null;
-      profileBanner: string | null;
+      profileBanner?: string | null;
+      imageUrl?: string;
     };
 
     // Validate and find avatar if provided
@@ -116,6 +158,9 @@ export async function PATCH(request: Request) {
     if (avatarId && nextAvatar) {
       updateData.avatar = { connect: { id: nextAvatar.id } };
       updateData.image = nextAvatar.url;
+    }
+    if (imageUrl) {
+      updateData.image = imageUrl;
     }
     if (profileBackground !== undefined) {
       updateData.profileBackground = profileBackground;
@@ -157,7 +202,7 @@ export async function PATCH(request: Request) {
         accent: avatarMeta.accent,
         accentHover: avatarMeta.accentHover,
       },
-    });
+    }, {status: 201});
   } catch (error) {
     console.error("Error updating profile:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
@@ -165,6 +210,19 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE() {
+  const h = await headers();
+  const ip = h
+  .get("x-forwarded-for")
+  ?.split(",")[0]
+  .trim() || "unknown";
+
+  const allowed = await rateLimit(redis, `rl:profile${ip}`, 20, 60);
+
+  if (!allowed) {
+      console.log("Too many requests");
+      return Response.json({error: "Too many request"}, {status: 429});
+  }
+
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session || !session.user) {
@@ -174,13 +232,9 @@ export async function DELETE() {
     const userId = session.user.id;
 
     await prisma.$transaction(async (tx) => {
-      await tx.messages.deleteMany({ where: { user_id: userId } });
-      //await tx.inbox.deleteMany({ where: { inboxUser: {some : {user_id: userId } } } });
-      await tx.inbox_users.deleteMany({ where: { user_id: userId } });
-      await tx.friends.deleteMany({ where: { userId: userId } });
+      await tx.inbox.deleteMany({ where: { inboxUser: {some : {user_id: userId } } } });
       await tx.session.deleteMany({ where: { userId: userId } });
       await tx.account.deleteMany({ where: { userId: userId } });
-      await tx.match_history.deleteMany({ where: { user_id: userId } });
 
       await tx.user.delete({ where: { id: userId } });
     });

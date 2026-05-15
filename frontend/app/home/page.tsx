@@ -1,124 +1,642 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState, useMemo } from "react";
+import dynamic from "next/dynamic";
+
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import FeatureActionTile from "@/components/atoms/home/FeatureActionTile";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import AppPageShell from "@/components/AppPageShell";
-import DeckSelector from "@/components/organisms/home/DeckSelector";
-import MatchmakingModal from "@/components/organisms/home/MatchmakingModal";
-import NotificationToast from "@/components/organisms/home/NotificationToast";
-import PlayCta from "@/components/organisms/home/PlayCta";
-import { DEFAULT_PROFILE_ICON } from "@/lib/profile-icons";
 import Button from "@/components/atoms/Button";
-import { socket } from "../../socket"
-import { useAvatarPreference } from "@/hooks/useAvatarPreference";
+import { MineSection } from "@/components/organisms/home/MineSection";
+import { TeamBuilder } from "@/components/organisms/home/TeamBuilder";
+import { ExpeditionTracker } from "@/components/organisms/home/ExpeditionTracker";
+import { CHARACTERS, PLAYER_RESOURCES } from "@/app/characters/character-roster";
+import SidebarShell from "@/components/SidebarShell";
+import {socket} from "../../socket"
+import NotificationToast from "@/components/organisms/home/NotificationToast";
 
-// Page principale: navigation rapide, lancement de partie et sélection de deck
+const PvpMatchmakingModal = dynamic(() => import("@/components/organisms/home/PvpMatchmakingModal"), { ssr: false });
+const ExpeditionModal = dynamic(() => import("@/components/organisms/home/ExpeditionModal"), { ssr: false });
+
+type ActiveExpedition = {
+  characterId: string;
+  startedAt: number;
+  endsAt: number;
+  durationSeconds: number;
+  durationLabel: string;
+  xp: number;
+  gold: number;
+};
+
+type ExpeditionReward = {
+  characterId: string;
+  xp: number;
+  gold: number;
+};
+
+type MinePopup = {
+  id: number;
+  value: number;
+  x: number;
+  y: number;
+};
+
+type TeamDragState = {
+  id: string;
+  x: number;
+  y: number;
+};
+
+type PendingTeamDragState = {
+  id: string;
+  startX: number;
+  startY: number;
+};
+
+const EXPEDITION_DURATIONS = [
+  { id: "scout", label: "15s", seconds: 15, xp: 120, gold: 280 },
+  { id: "journey", label: "45s", seconds: 45, xp: 340, gold: 720 },
+  { id: "odyssey", label: "90s", seconds: 90, xp: 760, gold: 1540 },
+] as const;
+
+const STORAGE_KEYS = {
+  team: "home-team-slots",
+};
+
+const formatTimer = (totalSeconds: number) => {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+};
+
+// Page Home: hub de progression front-only (Mine, PvP, Expedition, Team Builder).
 export default function Home() {
+
+  const roster = useMemo(
+    () => CHARACTERS.slice(0, 6).map((character) => ({
+      id: character.id,
+      name: character.name,
+      portrait: character.portrait,
+    })),
+    [],
+  );
+
+  const defaultCharacterId = roster[0]?.id ?? null;
+  const [ruby, setRuby] = useState<number>(PLAYER_RESOURCES.ruby);
+  const [gold, setGold] = useState<number>(PLAYER_RESOURCES.coin);
+
+  const [pvpOpen, setPvpOpen] = useState(false);
+  const [minePopups, setMinePopups] = useState<MinePopup[]>([]);
+  const minePopupIdRef = useRef(0);
+
+  const [expeditionOpen, setExpeditionOpen] = useState(false);
+  const [selectedExpeditionCharacterId, setSelectedExpeditionCharacterId] = useState<string | null>(defaultCharacterId);
+  const [selectedDurationId, setSelectedDurationId] = useState<string>(EXPEDITION_DURATIONS[0].id);
+  const [activeExpedition, setActiveExpedition] = useState<ActiveExpedition | null>(null);
+  const [expeditionReward, setExpeditionReward] = useState<ExpeditionReward | null>(null);
+  const [nowTs, setNowTs] = useState<number>(() => Date.now());
+
+  const [teamSlots, setTeamSlots] = useState<Array<string | null>>([roster[0]?.id ?? null, roster[1]?.id ?? null, roster[2]?.id ?? null]);
+  const [dragPreview, setDragPreview] = useState<TeamDragState | null>(null);
+  const [hoveredSlotIndex, setHoveredSlotIndex] = useState<number | null>(null);
+  const slotRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const pendingDragRef = useRef<PendingTeamDragState | null>(null);
+  const activeDragRef = useRef<TeamDragState | null>(null);
+  const suppressClickForIdRef = useRef<string | null>(null);
   const router = useRouter();
-  const [showMatchmaking, setShowMatchmaking] = useState(false);
   const [showNotification, setShowNotification] = useState(true);
   const [notification, setNotification] = useState<string | null>(null);
   const [notifSender, setNotifSender] = useState<string | null>(null);
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
-  const [selectedDeck, setSelectedDeck] = useState<string>("");
-  const avatar = useAvatarPreference(DEFAULT_PROFILE_ICON.url);
 
-  // Persist selected deck to localStorage
-  useEffect(() => {
-    if (selectedDeck) {
-      localStorage.setItem("selectedDeck", selectedDeck);
-    }
-  }, [selectedDeck]);
   useEffect(() => {
     const getUserData = async () => {
       const { data } = await authClient.getSession();
-      if (data?.user?.name) {
+      if (data && data.user.name) {
         setUserPseudo(data.user.name);
       }
     };
-    void getUserData();
+
+    const timeoutId = window.setTimeout(() => {
+      void getUserData();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, []);
 
-  //reconnect socket in case of a page refresh
   useEffect(() => {
       if (!userPseudo || socket.connected) return;
-  
-      socket.connect();
-      socket.emit("login", userPseudo);
+
+      const timeoutId = window.setTimeout(() => {
+        socket.connect();
+        socket.emit("login", userPseudo);
+      }, 0);
+
       return () => {
+        window.clearTimeout(timeoutId);
         socket.off("online_users");
       };
     }, [userPseudo]);
-    
+
   //render messages sent by other users
   useEffect(() => {
     if (!userPseudo) return;
+    const storedTeam = localStorage.getItem(STORAGE_KEYS.team);
+
+    const loadResources = async () => {
+      try {
+        const response = await fetch("/api/profile/resources", { cache: "no-store" });
+        if (!response.ok) return;
+
+        const payload = (await response.json()) as { rubis?: number; gold?: number };
+        if (typeof payload.rubis === "number") {
+          setRuby(payload.rubis);
+        }
+        if (typeof payload.gold === "number") {
+          setGold(payload.gold);
+        }
+      } catch {
+        // Keep local defaults if the server is unavailable.
+      }
+    };
+
+    void loadResources();
+
     socket.on("received", async ({sender, receiver, msg}) => {
       setNotification(msg);
       setNotifSender(sender);
-    })
-  }, [userPseudo])
+      setShowNotification(true);
+    });
+    if (storedTeam) {
+      try {
+        const parsed = JSON.parse(storedTeam) as Array<string | null>;
+        if (Array.isArray(parsed) && parsed.length === 3) {
+          setTeamSlots(parsed);
+        }
+      } catch {
+        // Ignore malformed storage value.
+      }
+    }
+  }, [userPseudo]);
 
   useEffect(() => {
-    const handleEscapeModal = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      setShowMatchmaking(false);
-    };
+    localStorage.setItem(STORAGE_KEYS.team, JSON.stringify(teamSlots));
+  }, [teamSlots]);
 
-    document.addEventListener("keydown", handleEscapeModal);
+  useEffect(() => {
+    if (!activeExpedition) {
+      return;
+    }
+    const interval = window.setInterval(() => {
+      setNowTs(Date.now());
+    }, 120);
+
     return () => {
-      document.removeEventListener("keydown", handleEscapeModal);
+      window.clearInterval(interval);
     };
-  }, []);
+  }, [activeExpedition]);
 
-  const handleProfileClick = async () => {
-    const { data } = await authClient.getSession();
-    if (data?.user?.name) {
-      router.push(`/profile/${data.user.name}`);
-    } else {
-      router.push("/not-connected");
+  useEffect(() => {
+    if (!activeExpedition || nowTs < activeExpedition.endsAt) {
+      return;
+    }
+
+    setExpeditionReward({
+      characterId: activeExpedition.characterId,
+      xp: activeExpedition.xp,
+      gold: activeExpedition.gold,
+    });
+    setActiveExpedition(null);
+  }, [activeExpedition, nowTs]);
+
+  useEffect(() => {
+  if (!userPseudo) return;
+
+    socket.on("matchFound", () => {
+      router.push("/game");
+    });
+
+    socket.on("ban", (banned) => {
+      if (banned === userPseudo)
+        handleLogout();
+    });
+  }, [userPseudo])
+
+  const handleLogout = async () => {
+    const response = await fetch("/api/profile", {
+        method: "PUT",
+      })
+      const user: unknown = await response.json();
+      if (!response.ok) {
+        const errorMessage =
+        typeof user === "object" && user !== null && "error" in user
+          ? String((user as { error: string }).error ?? "Impossible de charger l'utilisateur")
+          : "Impossible de charger l'utilisateur";
+        throw new Error(errorMessage);
+      }
+    socket.emit("isdisconnecting");
+    socket.disconnect();
+    await authClient.signOut();
+    router.push("/");
+  };
+
+  const expeditionRemainingSeconds = activeExpedition
+    ? Math.max(0, Math.ceil((activeExpedition.endsAt - nowTs) / 1000))
+    : 0;
+
+  const handleMine = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const reward = Math.floor(Math.random() * 24) + 12;
+    setRuby((current) => current + reward);
+    void fetch("/api/profile/resources", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ rubisDelta: reward, goldDelta: 0 }),
+    })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const payload = (await response.json()) as { rubis?: number };
+        if (typeof payload.rubis === "number") {
+          setRuby(payload.rubis);
+        }
+      })
+      .catch(() => {
+        // Keep the optimistic UI update if persistence fails.
+      });
+    minePopupIdRef.current += 1;
+    const popupId = minePopupIdRef.current;
+    setMinePopups((current) => [
+      ...current,
+      { id: popupId, value: reward, x: event.clientX, y: event.clientY },
+    ]);
+
+    window.setTimeout(() => {
+      setMinePopups((current) => current.filter((popup) => popup.id !== popupId));
+    }, 900);
+  };
+
+  const handleStartPvp = async () => {
+    setPvpOpen(true);
+    const res = await fetch("/api/home", {
+      method: "POST",
+      body: JSON.stringify({userPseudo: userPseudo}),
+    })
+    if (!res.ok)
+      return ; //afficher un message lie a l'erreur
+  };
+
+  const handleClosePvp = async () => {
+    const res = await fetch(`/api/home?userPseudo=${userPseudo}`, {
+      method: "DELETE",
+    })
+    if (!res.ok)
+    {
+      setPvpOpen(false);
+      return ; //afficher un message lie a l'erreur
+    }
+    setPvpOpen(false);
+  };
+
+  const handleStartExpedition = () => {
+    if (!selectedExpeditionCharacterId || activeExpedition) {
+      return;
+    }
+
+    const selectedDuration = EXPEDITION_DURATIONS.find((duration) => duration.id === selectedDurationId);
+    if (!selectedDuration) {
+      return;
+    }
+
+    const startedAt = Date.now();
+    setActiveExpedition({
+      characterId: selectedExpeditionCharacterId,
+      startedAt,
+      endsAt: startedAt + selectedDuration.seconds * 1000,
+      durationSeconds: selectedDuration.seconds,
+      durationLabel: selectedDuration.label,
+      xp: selectedDuration.xp,
+      gold: selectedDuration.gold,
+    });
+    setExpeditionOpen(false);
+  };
+
+  const handleClaimExpeditionReward = async () => {
+    if (!expeditionReward) {
+      return;
+    }
+
+    const goldReward = expeditionReward.gold;
+
+    setGold((current) => current + goldReward);
+    setExpeditionReward(null);
+
+    try {
+      const response = await fetch("/api/profile/resources", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ rubisDelta: 0, goldDelta: goldReward }),
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const payload = (await response.json()) as { gold?: number };
+      if (typeof payload.gold === "number") {
+        setGold(payload.gold);
+      }
+    } catch {
+      // Keep optimistic UI update if persistence fails.
     }
   };
 
+  const handleDropToTeamSlot = (slotIndex: number, characterId: string) => {
+    if (slotIndex < 0 || slotIndex > 2) {
+      return;
+    }
+
+    setTeamSlots((current) => {
+      const next = [...current];
+      const existingIndex = next.findIndex((slotCharacterId) => slotCharacterId === characterId);
+
+      if (existingIndex !== -1) {
+        next[existingIndex] = null;
+      }
+
+      next[slotIndex] = characterId;
+      return next;
+    });
+  };
+
+  const getSlotIndexAtPoint = (clientX: number, clientY: number) => {
+    for (let index = 0; index < slotRefs.current.length; index += 1) {
+      const slot = slotRefs.current[index];
+      if (!slot) {
+        continue;
+      }
+
+      const rect = slot.getBoundingClientRect();
+      const isInside = clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+      if (isInside) {
+        return index;
+      }
+    }
+    return null;
+  };
+
+  const handleRosterPointerDown = (event: React.PointerEvent<HTMLButtonElement>, characterId: string) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    pendingDragRef.current = {
+      id: characterId,
+      startX: event.clientX,
+      startY: event.clientY,
+    };
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const pending = pendingDragRef.current;
+      const active = activeDragRef.current;
+      if (!pending && !active) {
+        return;
+      }
+
+      if (!active && pending) {
+        const distanceX = moveEvent.clientX - pending.startX;
+        const distanceY = moveEvent.clientY - pending.startY;
+        const movedEnough = Math.hypot(distanceX, distanceY) >= 6;
+        if (!movedEnough) {
+          return;
+        }
+
+        const started: TeamDragState = {
+          id: pending.id,
+          x: moveEvent.clientX,
+          y: moveEvent.clientY,
+        };
+        activeDragRef.current = started;
+        pendingDragRef.current = null;
+        suppressClickForIdRef.current = started.id;
+        setDragPreview(started);
+      }
+
+      const current = activeDragRef.current;
+      if (!current) {
+        return;
+      }
+
+      const updated: TeamDragState = {
+        ...current,
+        x: moveEvent.clientX,
+        y: moveEvent.clientY,
+      };
+      activeDragRef.current = updated;
+      setDragPreview(updated);
+      setHoveredSlotIndex(getSlotIndexAtPoint(moveEvent.clientX, moveEvent.clientY));
+    };
+
+    const handlePointerUp = (upEvent: PointerEvent) => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+
+      const current = activeDragRef.current;
+      if (current) {
+        const slotIndex = getSlotIndexAtPoint(upEvent.clientX, upEvent.clientY);
+        if (slotIndex !== null) {
+          handleDropToTeamSlot(slotIndex, current.id);
+        }
+      }
+
+      pendingDragRef.current = null;
+      activeDragRef.current = null;
+      setDragPreview(null);
+      setHoveredSlotIndex(null);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp, { once: true });
+  };
+
+  const expeditionLabel = activeExpedition
+    ? `In progress • ${formatTimer(expeditionRemainingSeconds)}`
+    : expeditionReward
+      ? "Reward ready"
+      : "Ready";
+
+  const activeExpeditionCharacter = activeExpedition
+    ? roster.find((character) => character.id === activeExpedition.characterId) ?? null
+    : null;
+  const expeditionProgress = activeExpedition
+    ? Math.max(0, Math.min(1, (nowTs - activeExpedition.startedAt) / (activeExpedition.durationSeconds * 1000)))
+    : 0;
+  const expeditionProgressPercent = expeditionProgress * 100;
+
   return (
-    <AppPageShell showSidebar containerClassName="min-h-0 flex-1 flex-col">
+    <div className="flex h-screen w-full overflow-hidden bg-[#0c0a0f] font-serif text-white">
+
+      <SidebarShell />
       {showNotification && notification && notifSender && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
 
-      <div className="relative z-10 flex min-h-0 flex-1 w-full items-center justify-center">
-        <div className="grid w-full max-w-[88rem] grid-cols-1 items-center gap-8 px-2 lg:grid-cols-[1fr_auto_1fr]">
-          <div className="hidden lg:block" />
+      <main className="relative flex-1 overflow-hidden p-3 pl-0">
+        <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[#0c0a0f] via-[#12101a] to-[#0a0810]" />
+        <div
+          className="absolute inset-0 rounded-3xl opacity-[0.02]"
+          style={{
+            backgroundImage:
+              "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c9a227' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+          }}
+        />
 
-          {/* Lancement de partie + Selecteur de deck */}
-          <div className="relative z-20 flex flex-col items-center justify-center gap-6">
-            <PlayCta onPlay={() => setShowMatchmaking(true)}/>
-          </div>
 
-          {/* Profile info section */}
-          <div className="relative z-20 flex flex-col items-center justify-center gap-4">
-            <Image
-              src={avatar}
-              alt="Avatar"
-              width={320}
-              height={320}
-              className="h-auto w-[220px] rounded-3xl border-2 border-[color:var(--accent-border)] object-cover drop-shadow-2xl sm:w-[240px]"
-              priority
-              unoptimized
+        <div className="relative z-10 flex h-full min-h-0 flex-col gap-5 rounded-3xl border border-[#c9a227]/20 bg-black/10 p-5">
+          <MineSection pseudo={userPseudo ?? "Hero"} rubyCount={ruby} goldCount={gold} />
+
+          {/* Main Content Grid */}
+          <div className="flex min-h-0 flex-1 flex-col gap-5">
+            {/* Features Row */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 lg:gap-4">
+              <button
+                type="button"
+                onClick={handleMine}
+                className="mine-clicker group relative flex min-h-[160px] w-full flex-col justify-between overflow-hidden rounded-xl border border-[#c9a227]/40 bg-gradient-to-br from-[#1a1422] to-[#0f0c14] p-4 text-left shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-300 hover:border-[#e6c55a]/70 hover:shadow-[0_12px_40px_rgba(201,162,39,0.15)] lg:min-h-[140px]"
+              >
+                <div className="pointer-events-none absolute -inset-1 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#c7662d]/15 via-transparent to-[#2a2234]/15 rounded-xl" />
+                </div>
+
+                <div className="relative z-10 flex items-start justify-between">
+                  <div className="flex flex-col gap-1">
+                    <span
+                      className="text-2xl font-black uppercase tracking-[0.14em] text-[#f5e6c8]"
+                      style={{ fontFamily: "var(--font-display), serif" }}
+                    >
+                      Mine
+                    </span>
+                    <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#c9b48a]">Get Crystals</span>
+                  </div>
+                  <i className="fa-solid fa-pickaxe text-lg text-[#e6c55a] drop-shadow-lg" aria-hidden="true" />
+                </div>
+
+                <div className="relative z-10 flex items-center gap-2.5">
+                  <div className="h-px flex-1 bg-gradient-to-r from-[#e6c55a]/60 to-transparent" />
+                  <span className="text-xs font-bold uppercase tracking-widest text-[#f0dfb1]">Click to Earn</span>
+                </div>
+              </button>
+
+              <FeatureActionTile
+                title="PvP"
+                icon="fa-swords"
+                accentClassName="bg-gradient-to-br from-[#4d2f57]/20 via-[#b15b45]/15 to-transparent"
+                value="Queue"
+                onClick={handleStartPvp}
+              />
+
+              <FeatureActionTile
+                title="Arena"
+                icon="fa-flame"
+                accentClassName="bg-gradient-to-br from-[#5c2f2f]/20 via-[#c75d4d]/15 to-transparent"
+                value="Coming Soon"
+                onClick={() => {}}
+              />
+
+              <ExpeditionTracker
+                activeExpedition={activeExpedition}
+                expeditionReward={expeditionReward}
+                nowTs={nowTs}
+                activeExpeditionCharacter={activeExpeditionCharacter}
+                expeditionProgressPercent={expeditionProgressPercent}
+                expeditionRemainingSeconds={expeditionRemainingSeconds}
+                expeditionLabel={expeditionLabel}
+                onClaimReward={handleClaimExpeditionReward}
+                onOpenExpedition={() => setExpeditionOpen(true)}
+              />
+            </div>
+
+            <TeamBuilder
+              roster={roster}
+              teamSlots={teamSlots}
+              dragPreview={dragPreview}
+              hoveredSlotIndex={hoveredSlotIndex}
+              slotRefs={slotRefs}
+              suppressClickForIdRef={suppressClickForIdRef}
+              onTeamSlotChange={handleDropToTeamSlot}
+              onRosterPointerDown={handleRosterPointerDown}
+              onSlotClear={(slotIndex) => {
+                setTeamSlots((current) => {
+                  const next = [...current];
+                  next[slotIndex] = null;
+                  return next;
+                });
+              }}
             />
-            <Button
-              type="button"
-              onClick={handleProfileClick}
-              className="h-auto rounded-lg border-2 px-8 py-3 text-lg font-bold shadow-lg transition-transform hover:scale-105"
-            >
-              {userPseudo || "undefined"}
-            </Button>
           </div>
         </div>
-      </div>
 
-      <MatchmakingModal open={showMatchmaking} onClose={() => setShowMatchmaking(false)} />
-    </AppPageShell>
+      </main>
+
+      {minePopups.map((popup) => (
+        <span
+          key={popup.id}
+          className="mine-reward-pop pointer-events-none fixed z-[70] text-3xl font-black text-[#ffcf63] [text-shadow:0_2px_10px_rgba(0,0,0,0.75)]"
+          style={{
+            fontFamily: "var(--font-display), serif",
+            left: `${popup.x}px`,
+            top: `${popup.y - 10}px`,
+          }}
+        >
+          +{popup.value}
+        </span>
+      ))}
+
+      {dragPreview && (() => {
+        const draggedCharacter = roster.find((character) => character.id === dragPreview.id);
+        if (!draggedCharacter) {
+          return null;
+        }
+
+        return (
+          <div
+            className="pointer-events-none fixed z-[80] w-[96px] overflow-hidden rounded-lg border border-[#c9a227] bg-[#171220] shadow-[0_10px_28px_rgba(0,0,0,0.55)]"
+            style={{
+              left: `${dragPreview.x - 48}px`,
+              top: `${dragPreview.y - 80}px`,
+            }}
+          >
+            <div className="relative aspect-[3/4] w-full">
+              <Image src={draggedCharacter.portrait} alt={draggedCharacter.name} fill className="object-cover" draggable={false} />
+            </div>
+            <div className="truncate bg-[#1a1422] px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-[#ead9aa]">
+              {draggedCharacter.name}
+            </div>
+          </div>
+        );
+      })()}
+
+      <PvpMatchmakingModal
+        open={pvpOpen}
+        onClose={handleClosePvp}
+      />
+
+      <ExpeditionModal
+        open={expeditionOpen}
+        characters={roster}
+        durations={[...EXPEDITION_DURATIONS]}
+        selectedCharacterId={selectedExpeditionCharacterId}
+        selectedDurationId={selectedDurationId}
+        expeditionActive={Boolean(activeExpedition)}
+        onClose={() => setExpeditionOpen(false)}
+        onSelectCharacter={setSelectedExpeditionCharacterId}
+        onSelectDuration={setSelectedDurationId}
+        onStart={handleStartExpedition}
+      />
+    </div>
   );
 }
 

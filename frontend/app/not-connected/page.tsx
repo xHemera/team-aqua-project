@@ -37,16 +37,6 @@ export default function NotConnectedPage() {
 
           <Button
             type="button"
-            onClick={() => router.push("/register")}
-            variant="secondary"
-            className="h-auto w-full py-3 font-semibold text-gray-100"
-          >
-            <i className="fa-solid fa-user-plus mr-2"></i>
-            Create account
-          </Button>
-
-          <Button
-            type="button"
             onClick={() => router.push("/home")}
             variant="ghost"
             className="h-auto w-full py-3 font-semibold text-gray-100"
