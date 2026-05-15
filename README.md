@@ -35,11 +35,27 @@ A full-stack project with a Next.js frontend, PostgreSQL database, and container
 
 Explore detailed project documentation:
 
-- [Frontend Overview](docs/frontend-overview.md) - Frontend architecture and structure
-- [Components Guide](docs/components-guide.md) - Reusable components and atomic design patterns
-- [Hooks Guide](docs/hooks-guide.md) - Shared React hooks and state management
-- [Authentication Guide](docs/authentication-guide.md) - Authentication flow and Better Auth setup
-- [Styling Guide](docs/styling-guide.md) - CSS and styling approach with Tailwind CSS
+### Architecture & Setup
+- [Frontend Overview](docs/frontend-overview.md) - Frontend architecture and folder structure
+- [Project Structure](docs/project-structure.md) - Complete directory reference and file purposes
+- [Development Workflow](docs/development-workflow.md) - Setup, common tasks, debugging, and optimization
+
+### Frontend Development
+- [Components Guide](docs/components-guide.md) - Reusable components, atomic design, component library
+- [Hooks Guide](docs/hooks-guide.md) - React hooks, custom hooks, and common patterns
+- [Authentication Guide](docs/authentication-guide.md) - Better Auth setup, sign-in/up/out, protected routes
+- [Styling Guide](docs/styling-guide.md) - Tailwind CSS, theming, responsive design, medieval fantasy theme
+
+### Backend & Services
+- [API Reference](docs/api-reference.md) - All API endpoints, request/response formats, rate limiting
+- [Database Guide](docs/database-guide.md) - Prisma models, schema, migrations, common queries
+- [WebSocket Guide](docs/websocket-guide.md) - Socket.IO setup, real-time events, matchmaking
+
+### Game & Features
+- [Game Features](docs/game-features.md) - Game mechanics, character system, combat, PvP, expeditions, progression
+
+### Deployment & Operations
+- [Deployment Guide](docs/deployment.md) - Production deployment, environment configuration, monitoring
 
 ## Tech Stack
 
@@ -70,21 +86,38 @@ docker compose up --build -d
 
 Go to: **http://localhost:3000**
 
+> **Socket.IO Service**: Runs on `http://localhost:4001` for real-time communication (games, messaging, matchmaking)
+
 ## Repository Structure
 
 ```text
 kyogre/
-├── frontend/          # Next.js app (main frontend)
-│   ├── app/           # Routes (App Router)
-│   ├── components/    # Components (atomic design)
-│   ├── hooks/         # Shared React hooks
-│   ├── lib/           # Utilities
-│   ├── prisma/        # Schema + migrations
-│   └── public/        # Assets
-├── websockets/        # WebSocket Service (Bun + TS)
-├── docs/              # Documentation
-├── docker-compose.yml # Docker services
-└── dev.sh             # Helper script
+├── frontend/                 # Next.js app (main frontend)
+│   ├── app/                  # Routes (App Router)
+│   │   ├── (auth)/          # Public routes: login, register
+│   │   ├── (main)/          # Protected routes: home, game, characters, etc.
+│   │   ├── api/             # Backend endpoints
+│   │   └── admin/           # Admin dashboard
+│   ├── components/           # Components (atomic design)
+│   │   ├── atoms/           # Basic elements
+│   │   ├── molecules/       # Atom combinations
+│   │   └── organisms/       # Complex sections
+│   ├── lib/                  # Utilities & configs
+│   │   ├── auth.ts          # Better Auth server setup
+│   │   ├── auth-client.ts   # Better Auth client setup
+│   │   ├── prisma.ts        # Database client
+│   │   └── *.ts             # Other utilities
+│   ├── prisma/              # Database schema + migrations
+│   ├── socket.js            # Socket.IO client configuration
+│   └── public/              # Static assets
+├── websockets/              # WebSocket Service (Bun + Socket.IO)
+│   ├── server.js            # Main server
+│   ├── matchmaking.js       # PvP matchmaking logic
+│   └── package.json         # Dependencies
+├── docs/                    # Documentation
+├── docker-compose.yml       # Docker services (Next.js, PostgreSQL, Redis)
+├── dev.sh                   # Development helper script
+└── AGENTS.md                # AI agent instructions
 ```
 
 ## License

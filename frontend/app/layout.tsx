@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Cinzel, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
-import BackgroundPreferenceSync from "./background-preference-sync";
 import AccentPreferenceSync from "./accent-preference-sync";
+import GlobalErrorNotifications from "@/components/GlobalErrorNotifications";
 
 const cinzel = Cinzel({
   variable: "--font-display",
@@ -46,8 +46,8 @@ export default function RootLayout({
           fontFamily: "var(--font-body), Georgia, serif",
         }}
       >
-        <BackgroundPreferenceSync />
         <AccentPreferenceSync />
+        <GlobalErrorNotifications />
         {children}
       </body>
     </html>

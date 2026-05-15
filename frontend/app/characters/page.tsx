@@ -1,17 +1,178 @@
 "use client";
 
-import { useState } from "react";
-import { CHARACTERS, PLAYER_RESOURCES, MAX_CHARACTER_LEVEL, MAX_SKILL_LEVEL } from "./characters-data";
+import { useState, useEffect } from "react";
+import { MAX_SKILL_LEVEL, PLAYER_RESOURCES } from "./character-roster";
 import CharacterViewer from "@/components/organisms/characters/CharacterViewer";
 import Sidebar from "@/components/Sidebar";
+import NotificationToast from "@/components/organisms/home/NotificationToast";
+import type { CharacterData, PlayerResources } from "@/components/organisms/characters/types";
+import { socket } from "../../socket"
+import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
 
 export default function CharactersPage() {
-  const [selectedCharacterId, setSelectedCharacterId] = useState<string>(CHARACTERS[0]?.id ?? "");
+  const [characters, setCharacters] = useState<CharacterData[]>([]);
+  const [resources, setResources] = useState<PlayerResources>(PLAYER_RESOURCES);
+  const [maxSkillLevel, setMaxSkillLevel] = useState<number>(MAX_SKILL_LEVEL);
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string>("");
+  const selectedCharacter = characters.find((c) => c.id === selectedCharacterId) ?? characters[0] ?? null;
+  const router = useRouter();
+  const [showNotification, setShowNotification] = useState(true);
+  const [notification, setNotification] = useState<string | null>(null);
+  const [notifSender, setNotifSender] = useState<string | null>(null);
+  const [userPseudo, setUserPseudo] = useState<string | null>(null);
 
-  const selectedCharacter = CHARACTERS.find((c) => c.id === selectedCharacterId) ?? CHARACTERS[0];
+  useEffect(() => {
+    const loadCharacters = async () => {
+      try {
+        const response = await fetch("/api/characters", { cache: "no-store" });
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = (await response.json()) as {
+          characters?: CharacterData[];
+          resources?: PlayerResources;
+          maxSkillLevel?: number;
+        };
+
+        if (Array.isArray(payload.characters)) {
+          setCharacters(payload.characters);
+          setSelectedCharacterId((current) => {
+            if (current && payload.characters?.some((character) => character.id === current)) {
+              return current;
+            }
+            return payload.characters?.[0]?.id ?? "";
+          });
+        }
+
+        if (payload.resources) {
+          setResources(payload.resources);
+        }
+
+        if (typeof payload.maxSkillLevel === "number") {
+          setMaxSkillLevel(payload.maxSkillLevel);
+        }
+      } catch {
+        // Keep local fallback values when API is unavailable.
+      }
+    };
+
+    void loadCharacters();
+  }, []);
+
+  useEffect(() => {
+    const getUserData = async () => {
+      const { data } = await authClient.getSession();
+      if (data && data.user.name)
+        setUserPseudo(data.user.name);
+    };
+
+    const timeoutId = window.setTimeout(() => {
+      void getUserData();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!userPseudo || socket.connected) return;
+
+    const timeoutId = window.setTimeout(() => {
+      socket.connect();
+      socket.emit("login", userPseudo);
+
+      socket.on("online_users", (users) => {
+        console.log("Users from Redis:", users);
+      });
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      socket.off("online_users");
+    };
+  }, [userPseudo]);
+
+  useEffect(() => {
+    if (!userPseudo) return;
+    socket.on("received", async ({sender, msg}) => {
+      setNotification(msg);
+      setNotifSender(sender);
+      setShowNotification(true);
+    })
+  }, [userPseudo])
+
+  useEffect(() => {
+    if (!userPseudo) return;
+    socket.on("ban", (banned) => {
+      if (banned === userPseudo)
+        handleLogout();
+    });
+  }, [userPseudo])
+
+  const handleLogout = async () => {
+    const response = await fetch("/api/profile", {
+        method: "PUT",
+      })
+      const user: unknown = await response.json();
+      if (!response.ok) {
+        const errorMessage =
+        typeof user === "object" && user !== null && "error" in user
+          ? String((user as { error: string }).error ?? "Impossible de charger l'utilisateur")
+          : "Impossible de charger l'utilisateur";
+        throw new Error(errorMessage);
+      }
+    socket.emit("isdisconnecting");
+    socket.disconnect();
+    await authClient.signOut();
+    router.push("/");
+  };
+
+  const handleUpgradeSkill = async (skillId: string): Promise<boolean> => {
+    const response = await fetch("/api/characters", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ spellId: skillId }),
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const payload = (await response.json()) as {
+      spellId?: string;
+      level?: number;
+      resources?: PlayerResources;
+    };
+
+    if (payload.resources) {
+      setResources(payload.resources);
+    }
+
+    if (!payload.spellId || typeof payload.level !== "number") {
+      return false;
+    }
+
+    // setCharacters((currentCharacters) =>
+    //   currentCharacters.map((character) => ({
+    //     ...character,
+    //     skills: character.skills.map((skill) =>
+    //       skill.id === payload.spellId
+    //         ? { ...skill, level: payload.level }
+    //         : skill,
+    //     ),
+    //   })),
+    // );
+    return true;
+  }
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#0c0a0f] font-serif">
+      {showNotification && notification && notifSender && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
       {/* Sidebar */}
       <div className="shrink-0 p-3">
         <Sidebar />
@@ -21,12 +182,12 @@ export default function CharactersPage() {
       <main className="flex-1 overflow-hidden p-3 pl-0">
         {selectedCharacter && (
           <CharacterViewer
-            characters={CHARACTERS}
+            characters={characters}
             selectedCharacter={selectedCharacter}
             onSelectCharacter={setSelectedCharacterId}
-            resources={PLAYER_RESOURCES}
-            maxCharacterLevel={MAX_CHARACTER_LEVEL}
-            maxSkillLevel={MAX_SKILL_LEVEL}
+            resources={resources}
+            maxSkillLevel={maxSkillLevel}
+            onUpgradeSkill={handleUpgradeSkill}
           />
         )}
       </main>

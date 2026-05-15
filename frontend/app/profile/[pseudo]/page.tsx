@@ -26,7 +26,13 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     where: {
       name: decodedPseudo,
     },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      badges: true,
+      avatarId: true,
+      image: true,
+      profileBackground: true,
       matchHistory: true,
       avatar: true,
     }
@@ -36,9 +42,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     notFound();
   }
 
-  const avatar = resolveProfileIcon({
+  const avatar = profileUser.image || resolveProfileIcon({
     id: profileUser.avatarId,
-    url: profileUser.image,
+    url: profileUser.avatar?.url
   }).url;
 
   return (
@@ -46,6 +52,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       profileName={profileUser.name}
       profileBadges={profileUser.badges ?? []}
       initialAvatar={avatar}
+      initialBackground={profileUser.profileBackground ?? undefined}
       isOwnProfile={profileUser.id === session.user.id}
       matchHistory={profileUser.matchHistory}
     />

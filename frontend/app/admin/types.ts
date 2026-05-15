@@ -1,27 +1,35 @@
-export type AdminUser = {
-  id: string;
-  pseudo: string;
-  avatar: string | null;
+export type User = {
+  id:     string;
+  name:   string;
   badges: string[];
+  banned: boolean;
+  avatar?: string | null
 };
 
-export type ReportedConversationMessage = {
+export type Attachment = {
   id: string;
-  sender: string;
-  content: string;
-  time: string;
-  mine?: boolean;
+  name: string;
+  sizeLabel: string;
+  type: string;
+  previewUrl: string;
 };
 
-export type ReportedConversation = {
+export type Message = {
   id: string;
-  reporter: string;
-  targetUser: string;
-  reason: string;
-  status: "pending" | "reviewed";
-  createdAtLabel: string;
-  preview: string;
-  messages: ReportedConversationMessage[];
+  user_id: string;
+  message: string | null;
+  createdAt: Date;
+  attachments: Attachment[];
+};
+
+export type ReportedConv = {
+  id:           string;
+  reportedUser: string;
+  reporter:     string;
+  reason:       string;
+  createdAt:    Date;
+  inbox:        Inbox;
+  inboxId:      string;
 };
 
 export type SocialUser = {
@@ -40,7 +48,8 @@ export type InboxUser = {
 
 export type Inbox = {
   id: string;
-  inboxUser: InboxUser[];
+  messages: Message[];
+  last_message:  string | null;
 };
 
 export type SocialMessage = {

@@ -23,6 +23,9 @@ Kyogre uses **Tailwind CSS v4** for utility-first styling with responsive design
 - Built-in responsive design system
 - Tree-shaken unused styles in production
 
+## Philosophy
+We try to aim to look like a modern JRPG game with a dark medivial fantasy accent, we take inspiration from games like Final Fantasy, Dragon Quest, Persona and diverse Mobile MMORPGs. We want to create something that looks modern and clean but also has a bit of personality and charm, with a color palette that evokes a sense of adventure and mystery. We want to use typography, colors, and visual elements that fit the theme and create an immersive experience for players.
+
 ## Setup
 
 ### Configuration

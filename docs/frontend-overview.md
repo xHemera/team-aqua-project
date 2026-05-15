@@ -29,15 +29,79 @@ The frontend is a Next.js 16 application using the App Router with **atomic desi
 
 ```
 frontend/
-├── app/                # Routes (App Router)
-│   ├── (auth)/        # Public routes: login, register
-│   ├── (main)/        # Protected routes: home, game, profile
-│   └── api/           # Backend endpoints
-├── components/        # Reusable UI (atoms, molecules, organisms)
-├── hooks/             # Custom React hooks
-├── lib/               # Utilities, auth, storage
-└── prisma/            # Database schema & migrations
+├── app/                     # Routes (App Router)
+│   ├── page.tsx            # Auth page (login/register - entry point)
+│   ├── layout.tsx          # Root layout with fonts and global setup
+│   ├── globals.css         # Global styles & CSS variables
+│   ├── accent-preference-sync.tsx  # Theme accent sync component
+│   ├── api/                # API endpoints
+│   │   ├── auth/           # Better Auth routes
+│   │   ├── characters/     # Character roster API
+│   │   ├── users/          # Users listing
+│   │   ├── social/         # Messaging, friends, etc.
+│   │   ├── profile/        # User profiles
+│   │   ├── admin/          # Admin endpoints
+│   │   ├── avatars/        # Avatar management
+│   │   ├── upload/         # File uploads
+│   │   ├── home/           # Home page data
+│   │   └── ...             # Other endpoints
+│   ├── home/               # Home page - main dashboard
+│   ├── game/               # Game page
+│   ├── characters/         # Character roster & upgrades
+│   ├── social/             # Messaging & friend management
+│   ├── profile/[pseudo]/   # User profile pages
+│   ├── admin/              # Admin dashboard
+│   └── not-connected/      # Fallback page
+├── components/             # Reusable UI (atomic design)
+│   ├── atoms/              # Basic elements
+│   ├── molecules/          # Atom combinations
+│   └── organisms/          # Complex sections
+├── lib/                    # Utilities & configurations
+│   ├── auth.ts             # Better Auth server setup
+│   ├── auth-client.ts      # Better Auth client setup
+│   ├── prisma.ts           # Prisma ORM client
+│   ├── avatar-preference.ts # Avatar accent management
+│   ├── profile-icons.ts    # Profile icon utilities
+│   ├── hero-portraits.ts   # Character portrait data
+│   ├── date-utils.ts       # Date formatting utilities
+│   ├── rateLimit.js        # Rate limiting middleware
+│   └── redis.js            # Redis client configuration
+├── prisma/                 # Database layer
+│   ├── schema.prisma       # Data models
+│   ├── migrations/         # Database migrations
+│   └── prisma.config.ts    # Prisma configuration
+├── socket.js               # Socket.IO client setup
+├── next.config.ts          # Next.js configuration
+├── tsconfig.json           # TypeScript configuration
+├── postcss.config.mjs      # PostCSS configuration (Tailwind)
+├── eslint.config.mjs       # ESLint configuration
+├── package.json            # Dependencies
+└── public/                 # Static assets
+    ├── gameResources/      # Game images (heroes, items, spells)
+    └── profile-icons/      # User profile icons
 ```
+
+## Key Folders Explained
+
+### `/app` - Pages & Routes
+- **Entry Point**: `page.tsx` handles authentication (login/register)
+- **Protected Routes**: `home/`, `game/`, `characters/`, `social/`, `profile/`, `admin/`
+- **API Endpoints**: `/api/*` handles all backend communication
+- **Server Components**: Use by default; only add `'use client'` for interactive features
+
+### `/components` - Atomic Design Structure
+- **atoms/**: Basic UI building blocks (Button, Input, Card, etc.)
+- **molecules/**: Simple combinations of atoms (IconField, etc.)
+- **organisms/**: Complex, feature-rich components (sections)
+
+### `/lib` - Utilities & Configuration
+- **auth.ts / auth-client.ts**: Better Auth setup (server + client)
+- **prisma.ts**: Database ORM instance
+- **Other utilities**: Date formatting, storage, icons, etc.
+
+### `/prisma` - Database
+- **schema.prisma**: Defines all data models (User, Character, Messages, etc.)
+- **migrations/**: Version-controlled database schema changes
 
 ## Quick Start
 
