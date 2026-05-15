@@ -21,6 +21,4 @@ frontend/.next/
 .vscode/
 
 
-#useless
-frontend/public/images/*
-frontend/public/profiles/*
+package-lock.json
