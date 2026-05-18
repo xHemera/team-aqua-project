@@ -1,5 +1,5 @@
-import { CharacterData } from "../../frontend/components/organisms/characters/types";
 import { Spell } from "../Spells/Spell";
+import { HeroData } from "./HeroData";
 
 export interface ModEntry {
     value:	number;
@@ -10,7 +10,7 @@ export type PoisonEntry = ModEntry;
 
 export class CharacterInstance {
     uid:				string;
-    character:			CharacterData;
+    character:			HeroData;
     owner:				number;
 	currentHp:			number;
 	currentMp:			number;
@@ -26,7 +26,7 @@ export class CharacterInstance {
 	nextAttackBonus:	number = 0;
 	spells:				Map<string, Spell> = new Map();
 
-    constructor(uid: string, character: CharacterData, owner: number) {
+    constructor(uid: string, character: HeroData, owner: number) {
         this.uid       = uid;
         this.character = character;
         this.owner     = owner;
