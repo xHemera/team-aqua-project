@@ -105,7 +105,7 @@ export function processAction(state: GameState, action: GameAction): GameState {
 	tickAllMods(user);
 
 	let newState = tickPoison(state);
-		newState = removeDeadCharacters(state);
+		newState = removeDeadCharacters(newState);
 		newState = checkWinner(newState);
 	
 	if (newState.gamePhase === "end") return newState;

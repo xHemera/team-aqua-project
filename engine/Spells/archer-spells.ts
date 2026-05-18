@@ -13,7 +13,7 @@ export class PiercingShot extends Spell {
     }
 
     applyEffect(idUser: CharacterInstance, idTargets: CharacterInstance[]): void {
-        const skillLevel  = idUser.character.skills.find(s => s.id === "s1")?.level ?? 1;
+        const skillLevel  = idUser.character.skills.find(s => s.id === this.id)?.level ?? 1;
         const [multiplier, flat, armorPen] = this.scaling[skillLevel -1];
 
         const raw        = idUser.character.stats.physicalDamage * multiplier + flat;
@@ -35,7 +35,7 @@ export class RainOfArrows extends Spell {
 	}
 
 	applyEffect(idUser: CharacterInstance, idTargets: CharacterInstance[]): void {
-		const skillLevel = idUser.character.skills.find(s => s.id == "s2")?.level ?? 1;
+		const skillLevel = idUser.character.skills.find(s => s.id == this.id)?.level ?? 1;
 		const [multiplier, flat] = this.scaling[skillLevel - 1];
 
 		const raw = idUser.character.stats.physicalDamage * multiplier + flat;
@@ -57,10 +57,10 @@ export class PrecisionFocus extends Spell {
 	}
 
 	applyEffect(idUser: CharacterInstance): void {
-		const skillLevel = idUser.character.skills.find(s => s.id === "s3")?.level ?? 1;
+		const skillLevel = idUser.character.skills.find(s => s.id === this.id)?.level ?? 1;
 		const [critChance, critDamage, duration] = this.scaling[skillLevel -1];
 
 		idUser.critChanceMod.push({ value: critChance, turn: duration });
-		idUser.critDamageMod.push({ value: critChance, turn: duration });
+		idUser.critDamageMod.push({ value: critDamage, turn: duration });
 	}
 }

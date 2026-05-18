@@ -2,7 +2,8 @@ import { CharacterInstance, ModEntry } from "../Instances/CharacterInstance";
 import { applyCrit, rollCrit } from "./crit";
 
 function applyAndTick(mods: ModEntry[], raw: number): { result: number; mods: ModEntry[] } {
-    const result = mods.reduce((acc, { value }) => acc * value, raw);
+	const totalMod = mods.reduce((acc, { value }) => acc + value, 0);
+	const result   = raw * (1 + totalMod / 100); // selon ta convention
     return {
         result,
         mods: mods

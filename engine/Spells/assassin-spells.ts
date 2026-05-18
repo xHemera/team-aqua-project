@@ -12,7 +12,7 @@ export class ShadowStrike extends Spell {
     }
 
     applyEffect(idUser: CharacterInstance, idTargets: CharacterInstance[]): void {
-        const skillLevel = idUser.character.skills.find(s => s.id === "s1")?.level ?? 1;
+        const skillLevel = idUser.character.skills.find(s => s.id === this.id)?.level ?? 1;
         const [multiplier, flat, executeBonus, hpThreshold] = this.scaling[skillLevel - 1];
 
         const raw   = idUser.character.stats.physicalDamage * multiplier + flat;
@@ -35,7 +35,7 @@ export class VenomBlade extends Spell {
     }
 
     applyEffect(idUser: CharacterInstance, idTargets: CharacterInstance[]): void {
-        const skillLevel = idUser.character.skills.find(s => s.id === "s2")?.level ?? 1;
+        const skillLevel = idUser.character.skills.find(s => s.id === this.id)?.level ?? 1;
         const [multiplier, flat, poisonDamage, duration] = this.scaling[skillLevel - 1];
 
         const raw    = idUser.character.stats.physicalDamage * multiplier + flat;
@@ -56,7 +56,7 @@ export class PhantomStep extends Spell {
     }
 
 	applyEffect(idUser: CharacterInstance, idTargets: CharacterInstance[]): void {
-        const skillLevel = idUser.character.skills.find(s => s.id === "s3")?.level ?? 1;
+        const skillLevel = idUser.character.skills.find(s => s.id === this.id)?.level ?? 1;
 		const [duration, nextAttackBonus] = this.scaling[skillLevel -1];
 
         idUser.invisible       = 1 + Math.floor(skillLevel / 3);
