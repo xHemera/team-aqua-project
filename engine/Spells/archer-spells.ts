@@ -13,13 +13,15 @@ export class PiercingShot extends Spell {
     }
 
     applyEffect(idUser: CharacterInstance, idTargets: CharacterInstance[]): void {
-        const stats			= idUser.character.stats;
-        const skillLevel	= idUser.character.skills.find(s => s.id === "s1")?.level ?? 1;
-        const raw 			= stats.physicalDamage * 1.2 + skillLevel * 15;
-        const reducedRes	= idTargets[0].phyRes * (0.85);
-		const damage 		= resolvePhyDamage(raw, idUser, idTargets[0], reducedRes);
+        const skillData  = idUser.character.skills.find(s => s.id === "s1")!;
+        const scaling    = skillData.scaling[skillData.level - 1] as [number, number, number];
+        const [multiplier, flat, armorPen] = scaling;
 
-		idTargets[0].currentHp = Math.max(0, idTargets[0].currentHp - damage);
+        const raw        = idUser.character.stats.physicalDamage * multiplier + flat;
+        const reducedRes = idTargets[0].phyRes * (1 - armorPen / 100);
+        const damage     = resolvePhyDamage(raw, idUser, idTargets[0], reducedRes);
+
+        idTargets[0].currentHp = Math.max(0, idTargets[0].currentHp - damage);
     }
 }
 
