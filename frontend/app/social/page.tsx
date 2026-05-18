@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { socket } from "../../socket"
 import { authClient } from "@/lib/auth-client";
@@ -23,6 +23,7 @@ const toSizeLabel = (bytes: number) => {
 export default function SocialPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [selectedUser, setSelectedUser] = useState("");
   const [message, setMessage] = useState("");
@@ -51,9 +52,6 @@ export default function SocialPage() {
   const [customUserAvatar, setCustomUserAvatar] = useState<string | null>(null);
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [click, setClick] = useState(true);
-  const [messageOffset, setMessageOffset] = useState(0);
-  const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
-  const [hasMoreMessages, setHasMoreMessages] = useState(true);
 
 
   const MAX_MESSAGE_LENGTH = 500;
@@ -89,7 +87,7 @@ export default function SocialPage() {
     }
   };
 
-  const toggleMessageExpanded = (messageId: string) => {
+  const toggleMessageExpanded = useCallback((messageId: string) => {
     setExpandedMessages((prev) => {
       const next = new Set(prev);
       if (next.has(messageId)) {
@@ -99,7 +97,7 @@ export default function SocialPage() {
       }
       return next;
     });
-  };
+  }, []);
 
   //fetch the current user pseudo
   useEffect(() => {
@@ -189,16 +187,16 @@ export default function SocialPage() {
 
     //connect the socket
     if (socket.connected) return;
-      socket.connect();
-      socket.emit("login", userPseudo);
+    socket.connect();
+		socket.emit("login", userPseudo);
 
-      socket.on("online_users", (users) => {
-        console.log("Users from Redis:", users);
-      });
+		socket.on("online_users", (users) => {
+			console.log("Users from Redis:", users);
+		});
 
-      return () => {
-        socket.off("online_users");
-      };
+		return () => {
+			socket.off("online_users");
+		};
   }, [userPseudo]);
 
   //render messages sent by other users
@@ -353,8 +351,6 @@ export default function SocialPage() {
       const params = new URLSearchParams({
         user: currentUser.name,
         otherUser: selectedUser,
-        skip: "0",
-        take: "20",
       });
       const [mres, ures] = await Promise.all([
         fetch(`/api/social/msg?${params.toString()}`, {
@@ -372,8 +368,6 @@ export default function SocialPage() {
       const newMessages: type.Messages[] = data.msgs;
 			if (!newMessages) return;
     	setCurrentMessages(newMessages);
-      setMessageOffset(0);
-      setHasMoreMessages(newMessages.length === 20);
       if (!ures.ok)
         return;
       fetchUnread();
@@ -395,26 +389,51 @@ export default function SocialPage() {
         oUser: selectedUser,
       });
 
-    async function isWaiting()
+    async function checkBlockingStatus()
     {
       if (!currentUser || !selectedUser) return;
-      const params = new URLSearchParams({
-        currentUser: currentUser.name,
-        otherUser: selectedUser,
-      });
-      const res = await fetch(`/api/social/otherFriend?${params.toString()}`, {
+      
+      // Check if I blocked them
+      let iAmBlockingThem = false;
+      const res1 = await fetch(`api/social/user?username=${selectedUser}`, {
         method: "GET",
       });
-      if (!res.ok)
-        return ;
-      const data = await res.json();
-      const friend: type.Friend = data.friend;
-      if (!friend) {
-        setRequest(false);
-        setFriendRequestSender(null);
+      if (res1.ok) {
+        const data1 = await res1.json();
+        const blockedUser: type.User = data1.user;
+        if (blockedUser) {
+          for (const id of currentUser.blockedUsers) {
+            if (id == blockedUser.id) {
+              iAmBlockingThem = true;
+              break;
+            }
+          }
+        }
       }
+      
+      // Check if they blocked me
+      let theyBlockedMe = false;
+      const res2 = await fetch(`api/social/user?username=${selectedUser}`, {
+        method: "GET",
+      });
+      if (res2.ok) {
+        const data2 = await res2.json();
+        const blockingUser: type.User = data2.user;
+        if (blockingUser) {
+          for (const id of blockingUser.blockedUsers) {
+            if (id == currentUser.id) {
+              theyBlockedMe = true;
+              break;
+            }
+          }
+        }
+      }
+      
+      // Update both states at once
+      setHasBlocked(iAmBlockingThem);
+      setIsBlocked(theyBlockedMe);
     }
-    isWaiting();
+    checkBlockingStatus();
 
     async function isRequesting()
     {
@@ -423,7 +442,7 @@ export default function SocialPage() {
         currentUser: currentUser.name,
         otherUser: selectedUser,
       });
-      const res = await fetch(`/api/social/otherFriend?${params.toString()}`, {
+      const res = await fetch(`/api/social/friend?${params.toString()}`, {
         method: "GET",
       });
       if (!res.ok)
@@ -435,6 +454,7 @@ export default function SocialPage() {
         setFriendRequestSender(null);
         return;
       }
+      // friend.request_sent = true means OTHER USER sent us a request
       if (friend.request_sent == true)
       {
         setRequest(true);
@@ -446,46 +466,6 @@ export default function SocialPage() {
       return;
     }
     isRequesting();
-
-    async function isBlockedByMe()
-    {
-      if (!currentUser || !selectedUser) return;
-      const res = await fetch(`api/social/user?username=${selectedUser}`, {
-        method: "GET",
-      });
-      if (!res.ok)
-        return;
-      const data = await res.json();
-      const blockedUser: type.User = data.user;
-      if (!blockedUser) return;
-      for (const id of currentUser.blockedUsers)
-      {
-        if (id == blockedUser.id)
-          setHasBlocked(true);
-      }
-      return;
-    }
-    isBlockedByMe();
-
-    async function amIBlocked()
-    {
-      if (!currentUser || !selectedUser) return;
-      const res = await fetch(`api/social/user?username=${selectedUser}`, {
-        method: "GET",
-      });
-      if (!res.ok)
-        return;
-      const data = await res.json();
-      const blockingUser: type.User = data.user;
-      if (!blockingUser) return;
-      for (const id of blockingUser.blockedUsers)
-      {
-        if (id == currentUser.id)
-          setIsBlocked(true);
-      }
-      return;
-    }
-    amIBlocked();
   }, [currentUser, selectedUser])
 
 	useEffect(() => {
@@ -529,6 +509,14 @@ export default function SocialPage() {
     fetchSelectedUnread();
   }, [selectedUser])
 
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
+
   async function fetchUnread()
   {
     if (!userPseudo) return;
@@ -541,6 +529,27 @@ export default function SocialPage() {
     const results: Record<string, number> = udata.results;
     setUnreadMap(results);
   }
+
+  const openProfileViewerForUserName = useCallback(async (name: string) => {
+    const res = await fetch(`api/social/user?username=${name}`, {
+      method: "GET",
+    });
+    if (!res.ok)
+      return;
+    const data = await res.json();
+    const targetUser: type.User = data.user;
+    setProfileViewerUser(targetUser);
+    setShowProfileViewer(true);
+  }, []);
+
+  const handleProfileClick = useCallback((userName: string) => {
+    if (userName === currentUser?.name) {
+      router.push(`/profile/${userName}`);
+      return;
+    }
+
+    openProfileViewerForUserName(userName);
+  }, [currentUser?.name, openProfileViewerForUserName, router]);
 
 	//Loading screen while currentUser is not set
 	if (!currentUser)
@@ -759,6 +768,8 @@ export default function SocialPage() {
           msg: cleanMessage, receiver: selectedUser,
           draftIds: draftIds}),
       });
+      
+
 
     const data = await response.json();
     if (!response.ok)
@@ -780,8 +791,6 @@ export default function SocialPage() {
     if (!newMessages) return;
     
     setCurrentMessages(newMessages);
-    setMessageOffset(0);
-    setHasMoreMessages(newMessages.length === 20);
 
     socket.emit("notTyping", {
       sender : currentUser.name,
@@ -804,66 +813,11 @@ export default function SocialPage() {
     setDraftAttachments([]);
   };
 
-  //loads older messages when scrolling to top
-  const loadOlderMessages = async () => {
-    if (!currentUser || !selectedUser || isLoadingOlderMessages || !hasMoreMessages) return;
-    
-    setIsLoadingOlderMessages(true);
-    const nextOffset = messageOffset + 20;
-    
-    try {
-      const params = new URLSearchParams({
-        user: currentUser.name,
-        otherUser: selectedUser,
-        skip: nextOffset.toString(),
-        take: "20",
-      });
-      
-      const res = await fetch(`/api/social/msg?${params.toString()}`, {
-        method: "GET",
-      });
-      
-      if (!res.ok) {
-        setIsLoadingOlderMessages(false);
-        return;
-      }
-      
-      const data = await res.json();
-      const olderMessages: type.Messages[] = data.msgs;
-      
-      if (!olderMessages || olderMessages.length === 0) {
-        setHasMoreMessages(false);
-        setIsLoadingOlderMessages(false);
-        return;
-      }
-      
-      setCurrentMessages([...olderMessages, ...currentMessages]);
-      setMessageOffset(nextOffset);
-      setHasMoreMessages(olderMessages.length === 20);
-    } catch (error) {
-      console.error("Error loading older messages:", error);
-    } finally {
-      setIsLoadingOlderMessages(false);
-    }
-  };
-
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (!isBlocked && !hasBlocked && event.key === "Enter") {
       event.preventDefault();
       sendMessage();
     }
-  };
-
-  const openProfileViewerForUserName = async (name: string) => {
-    const res = await fetch(`api/social/user?username=${selectedUser}`, {
-      method: "GET",
-    });
-    if (!res.ok)
-      return;
-    const data = await res.json();
-    const targetUser: type.User = data.user;
-    setProfileViewerUser(targetUser);
-    setShowProfileViewer(true);
   };
 
   const acceptDuel = async () => {
@@ -883,17 +837,19 @@ export default function SocialPage() {
   }
 
   const isTyping = async () => {
-    let typingTimeout;
-
     if (!selectedUser || !currentUser)
       return ;
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
     socket.emit("typing", {
       sender : currentUser.name,
       receiver: selectedUser,
     });
-    clearTimeout(typingTimeout);
 
-    typingTimeout = setTimeout(() => {
+    typingTimeoutRef.current = setTimeout(() => {
       socket.emit("notTyping", {
         sender: currentUser.name,
         receiver: selectedUser,
@@ -901,7 +857,7 @@ export default function SocialPage() {
     }, 1000);
   }
 
-  async function select() {
+  async function onSelect() {
     if (!click)
       return;
 
@@ -958,10 +914,6 @@ export default function SocialPage() {
                   e.preventDefault();
                   void submitContactInvite();
                 }
-                if (e.key === "Escape" && !isInviting) {
-                  e.preventDefault();
-                  setIsAddContactModalOpen(false);
-                }
               }}
               className="mt-4 w-full rounded-xl border border-[#c9a227]/30 bg-[#242033] px-3 py-2 text-sm text-white outline-none placeholder:text-gray-500 focus:border-[var(--accent-color)]"
               autoFocus
@@ -987,22 +939,77 @@ export default function SocialPage() {
         </div>
       )}
 
-      
       <div className="flex w-full justify-center px-4">
-        <section className="checkered-bg flex h-[calc(100vh-2rem)] w-[calc(100%-14rem)] flex-col overflow-hidden rounded-3xl border border-[#c9a227]/25 bg-black/15 shadow-2xl">
+        <section className="checkered-bg flex h-[calc(100vh-2rem)] w-full flex-col overflow-hidden rounded-3xl border border-[#c9a227]/25 bg-black/15 shadow-2xl">
 
-            <ConversationList
-              users={users}
-              selectedUser={selectedUser}
-              unreadMap={unreadMap}
-              inboxes={inboxes}
-              customUserAvatar={customUserAvatar}
-              currentUserName={currentUser.name ?? ""}
-              onSelectUser={(userName) => {
-                setSelectedUser(userName);
-              }}
-              onAddContactClick={openAddContactModal}
-            />
+          <ConversationList
+            users={users}
+            selectedUser={selectedUser}
+            unreadMap={unreadMap}
+            inboxes={inboxes}
+            customUserAvatar={customUserAvatar}
+            currentUserName={currentUser?.name ?? ""}
+            onSelectUser={(userName) => {
+              setSelectedUser(userName);
+            }}
+            onAddContactClick={openAddContactModal}
+          />
+
+          {/* Header avec contacts et boutons
+          <header className="flex items-center border-b border-[#c9a227]/30 px-5 py-3">
+            Contacts scroll horizontalement 
+            <div className="flex-1 overflow-x-auto px-4">
+              <div className="flex gap-2">
+                {
+                  users.map((user) => {
+                  const isActive = selectedUser === user.name;
+                  if (user.name === currentUser.name) return null;
+                  const hasConversation = inboxes.some(inbox => {
+                    const ids = inbox.inboxUser.map(iu => iu.user_id);
+                    return ids.includes(user.id);
+                  });
+                  if (!hasConversation) return null;
+                  return(
+                    <button
+                      key={user.name}
+                      disabled={!click}
+                      onClick={() => {
+                          setSelectedUser(user.name);
+                          if (user.name == notifSender)
+                            setShowNotification(false);
+                          onSelect();
+                        }
+                      }
+                      className={`relative flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 transition-colors ${
+                        isActive
+                          ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)] text-white"
+                          : "border-[#c9a227]/30 bg-[#242033] text-gray-200 hover:bg-[#302a45]"
+                      }`}
+                    >
+                      <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-visible">
+                        <Image
+                          src={user.name === userPseudo && customUserAvatar ? customUserAvatar : (user.image || (user.avatar?.url ?? DEFAULT_PROFILE_ICON.url))}
+                          alt={user.name}
+                          width={32}
+                          height={32}
+                          className="h-8 w-8 rounded-lg border border-[#c9a227]/30 object-cover"
+                          unoptimized
+                        />
+                      </div>
+                      {user.online ? <div>🟢</div> : <div>🔴</div>}
+                      <span className="shrink-0 whitespace-nowrap text-sm font-semibold">{user.name}</span>
+                      {
+                        (unreadMap[user.name] ?? 0) > 0 && (
+                        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
+                          {unreadMap[user.name] ?? 0}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div> */}
+
 
           <section className="flex h-full min-h-0 flex-col">
 
@@ -1034,20 +1041,11 @@ export default function SocialPage() {
               isTyping={typing}
               typer={typer}
               onMessageExpand={toggleMessageExpanded}
-              onProfileClick={(userName) => {
-                if (userName === currentUser?.name) {
-                  router.push(`/profile/${userName}`);
-                } else {
-                  openProfileViewerForUserName(userName);
-                }
-              }}
-              onLoadOlderMessages={loadOlderMessages}
-              isLoadingOlderMessages={isLoadingOlderMessages}
-              hasMoreMessages={hasMoreMessages}
+              onProfileClick={handleProfileClick}
             />
 
             <footer className="sticky bottom-0 border-t border-[#c9a227]/30 bg-[#15131d] p-4">
-              {selectedUser && (<div className="flex flex-col gap-3">
+              {selectedUser && (<div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2 rounded-full border border-[#c9a227]/30 bg-[#242033] px-2 py-2 focus-within:border-[#c9a227]/30 focus-within:ring-0">
                   <input
                     ref={fileInputRef}
