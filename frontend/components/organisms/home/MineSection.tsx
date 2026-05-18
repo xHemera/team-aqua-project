@@ -11,6 +11,9 @@ export function MineSection({
   rubyCount,
   goldCount,
 }: MineSectionProps) {
+  const ruby = "/gameResources/items/ruby.webp";
+  const gold = "/gameResources/items/gold.webp";
+
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
       {/* Pseudo et ressources */}
@@ -26,13 +29,23 @@ export function MineSection({
       <div className="flex items-center gap-3">
         <div className="rounded-xl border border-[#c9a227]/50 bg-gradient-to-br from-[#1e1828] to-[#15121a] px-4 py-2.5 backdrop-blur-sm">
           <span className="inline-flex items-center gap-2.5 text-sm font-bold text-[#f5e6c8]">
-            <i className="fa-solid fa-gem text-lg text-[#ff6b6b]" aria-hidden="true" />
+            <img
+            src={ruby}
+            alt="ruby"
+            width={44}
+            height={44}
+            />
             <span className="min-w-[48px] text-right">{rubyCount}</span>
           </span>
         </div>
         <div className="rounded-xl border border-[#c9a227]/50 bg-gradient-to-br from-[#1e1828] to-[#15121a] px-4 py-2.5 backdrop-blur-sm">
           <span className="inline-flex items-center gap-2.5 text-sm font-bold text-[#f5e6c8]">
-            <i className="fa-solid fa-coins text-lg text-[#ffd700]" aria-hidden="true" />
+            <img
+            src={gold}
+            alt="gold"
+            width={44}
+            height={44}
+            />
             <span className="min-w-[48px] text-right">{goldCount}</span>
           </span>
         </div>

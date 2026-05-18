@@ -20,7 +20,7 @@ export async function POST(req: Request)
     try {
         const data = await req.json();
         const {userPseudo} = data;
-        await redis.rPush("players_queue", JSON.stringify(userPseudo));
+        await redis.rPush("players_queue", userPseudo);
         return Response.json({msg: "OK"}, {status: 200});
     }
     catch (e) {
@@ -48,8 +48,7 @@ export async function DELETE(req: Request)
         const userPseudo = searchParams.get("userPseudo");
         if (!userPseudo)
             return Response.json({error: "Internal server error"}, {status: 500});
-        
-        await redis.lRem("players_queue", 1, JSON.stringify(userPseudo));
+        await redis.lRem("players_queue", 1, userPseudo);
         return Response.json({msg: "OK"}, {status: 200});
     }
     catch (e) {

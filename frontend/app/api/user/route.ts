@@ -3,8 +3,9 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { rateLimit } from "@/lib/rateLimit";
 import { redis } from "@/lib/redis";
+import { authClient } from "@/lib/auth-client";
 
-export async function PUT()
+export async function POST(req: Request)
 {
     const h = await headers();
     const ip = h
@@ -18,7 +19,68 @@ export async function PUT()
         console.log("Too many requests");
         return Response.json({error: "Too many request"}, {status: 429});
     }
-    const session = await auth.api.getSession({ headers: await headers() });
+
+    try {
+        const data = await req.json();
+        const { name, email, password } = data;
+        await authClient.signUp.email({
+            name,
+            email,
+            password,
+        });
+        return Response.json({msg: "Created"}, {status: 201});
+    }
+    catch (e) {
+        return Response.json({error: "Internal server error"}, {status: 500});
+    }
+}
+
+export async function PUT(req: Request)
+{
+    const h = await headers();
+    const ip = h
+    .get("x-forwarded-for")
+    ?.split(",")[0]
+    .trim() || "unknown";
+
+    const allowed = await rateLimit(redis, `rl:user${ip}`, 20, 60);
+
+    if (!allowed) {
+        console.log("Too many requests");
+        return Response.json({error: "Too many request"}, {status: 429});
+    }
+
+    try {
+        const reqData = await req.json();
+        const { email, password } = reqData;
+        const { data } = await authClient.signIn.email({
+            email,
+            password,
+        });
+        return Response.json({data: data}, {status: 200});
+    }
+    catch (e) {
+        console.log(e);
+        return Response.json({error: "Internal server error"}, {status: 500});
+    }
+}
+
+export async function PATCH()
+{
+    const h = await headers();
+    const ip = h
+    .get("x-forwarded-for")
+    ?.split(",")[0]
+    .trim() || "unknown";
+
+    const allowed = await rateLimit(redis, `rl:user${ip}`, 20, 60);
+
+    if (!allowed) {
+        console.log("Too many requests");
+        return Response.json({error: "Too many request"}, {status: 429});
+    }
+
+    const session = await auth.api.getSession({ headers: h });
     if (!session || !session.user) {
         return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
