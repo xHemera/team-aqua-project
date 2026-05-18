@@ -4,8 +4,8 @@ import { Spell } from "./Spell";
 
 export class PiercingShot extends Spell {
 
-    constructor() {
-        super();
+    constructor(scaling: number[][]) {
+        super(scaling);
         this.id     	= "s1";
         this.name   	= "Piercing Shot";
         this.mpCost 	= 8;
@@ -13,9 +13,8 @@ export class PiercingShot extends Spell {
     }
 
     applyEffect(idUser: CharacterInstance, idTargets: CharacterInstance[]): void {
-        const skillData  = idUser.character.skills.find(s => s.id === "s1")!;
-        const scaling    = skillData.scaling[skillData.level - 1] as [number, number, number];
-        const [multiplier, flat, armorPen] = scaling;
+        const skillLevel  = idUser.character.skills.find(s => s.id === "s1")?.level ?? 1;
+        const [multiplier, flat, armorPen] = this.scaling[skillLevel -1];
 
         const raw        = idUser.character.stats.physicalDamage * multiplier + flat;
         const reducedRes = idTargets[0].phyRes * (1 - armorPen / 100);
@@ -27,8 +26,8 @@ export class PiercingShot extends Spell {
 
 export class RainOfArrows extends Spell {
 
-	constructor() {
-		super();
+	constructor(scaling: number[][]) {
+		super(scaling);
 		this.id		= "s2";
 		this.name	= "Rain of Arrows";
 		this.mpCost	= 12;
@@ -36,9 +35,10 @@ export class RainOfArrows extends Spell {
 	}
 
 	applyEffect(idUser: CharacterInstance, idTargets: CharacterInstance[]): void {
-		const stats = idUser.character.stats;
 		const skillLevel = idUser.character.skills.find(s => s.id == "s2")?.level ?? 1;
-		const raw = stats.physicalDamage * 0.8 + skillLevel * 15;
+		const [multiplier, flat] = this.scaling[skillLevel - 1];
+
+		const raw = idUser.character.stats.physicalDamage * multiplier + flat;
 		idTargets.forEach(target => {
 			const damage = resolvePhyDamage(raw, idUser, target);
 			target.currentHp = Math.max(0, target.currentHp - damage);
