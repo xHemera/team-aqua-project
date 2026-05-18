@@ -330,20 +330,6 @@ export default function SocialPage() {
 
   }, [userPseudo, selectedUser]);
 
-
-  //scroll the conversation to last message
-  // useEffect(() => {
-  //   if (messageListRef.current)
-  //   {
-  //     messageListRef.current.scrollTo({
-	// 	    top: messageListRef.current.scrollHeight,
-	// 	    behavior: "smooth",
-	// 	  });
-  //   }
-	// }, [currentMessages.length])
-
-  //fetch messages and resets unread messages
-
   useEffect(() => {
     async function fetchmessages()
 		{
@@ -857,17 +843,6 @@ export default function SocialPage() {
     }, 1000);
   }
 
-  async function onSelect() {
-    if (!click)
-      return;
-
-    setClick(false);
-
-    setTimeout(() => {
-      setClick(true);
-    }, 1500);
-  }
-
   return (
     <AppPageShell showSidebar containerClassName="min-h-0 flex-1 flex-col" mainClassName="bg-gradient-to-br from-[#0c0a0f] via-[#12101a] to-[#0a0810]">
       <style>{`
@@ -955,62 +930,6 @@ export default function SocialPage() {
             onAddContactClick={openAddContactModal}
           />
 
-          {/* Header avec contacts et boutons
-          <header className="flex items-center border-b border-[#c9a227]/30 px-5 py-3">
-            Contacts scroll horizontalement 
-            <div className="flex-1 overflow-x-auto px-4">
-              <div className="flex gap-2">
-                {
-                  users.map((user) => {
-                  const isActive = selectedUser === user.name;
-                  if (user.name === currentUser.name) return null;
-                  const hasConversation = inboxes.some(inbox => {
-                    const ids = inbox.inboxUser.map(iu => iu.user_id);
-                    return ids.includes(user.id);
-                  });
-                  if (!hasConversation) return null;
-                  return(
-                    <button
-                      key={user.name}
-                      disabled={!click}
-                      onClick={() => {
-                          setSelectedUser(user.name);
-                          if (user.name == notifSender)
-                            setShowNotification(false);
-                          onSelect();
-                        }
-                      }
-                      className={`relative flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 transition-colors ${
-                        isActive
-                          ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)] text-white"
-                          : "border-[#c9a227]/30 bg-[#242033] text-gray-200 hover:bg-[#302a45]"
-                      }`}
-                    >
-                      <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-visible">
-                        <Image
-                          src={user.name === userPseudo && customUserAvatar ? customUserAvatar : (user.image || (user.avatar?.url ?? DEFAULT_PROFILE_ICON.url))}
-                          alt={user.name}
-                          width={32}
-                          height={32}
-                          className="h-8 w-8 rounded-lg border border-[#c9a227]/30 object-cover"
-                          unoptimized
-                        />
-                      </div>
-                      {user.online ? <div>🟢</div> : <div>🔴</div>}
-                      <span className="shrink-0 whitespace-nowrap text-sm font-semibold">{user.name}</span>
-                      {
-                        (unreadMap[user.name] ?? 0) > 0 && (
-                        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
-                          {unreadMap[user.name] ?? 0}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div> */}
-
-
           <section className="flex h-full min-h-0 flex-col">
 
             {selectedUser && request && friendRequestSender && (
@@ -1021,7 +940,7 @@ export default function SocialPage() {
               />
             )}
 
-            {challenge && opponent && (
+            {selectedUser && challenge && opponent && (
               <DuelRequestBanner
                 opponentName={opponent}
                 onAccept={(acceptDuel)}
