@@ -192,7 +192,7 @@ Input with leading icon.
 
 - **`TeamBuilder`**: Build and display player team (3 characters)
 - **`TeamBuilderModal`**: Modal for selecting team members
-- **`MineSection`**: Resource accumulation (gold/rubis)
+- **`MineSection`**: Resource accumulation (rubis)
 - **`ExpeditionTracker`**: Display active expeditions
 - **`ExpeditionModal`**: Start new expedition
 - **`PvpMatchmakingModal`**: PvP matchmaking queue

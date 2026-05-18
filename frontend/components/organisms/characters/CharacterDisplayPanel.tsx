@@ -16,7 +16,7 @@ export default function CharacterDisplayPanel({
   powerLabel,
 }: CharacterDisplayPanelProps) {
   return (
-    <div className="relative flex-1 overflow-hidden">
+    <div className="relative flex-1 overflow-y-auto">
       <div
         className="absolute inset-0 opacity-[0.08]"
         style={{
@@ -76,7 +76,7 @@ export default function CharacterDisplayPanel({
       </div>
 
       <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
-        <div className="relative h-[130%] w-full">
+        <div className="relative h-[130%] w-[1000px] flex-shrink-0">
           <Image
             src={selectedCharacter.body}
             alt={selectedCharacter.name}

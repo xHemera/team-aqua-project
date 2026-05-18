@@ -11,13 +11,11 @@ type ActiveExpedition = {
   durationSeconds: number;
   durationLabel: string;
   xp: number;
-  gold: number;
 };
 
 type ExpeditionReward = {
   characterId: string;
   xp: number;
-  gold: number;
 };
 
 type Character = {
@@ -68,7 +66,7 @@ export function ExpeditionTracker({
                   Expedition complete
                 </div>
                 <div className="mt-1 text-sm text-[#dcffe9]">
-                  +{expeditionReward.xp} XP • +{expeditionReward.gold} Gold
+                  +{expeditionReward.xp} XP
                 </div>
               </div>
             </div>

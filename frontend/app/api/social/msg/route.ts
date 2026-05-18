@@ -23,6 +23,9 @@ export async function GET(req: Request)
         const {searchParams} = new URL(req.url);
         const user = searchParams.get("user");
         const otherUser = searchParams.get("otherUser");
+        const skip = parseInt(searchParams.get("skip") || "0", 10);
+        const take = parseInt(searchParams.get("take") || "20", 10);
+        
         if (!user || !otherUser)
             return Response.json({error: "Internal server error"}, {status: 500});
 
@@ -48,10 +51,15 @@ export async function GET(req: Request)
                     }
                 }
             },
-            select: {messages: { include: { attachments: true } } }
+            select: {messages: { 
+                include: { attachments: true },
+                orderBy: { createdAt: "desc" },
+                skip: skip,
+                take: take
+            } }
         })
         if (!msgs) return Response.json({error: "Internal server error"}, {status: 500});
-        return Response.json({msgs: msgs.messages}, {status: 200});
+        return Response.json({msgs: msgs.messages.reverse()}, {status: 200});
     }
     catch {
         return Response.json({error: "Internal server error"}, {status: 500});

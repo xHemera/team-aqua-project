@@ -67,7 +67,7 @@ A comprehensive documentation audit was performed on the Kyogre project to ensur
 - Turn-based combat mechanics with formulas
 - PvP matchmaking system with MMR
 - Expedition system with rewards
-- Resource economy (Gold, Rubis, XP)
+- Resource economy (Rubis, XP)
 - Social features (friends, messaging, blocking, profiles)
 - Badge and achievement system
 - Future mini-game considerations

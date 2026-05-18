@@ -9,12 +9,10 @@ const ensureGameState = async (userId: string) => {
     create: {
       user_id: userId,
       rubis: PLAYER_RESOURCES.ruby,
-      gold: PLAYER_RESOURCES.coin,
     },
     update: {},
     select: {
       rubis: true,
-      gold: true,
     },
   });
 };
@@ -43,26 +41,21 @@ export async function POST(request: Request) {
 
     const body = (await request.json()) as {
       rubisDelta?: number;
-      goldDelta?: number;
     };
 
     const rubisDelta = Number(body.rubisDelta ?? 0);
-    const goldDelta = Number(body.goldDelta ?? 0);
 
     const gameState = await prisma.gameState.upsert({
       where: { user_id: session.user.id },
       create: {
         user_id: session.user.id,
         rubis: PLAYER_RESOURCES.ruby + rubisDelta,
-        gold: PLAYER_RESOURCES.coin + goldDelta,
       },
       update: {
         rubis: { increment: rubisDelta },
-        gold: { increment: goldDelta },
       },
       select: {
         rubis: true,
-        gold: true,
       },
     });
 
