@@ -811,6 +811,12 @@ export default function SocialPage() {
       user: currentUser.name,
       oUser: selectedUser,
     })
+    const res = await fetch("/api/social/otherFriend", {
+      method: "POST",
+      body: JSON.stringify({currentUser: currentUser.name, opponent: selectedUser}),
+    });
+    if (!res.ok)
+      return ;
     return router.push("game");
   }
 
