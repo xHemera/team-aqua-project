@@ -41,13 +41,11 @@ const ensureGameState = async (userId: string) => {
     create: {
       user_id: userId,
       rubis: PLAYER_RESOURCES.ruby,
-      gold: PLAYER_RESOURCES.coin,
     },
     update: {},
     select: {
       id: true,
       rubis: true,
-      gold: true,
     },
   });
 };
@@ -182,7 +180,6 @@ export async function GET() {
         characters,
         resources: {
           ruby: gameState.rubis,
-          coin: gameState.gold,
         },
         maxCharacterLevel: MAX_CHARACTER_LEVEL,
         maxSkillLevel: MAX_SKILL_LEVEL,
@@ -275,7 +272,7 @@ export async function POST(request: Request) {
         }),
         tx.gameState.findUnique({
           where: { id: spell.character.gameState.id },
-          select: { rubis: true, gold: true },
+          select: { rubis: true },
         }),
       ]);
 
@@ -288,7 +285,6 @@ export async function POST(request: Request) {
         level: updatedSpell.level,
         resources: {
           ruby: updatedGameState.rubis,
-          coin: updatedGameState.gold,
         },
       };
     });

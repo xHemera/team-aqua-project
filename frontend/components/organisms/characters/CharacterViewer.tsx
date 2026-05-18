@@ -26,6 +26,7 @@ export default function CharacterViewer({
   onUpgradeSkill,
 }: CharacterViewerProps) {
   const [selectedSkill, setSelectedSkill] = useState<CharacterSkill | null>(null);
+  const [showDetailsPanel, setShowDetailsPanel] = useState(true);
 
   const power = useMemo(() => calculatePower(selectedCharacter.stats), [selectedCharacter.stats]);
   const characterRole = CHARACTER_ROLES[selectedCharacter.name] ?? {
@@ -50,22 +51,36 @@ export default function CharacterViewer({
         onSelectCharacter={onSelectCharacter}
       />
 
-      <CharacterDisplayPanel
-        selectedCharacter={selectedCharacter}
-        characterRoleTitle={characterRole.title}
-        characterRoleColor={characterRole.color}
-        powerLabel={formatCompactPower(power)}
-      />
+      <div className="relative flex flex-1 overflow-hidden">
+        <CharacterDisplayPanel
+          selectedCharacter={selectedCharacter}
+          characterRoleTitle={characterRole.title}
+          characterRoleColor={characterRole.color}
+          powerLabel={formatCompactPower(power)}
+        />
 
-      <CharacterDetailsPanel
-        selectedCharacter={selectedCharacter}
-        selectedSkill={selectedSkill}
-        resources={resources}
-        maxSkillLevel={maxSkillLevel}
-        onToggleSkill={(skill) => setSelectedSkill(selectedSkill?.id === skill.id ? null : skill)}
-        onUpgradeSkill={onUpgradeSkill}
-        canUpgradeSkill={canUpgradeSkill}
-      />
+        {/* Toggle Button */}
+        <button
+          onClick={() => setShowDetailsPanel(!showDetailsPanel)}
+          className="absolute right-0 top-1/2 z-30 -translate-y-1/2 rounded-l border border-[#c9a227]/30 bg-[#0c0a0f]/95 px-2 py-3 text-[#c9a227] transition-all hover:bg-[#1e1a24] hover:border-[#c9a227]/50"
+          title={showDetailsPanel ? "Hide details" : "Show details"}
+        >
+          <i className={`fa-solid ${showDetailsPanel ? "fa-chevron-right" : "fa-chevron-left"} text-sm`} />
+        </button>
+
+        {/* Details Panel with Slide Animation */}
+        <div className={`transition-all duration-300 overflow-y-auto ${showDetailsPanel ? "w-[420px]" : "w-0"}`}>
+          <CharacterDetailsPanel
+            selectedCharacter={selectedCharacter}
+            selectedSkill={selectedSkill}
+            resources={resources}
+            maxSkillLevel={maxSkillLevel}
+            onToggleSkill={(skill) => setSelectedSkill(selectedSkill?.id === skill.id ? null : skill)}
+            onUpgradeSkill={onUpgradeSkill}
+            canUpgradeSkill={canUpgradeSkill}
+          />
+        </div>
+      </div>
     </div>
   );
 }

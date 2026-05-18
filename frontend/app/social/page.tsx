@@ -51,6 +51,9 @@ export default function SocialPage() {
   const [customUserAvatar, setCustomUserAvatar] = useState<string | null>(null);
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [click, setClick] = useState(true);
+  const [messageOffset, setMessageOffset] = useState(0);
+  const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
 
 
   const MAX_MESSAGE_LENGTH = 500;
@@ -350,6 +353,8 @@ export default function SocialPage() {
       const params = new URLSearchParams({
         user: currentUser.name,
         otherUser: selectedUser,
+        skip: "0",
+        take: "20",
       });
       const [mres, ures] = await Promise.all([
         fetch(`/api/social/msg?${params.toString()}`, {
@@ -367,6 +372,8 @@ export default function SocialPage() {
       const newMessages: type.Messages[] = data.msgs;
 			if (!newMessages) return;
     	setCurrentMessages(newMessages);
+      setMessageOffset(0);
+      setHasMoreMessages(newMessages.length === 20);
       if (!ures.ok)
         return;
       fetchUnread();
@@ -773,6 +780,8 @@ export default function SocialPage() {
     if (!newMessages) return;
     
     setCurrentMessages(newMessages);
+    setMessageOffset(0);
+    setHasMoreMessages(newMessages.length === 20);
 
     socket.emit("notTyping", {
       sender : currentUser.name,
@@ -793,6 +802,49 @@ export default function SocialPage() {
 
     setMessage("");
     setDraftAttachments([]);
+  };
+
+  //loads older messages when scrolling to top
+  const loadOlderMessages = async () => {
+    if (!currentUser || !selectedUser || isLoadingOlderMessages || !hasMoreMessages) return;
+    
+    setIsLoadingOlderMessages(true);
+    const nextOffset = messageOffset + 20;
+    
+    try {
+      const params = new URLSearchParams({
+        user: currentUser.name,
+        otherUser: selectedUser,
+        skip: nextOffset.toString(),
+        take: "20",
+      });
+      
+      const res = await fetch(`/api/social/msg?${params.toString()}`, {
+        method: "GET",
+      });
+      
+      if (!res.ok) {
+        setIsLoadingOlderMessages(false);
+        return;
+      }
+      
+      const data = await res.json();
+      const olderMessages: type.Messages[] = data.msgs;
+      
+      if (!olderMessages || olderMessages.length === 0) {
+        setHasMoreMessages(false);
+        setIsLoadingOlderMessages(false);
+        return;
+      }
+      
+      setCurrentMessages([...olderMessages, ...currentMessages]);
+      setMessageOffset(nextOffset);
+      setHasMoreMessages(olderMessages.length === 20);
+    } catch (error) {
+      console.error("Error loading older messages:", error);
+    } finally {
+      setIsLoadingOlderMessages(false);
+    }
   };
 
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -989,6 +1041,9 @@ export default function SocialPage() {
                   openProfileViewerForUserName(userName);
                 }
               }}
+              onLoadOlderMessages={loadOlderMessages}
+              isLoadingOlderMessages={isLoadingOlderMessages}
+              hasMoreMessages={hasMoreMessages}
             />
 
             <footer className="sticky bottom-0 border-t border-[#c9a227]/30 bg-[#15131d] p-4">

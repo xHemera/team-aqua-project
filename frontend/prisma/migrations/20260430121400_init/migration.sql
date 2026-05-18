@@ -34,7 +34,6 @@ CREATE TABLE "GameState" (
     "id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
     "rubis" INTEGER NOT NULL,
-    "gold" INTEGER NOT NULL,
 
     CONSTRAINT "GameState_pkey" PRIMARY KEY ("id")
 );

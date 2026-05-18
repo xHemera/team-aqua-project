@@ -221,7 +221,7 @@ type MatchRecord = {
 **What are Expeditions**:
 - Send characters to gather resources
 - Time-based: 15min, 1hr, 4hr, 8hr, 24hr
-- Earn: Gold + XP + occasionally items
+- Earn: XP + occasionally items
 
 **Starting Expedition**:
 ```typescript
@@ -231,7 +231,7 @@ socket.emit('expedition:start', {
 });
 
 socket.on('expedition:started', (expedition) => {
-  const { endsAt, xp, gold } = expedition;
+  const { endsAt, xp } = expedition;
 });
 ```
 
@@ -243,7 +243,7 @@ socket.on('expedition:started', (expedition) => {
 **Completion**:
 ```typescript
 socket.on('expedition:completed', (result) => {
-  const { characterId, xp, gold } = result;
+  const { characterId, xp } = result;
   // Apply rewards to game state
 });
 ```
@@ -251,29 +251,23 @@ socket.on('expedition:completed', (result) => {
 ### Expedition Rewards
 
 **By Duration**:
-| Duration | Gold | XP | Chance (rare item) |
-|----------|------|----|--------------------|
-| 15 min   | 50   | 25 | 5%                 |
-| 1 hour   | 200  | 100| 10%                |
-| 4 hours  | 800  | 400| 15%                |
-| 8 hours  | 1600 | 800| 20%                |
-| 24 hours | 4800 | 2400| 30%               |
+| Duration | XP | Chance (rare item) |
+|----------|----|--------------------|
+| 15 min   | 25 | 5%                 |
+| 1 hour   | 100| 10%                |
+| 4 hours  | 400| 15%                |
+| 8 hours  | 800| 20%                |
+| 24 hours | 2400| 30%               |
 
 ## Progression & Resources
 
 ### Resource Economy
 
-**Gold** (`GameState.gold`):
-- Primary currency
-- Earned from: Expeditions, PvP wins, missions
-- Spent on: Item purchases, character upgrades (future)
-- Cap: Uncapped
-
 **Rubis** (`GameState.rubis`):
-- Premium currency
-- Earned from: Special rewards, battle pass
+- Currency
+- Earned from: Mining, special rewards
 - Spent on: Battle pass, cosmetics, convenience items
-- Initial: 0 (purchase or special events)
+- Initial: 42
 
 **XP** (Character-specific):
 - Character experience
@@ -292,7 +286,7 @@ socket.on('expedition:completed', (result) => {
 - Each spell has independent level: 1-3
 - Level 1 spell → Level 2: Increased effect (20% more damage/healing)
 - Level 2 spell → Level 3: MP cost reduction (10% less)
-- Cost: Gold per upgrade
+- Cost: Rubis per upgrade
 
 ## Social Features
 

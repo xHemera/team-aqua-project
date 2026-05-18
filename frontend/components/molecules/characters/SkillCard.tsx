@@ -218,7 +218,6 @@ export default function SkillCard({
               onPointerDown={handleUpgradePointerDown}
               onPointerUp={handleUpgradePointerEnd}
               onPointerCancel={handleUpgradePointerEnd}
-              onPointerLeave={handleUpgradePointerEnd}
               onClick={(event) => event.stopPropagation()}
               disabled={!canUpgrade}
               className={`shrink-0 rounded border px-3 py-1.5 text-xs font-bold transition-all duration-200 ${

@@ -25,13 +25,11 @@ type ActiveExpedition = {
   durationSeconds: number;
   durationLabel: string;
   xp: number;
-  gold: number;
 };
 
 type ExpeditionReward = {
   characterId: string;
   xp: number;
-  gold: number;
 };
 
 type MinePopup = {
@@ -54,9 +52,9 @@ type PendingTeamDragState = {
 };
 
 const EXPEDITION_DURATIONS = [
-  { id: "scout", label: "15s", seconds: 15, xp: 120, gold: 280 },
-  { id: "journey", label: "45s", seconds: 45, xp: 340, gold: 720 },
-  { id: "odyssey", label: "90s", seconds: 90, xp: 760, gold: 1540 },
+  { id: "scout", label: "15s", seconds: 15, xp: 120 },
+  { id: "journey", label: "45s", seconds: 45, xp: 340 },
+  { id: "odyssey", label: "90s", seconds: 90, xp: 760 },
 ] as const;
 
 const STORAGE_KEYS = {
@@ -83,7 +81,6 @@ export default function Home() {
 
   const defaultCharacterId = roster[0]?.id ?? null;
   const [ruby, setRuby] = useState<number>(PLAYER_RESOURCES.ruby);
-  const [gold, setGold] = useState<number>(PLAYER_RESOURCES.coin);
 
   const [pvpOpen, setPvpOpen] = useState(false);
   const [minePopups, setMinePopups] = useState<MinePopup[]>([]);
@@ -149,12 +146,9 @@ export default function Home() {
         const response = await fetch("/api/profile/resources", { cache: "no-store" });
         if (!response.ok) return;
 
-        const payload = (await response.json()) as { rubis?: number; gold?: number };
+        const payload = (await response.json()) as { rubis?: number };
         if (typeof payload.rubis === "number") {
           setRuby(payload.rubis);
-        }
-        if (typeof payload.gold === "number") {
-          setGold(payload.gold);
         }
       } catch {
         // Keep local defaults if the server is unavailable.
@@ -205,7 +199,6 @@ export default function Home() {
     setExpeditionReward({
       characterId: activeExpedition.characterId,
       xp: activeExpedition.xp,
-      gold: activeExpedition.gold,
     });
     setActiveExpedition(null);
   }, [activeExpedition, nowTs]);
@@ -253,7 +246,7 @@ export default function Home() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ rubisDelta: reward, goldDelta: 0 }),
+      body: JSON.stringify({ rubisDelta: reward }),
     })
       .then(async (response) => {
         if (!response.ok) return;
@@ -321,7 +314,6 @@ export default function Home() {
       durationSeconds: selectedDuration.seconds,
       durationLabel: selectedDuration.label,
       xp: selectedDuration.xp,
-      gold: selectedDuration.gold,
     });
     setExpeditionOpen(false);
   };
@@ -331,9 +323,6 @@ export default function Home() {
       return;
     }
 
-    const goldReward = expeditionReward.gold;
-
-    setGold((current) => current + goldReward);
     setExpeditionReward(null);
 
     try {
@@ -342,16 +331,11 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ rubisDelta: 0, goldDelta: goldReward }),
+        body: JSON.stringify({ rubisDelta: 0 }),
       });
 
       if (!response.ok) {
         return;
-      }
-
-      const payload = (await response.json()) as { gold?: number };
-      if (typeof payload.gold === "number") {
-        setGold(payload.gold);
       }
     } catch {
       // Keep optimistic UI update if persistence fails.
@@ -498,7 +482,7 @@ export default function Home() {
 
 
         <div className="relative z-10 flex h-full min-h-0 flex-col gap-5 rounded-3xl border border-[#c9a227]/20 bg-black/10 p-5">
-          <MineSection pseudo={userPseudo ?? "Hero"} rubyCount={ruby} goldCount={gold} />
+          <MineSection pseudo={userPseudo ?? "Hero"} rubyCount={ruby} />
 
           {/* Main Content Grid */}
           <div className="flex min-h-0 flex-1 flex-col gap-5">
