@@ -48,8 +48,8 @@ export class RainOfArrows extends Spell {
 
 export class PrecisionFocus extends Spell {
 
-	constructor() {
-		super();
+	constructor(scaling: number[][]) {
+		super(scaling);
 		this.id 	= "s3";
 		this.name	= "Precision Focus";
 		this.mpCost = 15;
@@ -58,8 +58,9 @@ export class PrecisionFocus extends Spell {
 
 	applyEffect(idUser: CharacterInstance): void {
 		const skillLevel = idUser.character.skills.find(s => s.id === "s3")?.level ?? 1;
-	
-		idUser.critChanceMod.push({ value: 5 + skillLevel * 2, turn: 3 });
-		idUser.critDamageMod.push({ value: skillLevel * 8, turn: 3 });
+		const [critChance, critDamage, duration] = this.scaling[skillLevel -1];
+
+		idUser.critChanceMod.push({ value: critChance, turn: duration });
+		idUser.critDamageMod.push({ value: critChance, turn: duration });
 	}
 }
