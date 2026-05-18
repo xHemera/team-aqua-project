@@ -609,9 +609,9 @@ export default function SocialPage() {
         }),
       ])
       if (!cres.ok)
-        return;
+        throw Error("No new contact");
       if (!ires.ok)
-        return ;
+        throw Error("No new inbox");
       const idata = await ires.json();
       setInboxes(idata.inboxes);
       socket.emit("new_conv", {
