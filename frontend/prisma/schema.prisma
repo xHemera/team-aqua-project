@@ -39,7 +39,6 @@ model GameState {
   id          String    @id @default(cuid())
   user_id     String    @unique
   rubis       Int
-  gold        Int
   characters  Character[]
   user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }

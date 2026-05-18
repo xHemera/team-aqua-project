@@ -35,7 +35,6 @@ export type CharacterData = {
 
 export type PlayerResources = {
   ruby: number;
-  coin: number;
 };
 
 export type SkillEffectSegment = {

@@ -51,6 +51,7 @@ export default function ProfileViewerModal({
   const [notification, setNotification] = useState<string | null>(null);
   const [notifSender, setNotifSender] = useState<string | null>(null);
   const [openRemove, setOpenRemove] = useState(false);
+  const [reportNotification, setReportNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => {
     if (!currentUser || !inputUser) return;

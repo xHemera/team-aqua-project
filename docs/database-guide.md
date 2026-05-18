@@ -78,8 +78,7 @@ Game progression and resources per user.
 model GameState {
   id        String      @id @default(cuid())
   user_id   String      @unique
-  rubis     Int                              // Premium currency
-  gold      Int                              // Common currency
+  rubis     Int                              // Currency
   
   // Relations
   characters Character[]
@@ -347,7 +346,7 @@ const user = await prisma.user.findUnique({
 const gameState = await prisma.gameState.findUnique({
   where: { user_id: userId }
 });
-// Access: gameState.gold, gameState.rubis
+// Access: gameState.rubis
 ```
 
 ### Update Character Level
@@ -486,7 +485,7 @@ const character = await prisma.character.findUnique({
 const result = await prisma.$transaction(async (tx) => {
   const user = await tx.user.update({
     where: { id: userId },
-    data: { gold: { decrement: 100 } }
+    data: { rubis: { decrement: 100 } }
   });
   
   const item = await tx.character.update({
