@@ -47,7 +47,7 @@ export async function getInboxes(username: string)
 }
 
 //return all messages from a conversation
-export async function getMsg(user: string, otherUser: string)
+export async function getMsg(user: string, otherUser: string, skip: number = 0, take: number = 20)
 {
     const user1 = await prisma.user.findFirst({
         where: { name: user },
@@ -71,10 +71,15 @@ export async function getMsg(user: string, otherUser: string)
 				}
 			}
 		},
-		select: {messages: { include: { attachments: true } } }
+		select: {messages: { 
+			include: { attachments: true },
+			orderBy: { createdAt: "desc" },
+			skip: skip,
+			take: take
+		} }
 	})
 	if (!msgs) throw new Error("Could not fetch messages");
-	return msgs.messages;
+	return msgs.messages.reverse();
 }
 
 export async function resetUnread(sender: string, receiver: string)

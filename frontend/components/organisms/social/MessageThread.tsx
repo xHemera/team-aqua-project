@@ -18,6 +18,9 @@ type MessageThreadProps = {
   typer: string | null;
   onMessageExpand: (messageId: string) => void;
   onProfileClick: (userName: string) => void;
+  onLoadOlderMessages?: () => Promise<void>;
+  isLoadingOlderMessages?: boolean;
+  hasMoreMessages?: boolean;
 };
 
 export const MessageThread = memo(function MessageThread({
@@ -33,8 +36,12 @@ export const MessageThread = memo(function MessageThread({
   typer,
   onMessageExpand,
   onProfileClick,
+  onLoadOlderMessages,
+  isLoadingOlderMessages = false,
+  hasMoreMessages = true,
 }: MessageThreadProps) {
   const messageListRef = useRef<HTMLDivElement | null>(null);
+  const previousHeightRef = useRef(0);
   const selectedUserData = useMemo(
     () => users.find((user) => user.name === selectedUser),
     [selectedUser, users],
@@ -46,12 +53,51 @@ export const MessageThread = memo(function MessageThread({
 
   useEffect(() => {
     if (messageListRef.current) {
-      messageListRef.current.scrollTo({
-        top: messageListRef.current.scrollHeight,
-        behavior: "smooth",
+      // Use requestAnimationFrame to ensure DOM is updated before scrolling
+      requestAnimationFrame(() => {
+        if (messageListRef.current) {
+          messageListRef.current.scrollTo({
+            top: messageListRef.current.scrollHeight,
+            behavior: "smooth",
+          });
+        }
       });
     }
-  }, [messages.length]);
+  }, [selectedUser, messages.length]);
+
+  // Scroll to bottom only when a new message is added (not when loading old messages)
+  useEffect(() => {
+    if (messageListRef.current && messages.length > 0) {
+      // Only scroll if the last message changed (new message sent/received)
+      requestAnimationFrame(() => {
+        if (messageListRef.current) {
+          messageListRef.current.scrollTo({
+            top: messageListRef.current.scrollHeight,
+            behavior: "smooth",
+          });
+        }
+      });
+    }
+  }, [messages[messages.length - 1]?.id]);
+
+  // Maintain scroll position when loading older messages
+  useEffect(() => {
+    if (!messageListRef.current) return;
+
+    if (isLoadingOlderMessages) {
+      // Store scroll height before loading
+      previousHeightRef.current = messageListRef.current.scrollHeight;
+    } else if (previousHeightRef.current > 0) {
+      // After loading completed, adjust scroll to maintain visual position
+      requestAnimationFrame(() => {
+        if (messageListRef.current) {
+          const heightIncrease = messageListRef.current.scrollHeight - previousHeightRef.current;
+          messageListRef.current.scrollTop += heightIncrease;
+          previousHeightRef.current = 0;
+        }
+      });
+    }
+  }, [isLoadingOlderMessages]);
 
   if (!selectedUser) {
     return (
@@ -63,6 +109,16 @@ export const MessageThread = memo(function MessageThread({
 
   return (
     <div ref={messageListRef} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
+      {hasMoreMessages && (
+        <button
+          onClick={onLoadOlderMessages}
+          disabled={isLoadingOlderMessages}
+          className="mx-auto rounded border border-[#c9a227]/30 bg-[#15131d] px-4 py-2 text-xs font-semibold uppercase text-[#c9a227] transition-colors hover:border-[#c9a227]/50 hover:bg-[#1e1a24] disabled:opacity-50"
+        >
+          {isLoadingOlderMessages ? "Loading..." : "Load older messages"}
+        </button>
+      )}
+      
       {messages.map((msg, index) => {
         const isLastUserMessage = msg.user_id === currentUser?.id && index === lastUserMessageIndex;
         const isOwnMessage = msg.user_id === currentUser?.id;
