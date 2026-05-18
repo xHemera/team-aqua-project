@@ -139,15 +139,7 @@ export default function AdminPage() {
         return ;
       else
         setReports(r);
-    }
-
-    // const modFetch = () => fetchUsers();
-    // const noModFetch = () => fetchUsers();
-    // const banFetch = () => fetchUsers();
-    // const unbanFetch = () => fetchUsers();
-    // const handleNewUser = () => fetchUsers();
-    // const handleNewReport = () => fetchReports();
-    // const handleLessReports = () => fetchReports();
+    };
 
     socket.on("newUser", fetchUsers);
     socket.on("newReport", fetchReports);

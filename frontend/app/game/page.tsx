@@ -9,39 +9,52 @@ export default function Game()
 {
     const router = useRouter();
     const [userPseudo, setUserPseudo] = useState("");
+    const [opponent, setOpponent] = useState("");
+    const [oppGaveUp, setOppGaveUp] = useState(false);
+    const [oppSock, setOppSock] = useState("");
+
     //fetch the current user pseudo
-      useEffect(() => {
-        const getUserData = async () => {
-          const { data } = await authClient.getSession();
-          if (data && data.user.name)
-            setUserPseudo(data.user.name);
-          else
-            router.push("/not-connected");
-        };
-        getUserData();
-      }, []);
-
-      useEffect(() => {
-        if (socket.connected) return;
-        socket.connect();
-        socket.emit("login", userPseudo);
-
-        socket.on("online_users", (users) => {
-            console.log("Users from Redis:", users);
+    useEffect(() => {
+      const getUserData = async () => {
+        const { data } = await authClient.getSession();
+        if (data && data.user.name)
+          setUserPseudo(data.user.name);
+        else
+        {
+          router.push("/not-connected");
+          return ;
+        }
+        const res = await fetch(`api/user/opponent?pseudo=${data.user.name}`, {
+          method: "GET",
         });
+        if (!res.ok)
+          router.push("/home");
+        const opp = await res.json();
+        setOpponent(opp.name);
+        setOppSock(opp.socketId);
+      };
+      getUserData();
+    }, []);
 
-        return () => {
-            socket.off("online_users");
-        };
-      }, [userPseudo]);
-    
-      useEffect(() => {
-        if (!userPseudo) return;
-        socket.on("ban", (banned) => {
-          if (banned === userPseudo)
-            handleLogout();
-        });
-      }, [userPseudo])
+    useEffect(() => {
+      if (socket.connected) return;
+      router.push("/home");
+    }, [userPseudo]);
+  
+    useEffect(() => {
+      if (!userPseudo) return;
+      socket.on("ban", (banned) => {
+        if (banned === userPseudo)
+          handleLogout();
+      });
+      socket.on("online_users", async (users) => {
+        if (users[opponent] !== oppSock)
+        {
+          setOppGaveUp(true);
+          router.push("/home");
+        }
+      });
+    }, [userPseudo]);
     
     const handleLogout = async () => {
     const response = await fetch("/api/profile", {
@@ -60,7 +73,8 @@ export default function Game()
         await authClient.signOut();
         router.push("/");
     };
+
     return (
-        <div className="flex w-full justify-center px-4">PlaceHolder</div>
+        <div className="flex w-full justify-center px-4">PlaceHolder {opponent} {oppGaveUp ? "Gave up" : "Here"}</div>
     )
 }

@@ -26,13 +26,10 @@ async function matchmaking()
             {
                 const p1 = await redis.lPop("players_queue");
                 const p2 = await redis.lPop("players_queue");
-                console.log(p1, p2);
 
                 const test = await redis.hGetAll("online_users");
                 const receiverSockP1 = await redis.hGet("online_users", p1);
                 const receiverSockP2 = await redis.hGet("online_users", p2);
-                console.log(receiverSockP1, receiverSockP2);
-                console.log(test);
 
                 if (!p1 || !p2 || !receiverSockP1 || !receiverSockP2)
                 {
@@ -41,6 +38,10 @@ async function matchmaking()
                     await sleep(1000);
                     continue;
                 }
+                await redis.hSet("inGamePlayers", p1, p2);
+                await redis.hSet("inGamePlayers", p2, p1);
+                const users = await redis.hGetAll("inGamePlayers");
+                console.log(users);
                 io.to(receiverSockP1).emit("matchFound");
                 io.to(receiverSockP2).emit("matchFound");
             }

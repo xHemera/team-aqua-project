@@ -20,12 +20,13 @@ export async function getReports()
         select: {
             id: true,
             inbox: { select: { 
-                id: true, last_message: true, messages: { 
-                    select: { 
-                        id: true,
-                        message: true,
-                        user_id: true,
-                        createdAt: true
+                    id: true, last_message: true, messages: { 
+                        select: { 
+                            id: true,
+                            message: true,
+                            user_id: true,
+                            createdAt: true,
+                            attachments: true,
                         } 
                     } 
                 }

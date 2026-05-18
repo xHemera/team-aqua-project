@@ -214,7 +214,6 @@ export default function Home() {
   if (!userPseudo) return;
 
     socket.on("matchFound", () => {
-      console.log("Received");
       router.push("/game");
     });
 

@@ -130,6 +130,7 @@ model User {
 	banned						Boolean		@default(false)
   profileBackground String?
   profileBanner     String?
+  opponent          String?
   online            Boolean   @default(false)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
