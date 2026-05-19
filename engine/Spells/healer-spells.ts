@@ -42,3 +42,22 @@ export class Sanctuary extends Spell {
 		});
 	}
 }
+
+export class DivineProtection extends Spell {
+	constructor(scaling: number[][]) {
+		super(scaling);
+		this.id			= "s3";
+		this.name		= "Divine Protection";
+		this.mpCost		= 35;
+		this.targeting	= "teamAoe";
+	}
+
+	applyEffect(idUser: CharacterInstance, idTargets: CharacterInstance[]): void {
+		const skillLevel = idUser.character.skills.find(s => s.id === this.id)?.level ?? 1;
+		const [duration] = this.scaling[skillLevel - 1];
+	
+		idTargets.forEach(target => {
+			target.invul += duration;
+		})
+	}
+}
