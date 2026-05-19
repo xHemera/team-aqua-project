@@ -18,13 +18,6 @@ CREATE TABLE "Character" (
     "name" TEXT NOT NULL,
     "hp" INTEGER NOT NULL,
     "level" INTEGER NOT NULL,
-    "countering" BOOLEAN NOT NULL,
-    "silenced" BOOLEAN NOT NULL,
-    "poisened" BOOLEAN NOT NULL,
-    "berserk" BOOLEAN NOT NULL,
-    "aBoost" INTEGER NOT NULL,
-    "dBoost" INTEGER NOT NULL,
-    "nturnEffect" INTEGER NOT NULL,
 
     CONSTRAINT "Character_pkey" PRIMARY KEY ("id")
 );
@@ -34,7 +27,6 @@ CREATE TABLE "GameState" (
     "id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
     "rubis" INTEGER NOT NULL,
-    "gold" INTEGER NOT NULL,
 
     CONSTRAINT "GameState_pkey" PRIMARY KEY ("id")
 );
@@ -142,6 +134,7 @@ CREATE TABLE "user" (
     "banned" BOOLEAN NOT NULL DEFAULT false,
     "profileBackground" TEXT,
     "profileBanner" TEXT,
+    "opponent" TEXT,
     "online" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,

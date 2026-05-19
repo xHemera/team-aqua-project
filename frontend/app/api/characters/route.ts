@@ -2,6 +2,8 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { CHARACTERS, MAX_CHARACTER_LEVEL, MAX_SKILL_LEVEL, PLAYER_RESOURCES } from "@/app/characters/character-roster";
 import { headers } from "next/headers";
+import { rateLimit } from "@/lib/rateLimit";
+import { redis } from "@/lib/redis";
 
 type ApiCharacterSkill = {
   id: string;
@@ -41,13 +43,11 @@ const ensureGameState = async (userId: string) => {
     create: {
       user_id: userId,
       rubis: PLAYER_RESOURCES.ruby,
-      gold: PLAYER_RESOURCES.coin,
     },
     update: {},
     select: {
       id: true,
       rubis: true,
-      gold: true,
     },
   });
 };
@@ -74,13 +74,6 @@ const ensureCharacterRoster = async (gameStateId: string) => {
         name: templateCharacter.name,
         hp: templateCharacter.stats.hp,
         level: templateCharacter.level,
-        countering: false,
-        silenced: false,
-        poisened: false,
-        berserk: false,
-        aBoost: 0,
-        dBoost: 0,
-        nturnEffect: 0,
         spells: {
           create: templateCharacter.skills.map((skill) => ({
             name: skill.name,
@@ -174,9 +167,22 @@ const getApiCharacters = async (gameStateId: string): Promise<ApiCharacterData[]
 };
 
 export async function GET() {
+  const h = await headers();
+  const ip = h
+  .get("x-forwarded-for")
+  ?.split(",")[0]
+  .trim() || "unknown";
+
+  const allowed = await rateLimit(redis, `rl:character${ip}`, 5, 3);
+
+  if (!allowed) {
+      console.log("Too many requests");
+      return Response.json({error: "Too many request"}, {status: 429});
+  }
+
   try {
     const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user?.id) {
+    if (!session || !session.user.id) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -189,7 +195,6 @@ export async function GET() {
         characters,
         resources: {
           ruby: gameState.rubis,
-          coin: gameState.gold,
         },
         maxCharacterLevel: MAX_CHARACTER_LEVEL,
         maxSkillLevel: MAX_SKILL_LEVEL,
@@ -203,9 +208,22 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const h = await headers();
+  const ip = h
+  .get("x-forwarded-for")
+  ?.split(",")[0]
+  .trim() || "unknown";
+
+  const allowed = await rateLimit(redis, `rl:character${ip}`, 5, 3);
+
+  if (!allowed) {
+      console.log("Too many requests");
+      return Response.json({error: "Too many request"}, {status: 429});
+  }
+
   try {
     const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user?.id) {
+    if (!session || !session.user.id) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -253,7 +271,7 @@ export async function POST(request: Request) {
           rubis: { gte: spell.mpCost },
         },
         data: {
-          rubis: { decrement: spell.mpCost },
+          rubis: { decrement: 10 },
         },
       });
 
@@ -282,7 +300,7 @@ export async function POST(request: Request) {
         }),
         tx.gameState.findUnique({
           where: { id: spell.character.gameState.id },
-          select: { rubis: true, gold: true },
+          select: { rubis: true },
         }),
       ]);
 
@@ -295,7 +313,6 @@ export async function POST(request: Request) {
         level: updatedSpell.level,
         resources: {
           ruby: updatedGameState.rubis,
-          coin: updatedGameState.gold,
         },
       };
     });

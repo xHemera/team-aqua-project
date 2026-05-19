@@ -149,13 +149,14 @@ export default function LoginPage() {
     setMessage("");
     if (isRegisterMode) {
       // Inscription d'un nouvel utilisateur
-      const { error } = await authClient.signUp.email({
-        name,
-        email,
-        password,
+      const res = await fetch("/api/user", {
+        method: "POST",
+        body: JSON.stringify({name: name, email: email, password: password}),
       });
 
-      if (error) {
+      if (!res.ok) {
+        const data = await res.json();
+        const error = data.error;
         setMessage(error.message ?? "Registration error");
       } else {
         socket.emit("creation");
@@ -167,38 +168,40 @@ export default function LoginPage() {
     } else {
       // Connexion d'un utilisateur existant
       const { data, error } = await authClient.signIn.email({
-        email,
-        password,
+          email,
+          password,
       });
 
-      if (error) {
+      if (error)
+      {
         setMessage(error.message ?? "Sign-in error");
+        return ;
+      }
+
+      const res = await fetch("/api/user", {
+        method: "PATCH",
+        credentials: "include"
+      })
+      const user: unknown = await res.json();
+      if (!res.ok) {
+        setLoading(false);
+        if (res.status === 403)
+        {
+          setMessage("This account has been banned");
+          await authClient.signOut();
+          return;
+        }
+      const errorMessage =
+        typeof user === "object" && user !== null && "error" in user
+          ? String((user as { error: string }).error ?? "Impossible de charger l'utilisateur")
+          : "Impossible de charger l'utilisateur";
+        throw new Error(errorMessage);
       }
       else {
-        const response = await fetch("/api/user", {
-          method: "PUT"
-        })
-        const user: unknown = await response.json();
-        if (!response.ok) {
-          if (response.status === 403)
-          {
-            setMessage("This account has been banned");
-            await authClient.signOut();
-            setLoading(false);
-            return;
-          }
-        const errorMessage =
-          typeof user === "object" && user !== null && "error" in user
-            ? String((user as { error: string }).error ?? "Impossible de charger l'utilisateur")
-            : "Impossible de charger l'utilisateur";
-          throw new Error(errorMessage);
-        }
-        else {
-          socket.emit("isconnecting");
-          setMessage("Signed in successfully!");
-          setPseudo(data.user.name || "user");
-          setTimeout(() => router.push(`/profile/${data.user.name}`), 500);
-        }
+        socket.emit("isconnecting");
+        setMessage("Signed in successfully!");
+        setPseudo(data.user.name || "user");
+        setTimeout(() => router.push(`/profile/${data.user.name}`), 500);
       }
     }
     setLoading(false);

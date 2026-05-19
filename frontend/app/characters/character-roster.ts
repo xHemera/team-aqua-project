@@ -162,7 +162,6 @@ export const CHARACTERS: CharacterData[] = CHARACTER_SEEDS.map(createCharacter);
 
 export const PLAYER_RESOURCES: PlayerResources = {
   ruby: 42,
-  coin: 45680,
 };
 
 export const MAX_CHARACTER_LEVEL = 50;

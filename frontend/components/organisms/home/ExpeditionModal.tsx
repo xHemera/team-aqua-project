@@ -13,7 +13,6 @@ type ExpeditionDuration = {
   label: string;
   seconds: number;
   xp: number;
-  gold: number;
 };
 
 type ExpeditionModalProps = {
