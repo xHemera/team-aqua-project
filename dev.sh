@@ -319,7 +319,7 @@ run_prisma_migrations() {
         sleep 2
     done
 
-    docker compose -f docker-compose.yml exec frontend bunx prisma migrate deploy --config prisma/prisma.config.ts;
+    docker compose -f docker-compose.yml exec frontend bunx prisma migrate dev --name init --url "$DATABASE_URL";
 
     print_success "Migrations Prisma appliquées"
 }
@@ -349,6 +349,7 @@ start_services() {
     docker compose up --build -d
 
     wait_for_url "http://localhost:3000" "Frontend" 180
+    run_prisma_migrations
 
     print_success "Services démarrés et site accessible"
     print_info "Frontend: http://localhost:3000"

@@ -9,6 +9,9 @@ export function MineSection({
   pseudo,
   rubyCount,
 }: MineSectionProps) {
+  const ruby = "/gameResources/items/ruby.webp";
+  const gold = "/gameResources/items/gold.webp";
+
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
       {/* Pseudo et ressources */}

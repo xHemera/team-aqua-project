@@ -24,13 +24,6 @@ model Character {
   name        String
   hp          Int
   level       Int
-  countering  Boolean
-  silenced    Boolean
-  poisened    Boolean
-  berserk     Boolean
-  aBoost      Int
-  dBoost      Int
-  nturnEffect Int
   spells      Spell[]
   gameState   GameState @relation(fields: [gameStateId], references: [id], onDelete: Cascade)
 }
@@ -136,6 +129,7 @@ model User {
 	banned						Boolean		@default(false)
   profileBackground String?
   profileBanner     String?
+  opponent          String?
   online            Boolean   @default(false)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt

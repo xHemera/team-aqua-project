@@ -45,7 +45,35 @@ export async function GET(req: Request)
         });
         return Response.json({friend: friend}, {status: 200});
     }
-    catch {
+    catch (e) {
+        console.log(e);
+        return Response.json({error: "Internal server error"}, {status: 500});
+    }
+}
+
+export async function POST(req: Request)
+{
+    const h = await headers();
+    const ip = h
+    .get("x-forwarded-for")
+    ?.split(",")[0]
+    .trim() || "unknown";
+
+    const allowed = await rateLimit(redis, `rl:duel${ip}`, 5, 3);
+
+    if (!allowed) {
+        console.log("Too many requests");
+        return Response.json({error: "Too many request"}, {status: 429});
+    }
+    try {
+        const data = await req.json();
+        const { currentUser, opponent } = data;
+        await redis.hSet("inGamePlayers", currentUser, opponent);
+        await redis.hSet("inGamePlayers", opponent, currentUser);
+        return Response.json({msg: "Created"}, {status: 201});
+    }
+    catch (e) {
+        console.log(e);
         return Response.json({error: "Internal server error"}, {status: 500});
     }
 }

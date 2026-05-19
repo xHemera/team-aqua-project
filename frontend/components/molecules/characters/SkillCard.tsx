@@ -39,6 +39,7 @@ export default function SkillCard({
   const isMaxLevel = skill.level >= maxSkillLevel;
   const resolved = resolveSkillDescription(skill.description, stats, skill);
   const visibleChargeProgress = canUpgrade && !isMaxLevel ? chargeProgress : 0;
+  const ruby = "/gameResources/items/ruby.webp";
 
   const setChargeValue = (nextValue: number) => {
     chargeProgressRef.current = nextValue;
@@ -181,7 +182,7 @@ export default function SkillCard({
               </span>
               {isMaxLevel && (
                 <span className="prismatic-gradient flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#f5e6c8]">
-                  <i className="fa-solid fa-crown text-[8px]" />
+                  <i className={"fa-solid fa-crown text-[8px]"} />
                   Max
                 </span>
               )}
@@ -229,7 +230,12 @@ export default function SkillCard({
               <div className="flex items-center gap-1.5">
                 <i className="fa-solid fa-arrow-up text-[10px]" />
                 <span>{visibleChargeProgress}/{CHARGE_STEPS}</span>
-                <i className="fa-solid fa-gem text-[#cd5c5c] text-[10px]" />
+                <img
+                src={ruby}
+                alt="Ruby"
+                width={34}
+                height={34}
+                />
               </div>
             </button>
           )}

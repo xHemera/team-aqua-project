@@ -52,9 +52,6 @@ export default function SocialPage() {
   const [customUserAvatar, setCustomUserAvatar] = useState<string | null>(null);
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [click, setClick] = useState(true);
-  const [messageOffset, setMessageOffset] = useState(0);
-  const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
-  const [hasMoreMessages, setHasMoreMessages] = useState(true);
 
 
   const MAX_MESSAGE_LENGTH = 500;
@@ -333,20 +330,6 @@ export default function SocialPage() {
 
   }, [userPseudo, selectedUser]);
 
-
-  //scroll the conversation to last message
-  // useEffect(() => {
-  //   if (messageListRef.current)
-  //   {
-  //     messageListRef.current.scrollTo({
-	// 	    top: messageListRef.current.scrollHeight,
-	// 	    behavior: "smooth",
-	// 	  });
-  //   }
-	// }, [currentMessages.length])
-
-  //fetch messages and resets unread messages
-
   useEffect(() => {
     async function fetchmessages()
 		{
@@ -354,8 +337,6 @@ export default function SocialPage() {
       const params = new URLSearchParams({
         user: currentUser.name,
         otherUser: selectedUser,
-        skip: "0",
-        take: "20",
       });
       const [mres, ures] = await Promise.all([
         fetch(`/api/social/msg?${params.toString()}`, {
@@ -373,8 +354,6 @@ export default function SocialPage() {
       const newMessages: type.Messages[] = data.msgs;
 			if (!newMessages) return;
     	setCurrentMessages(newMessages);
-      setMessageOffset(0);
-      setHasMoreMessages(newMessages.length === 20);
       if (!ures.ok)
         return;
       fetchUnread();
@@ -625,9 +604,9 @@ export default function SocialPage() {
         }),
       ])
       if (!cres.ok)
-        return;
+        throw Error("No new contact");
       if (!ires.ok)
-        return ;
+        throw Error("No new inbox");
       const idata = await ires.json();
       setInboxes(idata.inboxes);
       socket.emit("new_conv", {
@@ -798,8 +777,6 @@ export default function SocialPage() {
     if (!newMessages) return;
     
     setCurrentMessages(newMessages);
-    setMessageOffset(0);
-    setHasMoreMessages(newMessages.length === 20);
 
     socket.emit("notTyping", {
       sender : currentUser.name,
@@ -822,49 +799,6 @@ export default function SocialPage() {
     setDraftAttachments([]);
   };
 
-  //loads older messages when scrolling to top
-  const loadOlderMessages = async () => {
-    if (!currentUser || !selectedUser || isLoadingOlderMessages || !hasMoreMessages) return;
-    
-    setIsLoadingOlderMessages(true);
-    const nextOffset = messageOffset + 20;
-    
-    try {
-      const params = new URLSearchParams({
-        user: currentUser.name,
-        otherUser: selectedUser,
-        skip: nextOffset.toString(),
-        take: "20",
-      });
-      
-      const res = await fetch(`/api/social/msg?${params.toString()}`, {
-        method: "GET",
-      });
-      
-      if (!res.ok) {
-        setIsLoadingOlderMessages(false);
-        return;
-      }
-      
-      const data = await res.json();
-      const olderMessages: type.Messages[] = data.msgs;
-      
-      if (!olderMessages || olderMessages.length === 0) {
-        setHasMoreMessages(false);
-        setIsLoadingOlderMessages(false);
-        return;
-      }
-      
-      setCurrentMessages([...olderMessages, ...currentMessages]);
-      setMessageOffset(nextOffset);
-      setHasMoreMessages(olderMessages.length === 20);
-    } catch (error) {
-      console.error("Error loading older messages:", error);
-    } finally {
-      setIsLoadingOlderMessages(false);
-    }
-  };
-
   const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (!isBlocked && !hasBlocked && event.key === "Enter") {
       event.preventDefault();
@@ -877,6 +811,12 @@ export default function SocialPage() {
       user: currentUser.name,
       oUser: selectedUser,
     })
+    const res = await fetch("/api/social/otherFriend", {
+      method: "POST",
+      body: JSON.stringify({currentUser: currentUser.name, opponent: selectedUser}),
+    });
+    if (!res.ok)
+      return ;
     return router.push("game");
   }
 
@@ -907,17 +847,6 @@ export default function SocialPage() {
         receiver: selectedUser,
       });
     }, 1000);
-  }
-
-  async function onSelect() {
-    if (!click)
-      return;
-
-    setClick(false);
-
-    setTimeout(() => {
-      setClick(true);
-    }, 1500);
   }
 
   return (
@@ -1007,62 +936,6 @@ export default function SocialPage() {
             onAddContactClick={openAddContactModal}
           />
 
-          {/* Header avec contacts et boutons
-          <header className="flex items-center border-b border-[#c9a227]/30 px-5 py-3">
-            Contacts scroll horizontalement 
-            <div className="flex-1 overflow-x-auto px-4">
-              <div className="flex gap-2">
-                {
-                  users.map((user) => {
-                  const isActive = selectedUser === user.name;
-                  if (user.name === currentUser.name) return null;
-                  const hasConversation = inboxes.some(inbox => {
-                    const ids = inbox.inboxUser.map(iu => iu.user_id);
-                    return ids.includes(user.id);
-                  });
-                  if (!hasConversation) return null;
-                  return(
-                    <button
-                      key={user.name}
-                      disabled={!click}
-                      onClick={() => {
-                          setSelectedUser(user.name);
-                          if (user.name == notifSender)
-                            setShowNotification(false);
-                          onSelect();
-                        }
-                      }
-                      className={`relative flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 transition-colors ${
-                        isActive
-                          ? "border-[color:var(--accent-border)] bg-[var(--accent-soft)] text-white"
-                          : "border-[#c9a227]/30 bg-[#242033] text-gray-200 hover:bg-[#302a45]"
-                      }`}
-                    >
-                      <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-visible">
-                        <Image
-                          src={user.name === userPseudo && customUserAvatar ? customUserAvatar : (user.image || (user.avatar?.url ?? DEFAULT_PROFILE_ICON.url))}
-                          alt={user.name}
-                          width={32}
-                          height={32}
-                          className="h-8 w-8 rounded-lg border border-[#c9a227]/30 object-cover"
-                          unoptimized
-                        />
-                      </div>
-                      {user.online ? <div>🟢</div> : <div>🔴</div>}
-                      <span className="shrink-0 whitespace-nowrap text-sm font-semibold">{user.name}</span>
-                      {
-                        (unreadMap[user.name] ?? 0) > 0 && (
-                        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
-                          {unreadMap[user.name] ?? 0}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div> */}
-
-
           <section className="flex h-full min-h-0 flex-col">
 
             {selectedUser && request && friendRequestSender && (
@@ -1073,7 +946,7 @@ export default function SocialPage() {
               />
             )}
 
-            {challenge && opponent && (
+            {selectedUser && challenge && opponent && (
               <DuelRequestBanner
                 opponentName={opponent}
                 onAccept={(acceptDuel)}
@@ -1094,9 +967,6 @@ export default function SocialPage() {
               typer={typer}
               onMessageExpand={toggleMessageExpanded}
               onProfileClick={handleProfileClick}
-              onLoadOlderMessages={loadOlderMessages}
-              isLoadingOlderMessages={isLoadingOlderMessages}
-              hasMoreMessages={hasMoreMessages}
             />
 
             <footer className="sticky bottom-0 border-t border-[#c9a227]/30 bg-[#15131d] p-4">

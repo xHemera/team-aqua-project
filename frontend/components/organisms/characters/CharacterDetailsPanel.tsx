@@ -14,6 +14,8 @@ type CharacterDetailsPanelProps = {
   canUpgradeSkill: (skill: CharacterSkill) => boolean;
 };
 
+const ruby = "/gameResources/items/ruby.webp";
+
 // Organism: panneau droit stats + competences.
 export default function CharacterDetailsPanel({
   selectedCharacter,
@@ -28,7 +30,12 @@ export default function CharacterDetailsPanel({
     <div className="z-20 flex w-[420px] flex-col border-l border-[#c9a227]/20 bg-[#0c0a0f]/95 p-5">
       <div className="mb-4 flex items-center justify-between rounded-lg border border-[#c9a227]/30 bg-gradient-to-r from-[#1e1a24] to-[#15121a] px-4 py-3">
         <div className="flex items-center gap-2">
-          <i className="fa-solid fa-gem text-[#cd5c5c]" />
+          <img
+          src={ruby}
+          alt="Ruby"
+          width={34}
+          height={34}
+          />
           <span className="font-bold text-[#f5e6c8]" style={{ fontFamily: "var(--font-display), serif" }}>
             {resources.ruby}
           </span>

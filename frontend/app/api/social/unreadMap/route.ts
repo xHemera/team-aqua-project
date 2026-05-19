@@ -17,6 +17,7 @@ export async function GET(req: Request)
       console.log("Too many requests");
       return Response.json({error: "Too many request"}, {status: 429});
   }
+
   try {
     const {searchParams} = new URL(req.url);
     const currentUser = searchParams.get("user");
@@ -29,25 +30,33 @@ export async function GET(req: Request)
         select: {id: true}
     });
     if (!cUser) return Response.json({error: "Internal server error"}, {status: 500});
-    const users = await prisma.user.findMany({
+
+    const inboxes = await prisma.inbox.findMany({
         where: {
-            inbox: {
+            inboxUser: {
                 some: {
-                    inboxUser: {
-                        some: {
-                            user_id: cUser.id
-                        }
-                    }
+                    user_id: cUser.id
                 }
             }
         },
-        select: {
-            id: true,
-            name: true,
+        include: {
+            inboxUser: {
+                include: {
+                    user: true
+                }
+            }
         }
     });
+    const users = inboxes.flatMap(inbox =>
+        inbox.inboxUser
+        .map(iu => iu.user)
+        .filter((user): user is NonNullable<typeof user> =>
+        !!user && user.id !== cUser.id)
+    );
+    if (!users) return Response.json({error: "Internal server error"}, {status: 500});
     await Promise.all(
         users.map(async (user) => {
+            if (!user) return;
             const iU = await prisma.inbox_users.findFirst({
                 where: {
                     inbox: {
@@ -60,7 +69,6 @@ export async function GET(req: Request)
                             }
                         }
                     },
-                    user_id: cUser.id
                 },
                 select: {
                     unread_messages: true
