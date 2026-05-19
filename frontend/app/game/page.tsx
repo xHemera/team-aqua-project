@@ -28,7 +28,10 @@ export default function Game()
           method: "GET",
         });
         if (!res.ok)
+        {
           router.push("/home");
+          return ;
+        }
         const opp = await res.json();
         setOpponent(opp.name);
         setOppSock(opp.socketId);
@@ -39,22 +42,34 @@ export default function Game()
     useEffect(() => {
       if (socket.connected) return;
       router.push("/home");
-    }, [userPseudo]);
+      return ;
+    }, []);
   
     useEffect(() => {
       if (!userPseudo) return;
-      socket.on("ban", (banned) => {
+      const handleBan = (banned: string) => {
         if (banned === userPseudo)
           handleLogout();
-      });
-      socket.on("online_users", async (users) => {
+      };
+      const handleDisconnect = (users: {[x: string]: string;}) => {
         if (users[opponent] !== oppSock)
         {
           setOppGaveUp(true);
+          socket.off("ban", handleBan);
+          socket.off("online_users", handleDisconnect);
           router.push("/home");
         }
-      });
-    }, [userPseudo]);
+      };
+
+      socket.removeAllListeners("online_users");
+      socket.on("ban", handleBan);
+      socket.once("online_users", handleDisconnect);
+
+      return () => {
+        socket.off("ban", handleBan);
+        socket.off("online_users", handleDisconnect);
+      };
+    }, [userPseudo, opponent, oppSock]);
     
     const handleLogout = async () => {
     const response = await fetch("/api/profile", {
