@@ -19,18 +19,18 @@ export class HealingLight extends Spell {
 	}
 }
 
-// export class Sanctuary extends Spell {
-// 	constructor(scaling: number[][]) {
-// 		super(scaling);
-// 		this.id			= "s2";
-// 		this.name		= "Sanctuary";
-// 		this.mpCost		= 18;
-// 		this.targeting	= "teamAoe";
-// 	}
+export class Sanctuary extends Spell {
+	constructor(scaling: number[][]) {
+		super(scaling);
+		this.id			= "s2";
+		this.name		= "Sanctuary";
+		this.mpCost		= 18;
+		this.targeting	= "teamAoe";
+	}
 
-// 	applyEffect(idUser: CharacterInstance, idTargets: CharacterInstance[]): void {
-//         const skillLevel = idUser.character.skills.find(s => s.id === this.id)?.level ?? 1;
-// 		const [healMultiplier, flatHeal, defenseBonus, duration] = this.scaling[skillLevel - 1];
-// 		const raw = idUser.character.stats.magicalDamage * healMultiplier + flatHeal;	
-// 	}
-// }
+	applyEffect(idUser: CharacterInstance, idTargets: CharacterInstance[]): void {
+        const skillLevel = idUser.character.skills.find(s => s.id === this.id)?.level ?? 1;
+		const [healMultiplier, flatHeal, defenseBonus, duration] = this.scaling[skillLevel - 1];
+		const raw = idUser.character.stats.magicalDamage * healMultiplier + flatHeal;	
+	}
+}

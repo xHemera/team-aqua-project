@@ -1,18 +1,24 @@
 import { archer } from "../../frontend/public/gameResources/heroes/archer/hero";
 import { assassin } from "../../frontend/public/gameResources/heroes/assassin/hero";
+import { healer } from "../../frontend/public/gameResources/heroes/healer/hero";
+import { mage } from "../../frontend/public/gameResources/heroes/mage/hero";
 import { PiercingShot, PrecisionFocus, RainOfArrows } from "./archer-spells";
 import { PhantomStep, ShadowStrike, VenomBlade } from "./assassin-spells";
+import { HealingLight } from "./healer-spells";
+import { Meteor } from "./mage-spells";
 import { Spell } from "./Spell";
 
 type SpellFactory = () => Spell;
 
 const SPELL_REGISTRY: Record<string, SpellFactory> = {
-	"archer_s1": () => new PiercingShot(archer.skills[0].scaling),
-	"archer_s2": () => new RainOfArrows(archer.skills[1].scaling),
-	"archer_s3": () => new PrecisionFocus(archer.skills[2].scaling),
-    "assassin_s1": () => new ShadowStrike(assassin.skills[0].scaling),
-    "assassin_s2": () => new VenomBlade(assassin.skills[1].scaling),
-    "assassin_s3": () => new PhantomStep(assassin.skills[2].scaling),
+	"archer_s1":	() => new PiercingShot(archer.skills[0].scaling),
+	"archer_s2":	() => new RainOfArrows(archer.skills[1].scaling),
+	"archer_s3":	() => new PrecisionFocus(archer.skills[2].scaling),
+    "assassin_s1":	() => new ShadowStrike(assassin.skills[0].scaling),
+    "assassin_s2":	() => new VenomBlade(assassin.skills[1].scaling),
+    "assassin_s3":	() => new PhantomStep(assassin.skills[2].scaling),
+	"healer_s1":	() => new HealingLight(healer.skills[0].scaling),
+	"mage_s3":		() => new Meteor(mage.skills[2].scaling),
 };
 
 export function buildSpellMap(characterId: string, skills: { id: string }[]): Map<string, Spell> {
