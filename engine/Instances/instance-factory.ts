@@ -1,5 +1,6 @@
 import { archer } from "../../frontend/public/gameResources/heroes/archer/hero";
 import { assassin } from "../../frontend/public/gameResources/heroes/assassin/hero";
+import { healer } from "../../frontend/public/gameResources/heroes/healer/hero";
 import { HeroData } from "./HeroData";
 
 function toHeroData(hero: typeof archer): HeroData {
@@ -18,6 +19,7 @@ function toHeroData(hero: typeof archer): HeroData {
 const HERO_REGISTRY: Record<string, HeroData> = {
 	archer:		toHeroData(archer),
 	assassin:	toHeroData(assassin),
+	healer:		toHeroData(healer),
 };
 
 export function getHeroData(characterId: string): HeroData {

@@ -18,7 +18,7 @@ const SPELL_REGISTRY: Record<string, SpellFactory> = {
 export function buildSpellMap(characterId: string, skills: { id: string }[]): Map<string, Spell> {
 	const map = new Map<string, Spell>();
 	skills.forEach(skill => {
-		const key 		= '${characterId}_${skill.id}';
+		const key 		= `${characterId}_${skill.id}`;
 		const factory	= SPELL_REGISTRY[key];
 		if (factory) map.set(skill.id, factory());
 	});
