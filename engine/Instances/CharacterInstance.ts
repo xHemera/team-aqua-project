@@ -26,6 +26,7 @@ export class CharacterInstance {
 	nextAttackBonus:	number = 0;
 	stunned:			number = 0;
 	overHp:				number = 0;
+	invul:				number = 0;
 	spells:				Map<string, Spell> = new Map();
 
     constructor(uid: string, character: HeroData, owner: number) {

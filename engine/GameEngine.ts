@@ -23,7 +23,8 @@ function tickAllMods(character: CharacterInstance): void {
 	character.critDamageMod = tick(character.critDamageMod);
 
 	if (character.stunned   > 0) character.stunned   -= 1;
-	if (character.invisible > 0) character.invisible -=1;
+	if (character.invisible > 0) character.invisible -= 1;
+	if (character.invul > 0) character.invul -=1;
 }
 
 function tickPoison(state: GameState): GameState {

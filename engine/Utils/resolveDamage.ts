@@ -62,10 +62,14 @@ export function resolveMagDamage(
 }
 
 export function applyDamage(target: CharacterInstance, damage: number): void {
-  if (target.overHp > 0) {
-    const absorbed = Math.min(target.overHp, damage);
-    target.overHp -= absorbed;
-    damage        -= absorbed;
-  }
-  target.currentHp = Math.max(0, target.currentHp - damage);
+	if (target.invul > 0) {
+		return;
+	}
+
+	if (target.overHp > 0) {
+		const absorbed = Math.min(target.overHp, damage);
+		target.overHp -= absorbed;
+		damage        -= absorbed;
+	}
+	target.currentHp = Math.max(0, target.currentHp - damage);
 }
