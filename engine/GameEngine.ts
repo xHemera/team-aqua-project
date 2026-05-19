@@ -22,6 +22,7 @@ function tickAllMods(character: CharacterInstance): void {
 	character.critChanceMod	= tick(character.critChanceMod);
 	character.critDamageMod = tick(character.critDamageMod);
 
+	if (character.stunned   > 0) character.stunned   -= 1;
 	if (character.invisible > 0) character.invisible -=1;
 }
 
@@ -90,6 +91,12 @@ export function initGame(state: GameState): GameState {
 
 export function processAction(state: GameState, action: GameAction): GameState {
 	const user		= findCharacter(state, action.userUid);
+
+	if (!user) return state;
+	if (user.stunned > 0) {
+		tickAllMods(user);
+		return advanceTurn(state);
+	}
 	const targets	= action.targetUids
 		.map(uid => findCharacter(state, uid))
 		.filter((c):c is CharacterInstance => c !== undefined);
