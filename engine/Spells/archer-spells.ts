@@ -1,5 +1,5 @@
 import { CharacterInstance } from "../Instances/CharacterInstance";
-import { resolvePhyDamage } from "../Utils/resolveDamage";
+import { applyDamage, resolvePhyDamage } from "../Utils/resolveDamage";
 import { Spell } from "./Spell";
 
 export class PiercingShot extends Spell {
@@ -19,8 +19,7 @@ export class PiercingShot extends Spell {
         const raw        = idUser.character.stats.physicalDamage * multiplier + flat;
         const reducedRes = idTargets[0].phyRes * (1 - armorPen / 100);
         const damage     = resolvePhyDamage(raw, idUser, idTargets[0], reducedRes);
-
-        idTargets[0].currentHp = Math.max(0, idTargets[0].currentHp - damage);
+		applyDamage(idTargets[0], damage);
     }
 }
 
@@ -41,7 +40,7 @@ export class RainOfArrows extends Spell {
 		const raw = idUser.character.stats.physicalDamage * multiplier + flat;
 		idTargets.forEach(target => {
 			const damage = resolvePhyDamage(raw, idUser, target);
-			target.currentHp = Math.max(0, target.currentHp - damage);
+			applyDamage(target, damage);
 		});
 	}
 }

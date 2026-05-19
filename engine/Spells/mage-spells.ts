@@ -1,6 +1,6 @@
 import { CharacterInstance } from "../Instances/CharacterInstance";
 import { Spell } from "./Spell";
-import { resolveMagDamage } from "../Utils/resolveDamage";
+import { applyDamage, resolveMagDamage } from "../Utils/resolveDamage";
 
 export class ArcaneMissiles extends Spell{
 	constructor(scaling: number[][]) {
@@ -22,7 +22,7 @@ export class ArcaneMissiles extends Spell{
 
         const target = livingTargets[Math.floor(Math.random() * livingTargets.length)];
         const damage = resolveMagDamage(raw, idUser, target);
-        target.currentHp = Math.max(0, target.currentHp - damage);
+		applyDamage(idTargets[0], damage);
     }
 	}
 }
@@ -43,7 +43,7 @@ export class Meteor extends Spell{
 		const raw	= idUser.character.stats.magicalDamage * multiplier + flat;
 		idTargets.forEach(target => {
 			const damage = resolveMagDamage(raw, idUser, target);
-			target.currentHp = Math.max(0, target.currentHp - damage);
+			applyDamage(target, damage);
 		});
 	}
 }

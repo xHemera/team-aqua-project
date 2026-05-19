@@ -1,6 +1,6 @@
 import { CharacterInstance } from "../Instances/CharacterInstance";
 import { Spell } from "./Spell";
-import { resolvePhyDamage } from "../Utils/resolveDamage";
+import { applyDamage, resolvePhyDamage } from "../Utils/resolveDamage";
 
 export class ShadowStrike extends Spell {
     constructor(scaling: number[][]) {
@@ -21,7 +21,7 @@ export class ShadowStrike extends Spell {
             : 1;
 
         const damage = resolvePhyDamage(raw * bonus, idUser, idTargets[0]);
-        idTargets[0].currentHp = Math.max(0, idTargets[0].currentHp - damage);
+        applyDamage(idTargets[0], damage);
     }
 }
 
@@ -41,7 +41,7 @@ export class VenomBlade extends Spell {
         const raw    = idUser.character.stats.physicalDamage * multiplier + flat;
         const damage = resolvePhyDamage(raw, idUser, idTargets[0]);
 
-        idTargets[0].currentHp = Math.max(0, idTargets[0].currentHp - damage);
+        applyDamage(idTargets[0], damage);
         idTargets[0].poison.push({ value: poisonDamage, turn: duration });
     }
 }

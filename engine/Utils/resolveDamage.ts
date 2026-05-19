@@ -60,3 +60,12 @@ export function resolveMagDamage(
 
     return finalDmg;
 }
+
+export function applyDamage(target: CharacterInstance, damage: number): void {
+  if (target.overHp > 0) {
+    const absorbed = Math.min(target.overHp, damage);
+    target.overHp -= absorbed;
+    damage        -= absorbed;
+  }
+  target.currentHp = Math.max(0, target.currentHp - damage);
+}
