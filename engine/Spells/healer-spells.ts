@@ -30,12 +30,13 @@ export class Sanctuary extends Spell {
 
 	applyEffect(idUser: CharacterInstance, idTargets: CharacterInstance[]): void {
         const skillLevel = idUser.character.skills.find(s => s.id === this.id)?.level ?? 1;
-		const [healMultiplier, flatHeal, defenseBonus, duration] = this.scaling[skillLevel - 1];
+		const [healMultiplier, overHealth, defenseBonus, duration] = this.scaling[skillLevel - 1];
 
 		idTargets.forEach(target => {
 			const raw = idUser.character.stats.magicalDamage * healMultiplier;
-			idTargets[0].currentHp = Math.min(idTargets[0].character.stats.hp, idTargets[0].currentHp + raw);
-
+			target.currentHp = Math.min(target.character.stats.hp, idTargets[0].currentHp + raw);
+			target.overHp    += overHealth;
+	
 			target.phyResMod.push({ value: defenseBonus, turn: duration });
     		target.magResMod.push({ value: defenseBonus, turn: duration });
 		});
