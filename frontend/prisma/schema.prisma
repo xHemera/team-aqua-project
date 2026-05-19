@@ -12,10 +12,9 @@ model Spell {
   characterId String
   name        String
   type        String
-  effect      Int
   mpCost      Int
   level       Int
-  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  character   Character? @relation(fields: [characterId], references: [id], onDelete: Cascade)
 }
 
 model Character {

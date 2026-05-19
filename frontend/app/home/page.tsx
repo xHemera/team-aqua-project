@@ -278,6 +278,9 @@ export default function Home() {
     setPvpOpen(true);
     const res = await fetch("/api/home", {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({userPseudo: userPseudo}),
     })
     if (!res.ok)

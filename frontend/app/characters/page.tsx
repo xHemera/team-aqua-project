@@ -22,9 +22,29 @@ export default function CharactersPage() {
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
 
   useEffect(() => {
+    const getUserData = async () => {
+      const { data } = await authClient.getSession();
+      if (data && data.user.name)
+        setUserPseudo(data.user.name);
+    };
+
+    const timeoutId = window.setTimeout(() => {
+      void getUserData();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!userPseudo) return;
     const loadCharacters = async () => {
       try {
-        const response = await fetch("/api/characters", { cache: "no-store" });
+        const response = await fetch(`/api/characters?username=${userPseudo}`, {
+          method: "GET",
+          cache: "no-store"
+        });
         if (!response.ok) {
           return;
         }
@@ -58,22 +78,6 @@ export default function CharactersPage() {
     };
 
     void loadCharacters();
-  }, []);
-
-  useEffect(() => {
-    const getUserData = async () => {
-      const { data } = await authClient.getSession();
-      if (data && data.user.name)
-        setUserPseudo(data.user.name);
-    };
-
-    const timeoutId = window.setTimeout(() => {
-      void getUserData();
-    }, 0);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
   }, []);
 
   useEffect(() => {

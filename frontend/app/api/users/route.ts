@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { rateLimit } from "@/lib/rateLimit";
 import { redis } from "@/lib/redis";
 import { headers } from "next/headers";
+import { CHARACTERS } from "@/public/gameResources/heroes";
 
 export async function GET() {
   const h = await headers();
@@ -64,7 +65,8 @@ export async function POST()
         name: "Xoco"
       },
       select: {
-        id: true
+        id: true,
+        name: true,
       }
     })
     const admin2 = await prisma.user.findFirst({
@@ -72,7 +74,8 @@ export async function POST()
         name: "Hemera"
       },
       select: {
-        id: true
+        id: true,
+        name: true,
       }
     });
 
@@ -133,9 +136,48 @@ export async function POST()
         }
       ]
     });
+    const admins = [admin1, admin2];
+    for (const admin of admins)
+    {
+      const gs = await prisma.gameState.create({
+        data: {
+          user_id: admin.id,
+          rubis: 0,
+        }
+      });
+      if (!gs)
+        return Response.json({error: "Internal server error"}, {status: 500});
+
+      for (const character of CHARACTERS)
+      {
+        const char = await prisma.character.create({
+          data: {
+            gameStateId: gs.id,
+            name: character.identity.name,
+            hp: character.baseStats.hp,
+            level: 1,
+          }
+        })
+        if (!char)
+          return Response.json({error: "Internal server error"}, {status: 500});
+        for (const spell of character.skills)
+        {
+          await prisma.spell.create({
+            data: {
+              characterId: char.id,
+              name: spell.info.name,
+              type: spell.type,
+              mpCost: spell.manaCost,
+              level: 1,
+            }
+          });
+        }
+      }
+    }
+    return Response.json({msg: "Created"}, {status: 201});
   }
   catch (error)
   {
-    return Response.json({error: "admins not created"}, {status: 500});
+    return Response.json({error: "Internal server error"}, {status: 500});
   }
 }

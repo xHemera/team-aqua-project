@@ -10,14 +10,14 @@ export type CharacterSkill = {
 
 export type CharacterStats = {
   physicalDamage: 		number;
-  magicalDamage: 		number;
-  critChance: 			number;
-  critDamage: 			number;
-  hp: 					number;
-  mp: 					number;
+  magicalDamage: 		  number;
+  critChance: 			  number;
+  critDamage: 			  number;
+  hp: 					      number;
+  mp: 					      number;
   physicalResistance:	number;
   magicalResistance:	number;
-  speed:				number;
+  speed:				      number;
 };
 
 export type CharacterData = {

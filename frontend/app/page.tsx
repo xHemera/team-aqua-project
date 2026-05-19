@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { socket } from "../socket"
@@ -26,9 +26,12 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [pseudo, setPseudo] = useState<string | null>(null);
   const router = useRouter();
+  const ran = useRef(false);
 
 
   useEffect(() => {
+    if (ran.current) return;
+      ran.current = true;
     const fetchUsers = async () => {
 
       const response = await fetch("/api/users", {
@@ -65,45 +68,14 @@ export default function LoginPage() {
         setIsRegisterMode(false);
         setPassword("");
         setName("");
-        await fetch("/api/users", {
+        const res = await fetch("/api/users", {
           method: "POST",
-        })
-        if (!response.ok) {
-          const data: unknown = await response.json();
-          const errorMessage =
-            typeof data === "object" && data !== null && "error" in data
-              ? String((data as { error?: string }).error ?? "Impossible de charger les utilisateurs")
-              : "Impossible de charger les utilisateurs";
-            throw new Error(errorMessage);
-        }
-        //cette ligne et soit necessaire, soit elle casse tout
-        //const data: unknown = await response.json();
-        const users = data as User[];
-        if (users.length === 0)
+        });
+        if (!res.ok)
         {
-            try {
-              await authClient.signUp.email({
-                name: "Xoco",
-                email: "Xoco@gmail.com",
-                password: "12345678",
-              });
-              await authClient.signUp.email({
-                name: "Hemera",
-                email: "hemera@gmail.com",
-                password: "12345678",
-              });
-          }
-
-          catch {
-            setMessage("Registration error");
-            return;
-          }
-          setIsRegisterMode(false);
-          setPassword("");
-          setName("");
-          await fetch("/api/users", {
-            method: "POST",
-          })
+          const data = await res.json();
+          const error = data.error;
+          setMessage(`${error}: Registration error`);
         }
       }
     }
@@ -151,14 +123,31 @@ export default function LoginPage() {
       // Inscription d'un nouvel utilisateur
       const res = await fetch("/api/user", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({name: name, email: email, password: password}),
+      });
+      const char = await fetch("/api/characters", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({name: name}),
       });
 
       if (!res.ok) {
         const data = await res.json();
         const error = data.error;
         setMessage(error.message ?? "Registration error");
-      } else {
+      }
+      else if (!char.ok)
+      {
+        const data = await char.json();
+        const error = data.error;
+        setMessage(`${error}: Registration error`);
+      }
+      else {
         socket.emit("creation");
         setMessage("Account created successfully! You can now sign in.");
         setIsRegisterMode(false);
@@ -180,6 +169,9 @@ export default function LoginPage() {
 
       const res = await fetch("/api/user", {
         method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
         credentials: "include"
       })
       const user: unknown = await res.json();
