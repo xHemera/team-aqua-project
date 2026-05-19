@@ -6,7 +6,7 @@ import { PiercingShot, PrecisionFocus, RainOfArrows } from "./archer-spells";
 import { PhantomStep, ShadowStrike, VenomBlade } from "./assassin-spells";
 import { DivineProtection, HealingLight, Sanctuary } from "./healer-spells";
 import { ShieldBash } from "./knight-spells";
-import { ArcaneMissiles, Meteor } from "./mage-spells";
+import { ArcaneMissiles, Fireball, Meteor } from "./mage-spells";
 import { Spell } from "./Spell";
 
 type SpellFactory = () => Spell;
@@ -22,6 +22,7 @@ const SPELL_REGISTRY: Record<string, SpellFactory> = {
 	"healer_s2":	() => new Sanctuary(healer.skills[1].scaling),
 	"healer_s3":	() => new DivineProtection(healer.skills[2].scaling),
 	"knight_s1":	() => new ShieldBash(mage.skills[0].scaling),
+	"mage_s1":		() => new Fireball(mage.skills[0].scaling),
 	"mage_s2":		() => new ArcaneMissiles(mage.skills[1].scaling),
 	"mage_s3":		() => new Meteor(mage.skills[2].scaling),
 };

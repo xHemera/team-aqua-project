@@ -2,6 +2,28 @@ import { CharacterInstance } from "../Instances/CharacterInstance";
 import { Spell } from "./Spell";
 import { applyDamage, resolveMagDamage } from "../Utils/resolveDamage";
 
+export class Fireball extends Spell{
+	constructor(scaling: number[][]) {
+		super(scaling);
+		this.id			= "s1";
+		this.name		= "Fireball";
+		this.mpCost		= 12;
+		this.targeting	= "single";
+	}
+
+	applyEffect(idUser: CharacterInstance, idTargets: CharacterInstance[]): void {
+		const skillLevel = idUser.character.skills.find(s => s.id === this.id)?.level ?? 1;
+		const [multiplier, flat, burnChance, duration] = this.scaling[skillLevel- 1];
+		const raw = idUser.character.stats.magicalDamage * multiplier + flat;
+		const damage = resolveMagDamage(raw, idUser, idTargets[0]);
+
+		applyDamage(idTargets[0], damage);
+		if (Math.random() * 100 < burnChance) {
+			idTargets[0].poison.push({ value: raw, turn: duration});
+		}
+	}
+}
+
 export class ArcaneMissiles extends Spell{
 	constructor(scaling: number[][]) {
 		super(scaling);
