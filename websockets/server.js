@@ -154,8 +154,10 @@ io.on("connection", (socket) => {
     {
       io.to(receiverSock).emit("accept", {user, oUser});
     }
+    io.to(socket.id).emit("accept", {user, oUser});
   })
 
+  //tells that the duel has been refused
   //tells that the duel has been refused
   socket.on("duel_refused", async ({user, oUser}) => {
     const receiverSock = await redis.hGet("online_users", oUser);
@@ -163,6 +165,7 @@ io.on("connection", (socket) => {
     {
       io.to(receiverSock).emit("refuse", {user, oUser});
     }
+    io.to(socket.id).emit("refuse", {user, oUser});
   })
 
   //tells that the message has been read

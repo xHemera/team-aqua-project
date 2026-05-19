@@ -162,6 +162,16 @@ export default function ProfileViewerModal({
   }, [inputUser, currentUser])
 
 
+  // Handle report notification timeout
+  useEffect(() => {
+    if (!reportNotification) return;
+    const timeoutId = setTimeout(() => {
+      setReportNotification(null);
+    }, 3000);
+    return () => clearTimeout(timeoutId);
+  }, [reportNotification]);
+
+
   const handleProfileClick = async () => {
       if (inputUser) {
         router.push(`/profile/${inputUser.name}`);
@@ -306,6 +316,19 @@ export default function ProfileViewerModal({
     <>
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={onClose}>
       {inputUser && showNotification && notification && notifSender && (notifSender !== inputUser.name) && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
+      {reportNotification && (
+        <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
+          <div
+            className={`rounded-xl border px-4 py-2 text-sm font-semibold shadow-lg ${
+              reportNotification.type === "success"
+                ? "border-emerald-400/50 bg-emerald-500/90 text-white"
+                : "border-red-400/50 bg-red-500/90 text-white"
+            }`}
+          >
+            {reportNotification.message}
+          </div>
+        </div>
+      )}
       <Card
         className="w-full max-w-md rounded-2xl border border-[#3c3650] bg-[#15131d] p-6 shadow-2xl"
         role="dialog"
