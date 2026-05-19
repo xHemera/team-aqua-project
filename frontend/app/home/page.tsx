@@ -10,7 +10,7 @@ import { authClient } from "@/lib/auth-client";
 import { MineSection } from "@/components/organisms/home/MineSection";
 import { TeamBuilder } from "@/components/organisms/home/TeamBuilder";
 import { ExpeditionTracker } from "@/components/organisms/home/ExpeditionTracker";
-import { CHARACTERS, PLAYER_RESOURCES } from "@/app/characters/character-roster";
+import { CHARACTERS } from "@/public/gameResources/heroes";
 import SidebarShell from "@/components/SidebarShell";
 import {socket} from "../../socket"
 import NotificationToast from "@/components/organisms/home/NotificationToast";
@@ -72,15 +72,15 @@ export default function Home() {
 
   const roster = useMemo(
     () => CHARACTERS.slice(0, 6).map((character) => ({
-      id: character.id,
-      name: character.name,
-      portrait: character.portrait,
+      id: character.identity.id,
+      name: character.identity.name,
+      portrait: character.identity.assets.portrait,
     })),
     [],
   );
 
   const defaultCharacterId = roster[0]?.id ?? null;
-  const [ruby, setRuby] = useState<number>(PLAYER_RESOURCES.ruby);
+  const [ruby, setRuby] = useState<number>(0);
 
   const [pvpOpen, setPvpOpen] = useState(false);
   const [minePopups, setMinePopups] = useState<MinePopup[]>([]);

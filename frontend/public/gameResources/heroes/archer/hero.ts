@@ -66,7 +66,7 @@ export const archer = {
         manaCost: 8,
         scaling: [
 		// [multiplier, flatDamagePerLevel, armorPen]
-			[1.2, 15, 15],
+			      [1.2, 15, 15],
             [1.3, 18, 17],
             [1.4, 21, 19],
             [1.5, 24, 21],

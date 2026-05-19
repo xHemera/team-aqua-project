@@ -178,7 +178,7 @@ export default function ProfileViewerModal({
       onClose();
       return;
     }
-    const res = await fetch("api/social/friend", {
+    const res = await fetch("/api/social/friend", {
       method: "POST",
       body: JSON.stringify({currentUser: currentUser.name, otherUser: inputUser.name}),
     })

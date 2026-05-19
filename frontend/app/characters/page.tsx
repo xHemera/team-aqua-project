@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MAX_SKILL_LEVEL, PLAYER_RESOURCES } from "./character-roster";
 import CharacterViewer from "@/components/organisms/characters/CharacterViewer";
 import Sidebar from "@/components/Sidebar";
 import NotificationToast from "@/components/organisms/home/NotificationToast";
@@ -12,8 +11,8 @@ import { useRouter } from "next/navigation";
 
 export default function CharactersPage() {
   const [characters, setCharacters] = useState<CharacterData[]>([]);
-  const [resources, setResources] = useState<PlayerResources>(PLAYER_RESOURCES);
-  const [maxSkillLevel, setMaxSkillLevel] = useState<number>(MAX_SKILL_LEVEL);
+  const [resources, setResources] = useState<PlayerResources>({ruby: 0});
+  const [maxSkillLevel, setMaxSkillLevel] = useState<number>(10);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>("");
   const selectedCharacter = characters.find((c) => c.id === selectedCharacterId) ?? characters[0] ?? null;
   const router = useRouter();

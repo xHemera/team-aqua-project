@@ -633,7 +633,7 @@ export default function SocialPage() {
   async function addFriend()
   {
     if (!currentUser || !friendRequestSender) return;
-    const res = await fetch("api/social/friend", {
+    const res = await fetch("/api/social/friend", {
       method: "PATCH",
       body: JSON.stringify({currentUser: currentUser.name, otherUser: selectedUser}),
     })
