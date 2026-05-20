@@ -63,24 +63,24 @@ export const mage = {
         icon: spell1Icon,
 
         description:
-          "Deals {multiplier}x Magical Damage + {flat} bonus Fire damage to a single target with a {burnChance}% chance to apply Burn.",
+          "Deals {multiplier}x Magical Damage + {flat} bonus Fire damage to a single target with a {burnChance}% chance to apply Burn for {duration} turns.",
       },
 
       unlockLevel: 1,
       manaCost: 12,
 
       scaling: [
-        // [damageMultiplier, flatDamagePerLevel, burnChance]
-        [1.3, 18, 30],
-        [1.4, 22, 32],
-        [1.5, 26, 34],
-        [1.6, 30, 36],
-        [1.7, 34, 38],
-        [1.8, 38, 40],
-        [1.9, 43, 43],
-        [2.1, 50, 46],
-        [2.3, 58, 50],
-        [2.6, 70, 60],
+        // [damageMultiplier, flatDamagePerLevel, burnChance, duration]
+        [1.3, 18, 30, 1],
+        [1.4, 22, 32, 1],
+        [1.5, 26, 34, 1],
+        [1.6, 30, 36, 1],
+        [1.7, 34, 38, 1],
+        [1.8, 38, 40, 2],
+        [1.9, 43, 43, 2],
+        [2.1, 50, 46, 2],
+        [2.3, 58, 50, 3],
+        [2.6, 70, 60, 3],
       ],
     },
 

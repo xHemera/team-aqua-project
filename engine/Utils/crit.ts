@@ -5,5 +5,5 @@ export function rollCrit(character: CharacterInstance): boolean {
 }
 
 export function applyCrit(damage: number, character:CharacterInstance): number {
-	return damage * (character.critDamage / 100)
+	return damage * (1 + character.critDamage / 100)
 }

@@ -1,11 +1,11 @@
 import { CharacterInstance } from "../Instances/CharacterInstance";
-import { resolvePhyDamage } from "../Utils/resolveDamage";
+import { applyDamage, resolvePhyDamage } from "../Utils/resolveDamage";
 import { Spell } from "./Spell";
 
 export class PiercingShot extends Spell {
 
-    constructor() {
-        super();
+    constructor(scaling: number[][]) {
+        super(scaling);
         this.id     	= "s1";
         this.name   	= "Piercing Shot";
         this.mpCost 	= 8;
@@ -13,20 +13,20 @@ export class PiercingShot extends Spell {
     }
 
     applyEffect(idUser: CharacterInstance, idTargets: CharacterInstance[]): void {
-        const stats			= idUser.character.stats;
-        const skillLevel	= idUser.character.skills.find(s => s.id === "s1")?.level ?? 1;
-        const raw 			= stats.physicalDamage * 1.2 + skillLevel * 15;
-        const reducedRes	= idTargets[0].phyRes * (0.85);
-		const damage 		= resolvePhyDamage(raw, idUser, idTargets[0], reducedRes);
+        const skillLevel  = idUser.character.skills.find(s => s.id === this.id)?.level ?? 1;
+        const [multiplier, flat, armorPen] = this.scaling[skillLevel -1];
 
-		idTargets[0].currentHp = Math.max(0, idTargets[0].currentHp - damage);
+        const raw        = idUser.character.stats.physicalDamage * multiplier + flat;
+        const reducedRes = idTargets[0].phyRes * (1 - armorPen / 100);
+        const damage     = resolvePhyDamage(raw, idUser, idTargets[0], reducedRes);
+		applyDamage(idTargets[0], damage);
     }
 }
 
 export class RainOfArrows extends Spell {
 
-	constructor() {
-		super();
+	constructor(scaling: number[][]) {
+		super(scaling);
 		this.id		= "s2";
 		this.name	= "Rain of Arrows";
 		this.mpCost	= 12;
@@ -34,20 +34,21 @@ export class RainOfArrows extends Spell {
 	}
 
 	applyEffect(idUser: CharacterInstance, idTargets: CharacterInstance[]): void {
-		const stats = idUser.character.stats;
-		const skillLevel = idUser.character.skills.find(s => s.id == "s2")?.level ?? 1;
-		const raw = stats.physicalDamage * 0.8 + skillLevel * 15;
+		const skillLevel = idUser.character.skills.find(s => s.id == this.id)?.level ?? 1;
+		const [multiplier, flat] = this.scaling[skillLevel - 1];
+
+		const raw = idUser.character.stats.physicalDamage * multiplier + flat;
 		idTargets.forEach(target => {
 			const damage = resolvePhyDamage(raw, idUser, target);
-			target.currentHp = Math.max(0, target.currentHp - damage);
+			applyDamage(target, damage);
 		});
 	}
 }
 
 export class PrecisionFocus extends Spell {
 
-	constructor() {
-		super();
+	constructor(scaling: number[][]) {
+		super(scaling);
 		this.id 	= "s3";
 		this.name	= "Precision Focus";
 		this.mpCost = 15;
@@ -55,9 +56,10 @@ export class PrecisionFocus extends Spell {
 	}
 
 	applyEffect(idUser: CharacterInstance): void {
-		const skillLevel = idUser.character.skills.find(s => s.id === "s3")?.level ?? 1;
-	
-		idUser.critChanceMod.push({ value: 5 + skillLevel * 2, turn: 3 });
-		idUser.critDamageMod.push({ value: skillLevel * 8, turn: 3 });
+		const skillLevel = idUser.character.skills.find(s => s.id === this.id)?.level ?? 1;
+		const [critChance, critDamage, duration] = this.scaling[skillLevel -1];
+
+		idUser.critChanceMod.push({ value: critChance, turn: duration });
+		idUser.critDamageMod.push({ value: critDamage, turn: duration });
 	}
 }
