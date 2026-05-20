@@ -116,8 +116,10 @@ export default function GlobalErrorNotifications() {
         const response = await originalFetch(input, init);
 
         if (!response.ok && isApiRequest(input)) {
-          const message = await getErrorMessageFromResponse(response);
-          showError(message ?? `Request failed (${response.status})`);
+          if (response.status !== 409) {
+            const message = await getErrorMessageFromResponse(response);
+            showError(message ?? `Request failed (${response.status})`);
+          }
         }
 
         return response;
