@@ -147,27 +147,45 @@ export default function Game()
     }
 
     return (
-        <div className="flex w-full justify-center px-4">
-          <div className="mb-4 flex gap-2">
-            {teamSelected.map((h, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => h && setSelectedHero(h)}
-                disabled={!h}
-                className={
-                  `rounded px-3 py-1 text-sm font-medium ${h ? (selectedHero?.identity.id === h.identity.id ? "border border-[#8b7fff] bg-[#2b2740]" : "border border-[#3c3650] bg-[#0f0e13]") : "border border-dashed border-gray-700 bg-[#0f0e13] text-gray-500"}`
-                }
-              >
-                {h ? h.identity.name : "Vide"}
-              </button>
-            ))}
+        <div className="flex min-h-screen w-full flex-col px-4 py-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-wrap gap-2">
+              {teamSelected.map((h, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => h && setSelectedHero(h)}
+                  disabled={!h}
+                  className={
+                    `rounded px-3 py-1 text-sm font-medium ${h ? (selectedHero?.identity.id === h.identity.id ? "border border-[#8b7fff] bg-[#2b2740]" : "border border-[#3c3650] bg-[#0f0e13]") : "border border-dashed border-gray-700 bg-[#0f0e13] text-gray-500"}`
+                  }
+                >
+                  {h ? h.identity.name : "Vide"}
+                </button>
+              ))}
+            </div>
+
+            <ProfileInfo account={{ pseudo: opponent }} />
           </div>
-          <SpellSelector hero={selectedHero ?? firstHero} />
-          <ProfileInfo account={{ pseudo: userPseudo }} className="absolute bottom-20 right-4" />
-          <ProfileInfo account={{ pseudo: opponent }} className="absolute top-4 left-4" />
-          <Button onClick={handleLogout} className="absolute bottom-4 right-4">Forfeit</Button>
-          <ManaBar currentMana={42} className="absolute bottom-36 right-4" />
+
+          <div className="flex-1" />
+
+          <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(260px,3fr)] lg:items-stretch">
+            <div className="min-w-0 lg:flex lg:items-end">
+              <SpellSelector hero={selectedHero ?? firstHero} className="w-full" />
+            </div>
+
+            <div className="flex flex-col gap-3 lg:h-full lg:items-end lg:justify-between">
+              <div className="flex flex-col gap-3 lg:items-end">
+                <ManaBar currentMana={42} />
+                <ProfileInfo account={{ pseudo: userPseudo }} />
+              </div>
+
+              <Button variant="secondary" onClick={handleLogout} className="w-full lg:w-auto">
+                Forfeit
+              </Button>
+            </div>
+          </div>
         </div>
     )
 }

@@ -24,15 +24,16 @@ type Hero = {
 
 type SpellSelectorProps = {
   hero: Hero;
+  className?: string;
 };
 
 const manaIcon = "/gameResources/items/Item_Tear_of_Phagousa.webp";
 
-export default function SpellSelector({ hero }: SpellSelectorProps) {
+export default function SpellSelector({ hero, className }: SpellSelectorProps) {
   const [hoveredSpell, setHoveredSpell] = useState<Spell | null>(null);
 
   return (
-    <div className="mx-auto min-h-0 w-full p-0 sm:p-4">
+    <div className={`mx-auto min-h-0 w-full p-0 sm:p-4 ${className ?? ""}`}>
       <div onMouseLeave={() => setHoveredSpell(null)}>
         <div className="mb-2 hidden min-h-[84px] sm:mb-3 sm:block">
           {hoveredSpell ? (
