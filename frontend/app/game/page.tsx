@@ -5,6 +5,7 @@ import { socket } from "@/socket";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import SpellSelector from "@/components/molecules/game/SpellSelector";
+import ProfileInfo from "@/components/atoms/game/ProfileInfo";
 
 import { CHARACTERS } from "@/public/gameResources/heroes";
 
@@ -161,6 +162,8 @@ export default function Game()
             ))}
           </div>
           <SpellSelector hero={selectedHero ?? firstHero} />
+          <ProfileInfo account={{ pseudo: userPseudo }} className="absolute top-4 right-4" />
+          <ProfileInfo account={{ pseudo: opponent }} className="absolute top-4 left-4" />
         </div>
     )
 }
