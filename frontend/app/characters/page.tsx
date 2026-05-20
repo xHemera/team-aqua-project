@@ -135,6 +135,36 @@ export default function CharactersPage() {
     router.push("/");
   };
 
+  const handlePlusOne = async (skillId: string): Promise<boolean> => {
+    const response = await fetch("/api/characters", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name: userPseudo, skillId: skillId}),
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const payload = (await response.json()) as {
+      spellId?: string;
+      level?: number;
+      resources?: PlayerResources;
+    };
+
+    if (payload.resources) {
+      setResources(payload.resources);
+    }
+
+    if (!payload.spellId || typeof payload.level !== "number") {
+      return true;
+    }
+
+    return true;
+  }
+
   const handleUpgradeSkill = async (skillId: string): Promise<boolean> => {
     const response = await fetch("/api/characters", {
       method: "PUT",
@@ -182,6 +212,7 @@ export default function CharactersPage() {
             resources={resources}
             maxSkillLevel={maxSkillLevel}
             onUpgradeSkill={handleUpgradeSkill}
+            onPlusOneSkill={handlePlusOne}
           />
         )}
       </main>
