@@ -370,13 +370,14 @@ export default function SocialPage() {
       }
     });
 
-    // duel cancelled - close request modal
     socket.on("cancel", async ({user, oUser}) => {
       if (oUser == currentUser?.name)
       {
         setWaitingForDuelResponse(false);
         setDuelChallengeTo(null);
-        router.push("/");
+        setChallenge(false);
+        setOpponent(null);
+        saveChallengeToStorage(null);
       }
     });
 
@@ -1215,18 +1216,18 @@ export default function SocialPage() {
       </div>
 
       {waitingForDuelResponse && duelChallengeTo && (
-        <DuelWaitingModal
-          opponentName={duelChallengeTo}
-          onCancel={() => {
-            setWaitingForDuelResponse(false);
-            setDuelChallengeTo(null);
-            socket.emit("duel_cancelled", {
-              user: currentUser?.name,
-              oUser: duelChallengeTo,
-            });
-          }}
-        />
-      )}
+      <DuelWaitingModal
+        opponentName={duelChallengeTo}
+        onCancel={() => {
+          setWaitingForDuelResponse(false);
+          setDuelChallengeTo(null);
+          socket.emit("duel_cancelled", {
+            user: userPseudo,
+            oUser: duelChallengeTo,
+          });
+        }}
+      />
+    )}
 
       <ProfileViewerModal
         open={showProfileViewer}
