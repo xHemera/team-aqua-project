@@ -528,11 +528,11 @@ export default function Home() {
               />
 
               <FeatureActionTile
-                title="Arena"
+                title="Pong"
                 icon="fa-flame"
                 accentClassName="bg-gradient-to-br from-[#5c2f2f]/20 via-[#c75d4d]/15 to-transparent"
-                value="Coming Soon"
-                onClick={() => {}}
+                value="Match"
+                onClick={() => router.push("/pong")}
               />
 
               <ExpeditionTracker
