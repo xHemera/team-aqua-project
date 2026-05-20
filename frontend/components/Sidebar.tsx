@@ -276,6 +276,7 @@ export default function Sidebar() {
             fill
             className="object-cover"
             unoptimized
+            priority
           />
         )}
       </Button>
