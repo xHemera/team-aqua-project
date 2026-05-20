@@ -352,20 +352,31 @@ export default function SocialPage() {
 
     //duel refused - close waiting modal
     socket.on("refuse", async ({user, oUser}) => {
-      if (user == userPseudo)
+      if (oUser == userPseudo)
       {
         setWaitingForDuelResponse(false);
         setDuelChallengeTo(null);
+        router.push("social");
       }
     });
 
-    //send to the game if duel is accepted
+    // send to the game if duel is accepted
     socket.on("accept", async ({user, oUser}) => {
       if (oUser == userPseudo)
       {
         setWaitingForDuelResponse(false);
         setDuelChallengeTo(null);
         router.push("game");
+      }
+    });
+
+    // duel cancelled - close request modal
+    socket.on("cancel", async ({user, oUser}) => {
+      if (oUser == currentUser?.name)
+      {
+        setWaitingForDuelResponse(false);
+        setDuelChallengeTo(null);
+        router.push("/");
       }
     });
 
@@ -769,6 +780,9 @@ export default function SocialPage() {
 
     const response = await fetch("/api/upload", {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: formData,
     });
 
@@ -785,6 +799,9 @@ export default function SocialPage() {
 
       const res = await fetch("/api/social/attachment", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: formData,
       });
       if (!res.ok)
@@ -1203,7 +1220,7 @@ export default function SocialPage() {
           onCancel={() => {
             setWaitingForDuelResponse(false);
             setDuelChallengeTo(null);
-            socket.emit("duel_refused", {
+            socket.emit("duel_cancelled", {
               user: currentUser?.name,
               oUser: duelChallengeTo,
             });
