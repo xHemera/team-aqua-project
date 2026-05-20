@@ -61,7 +61,6 @@ export async function GET(req: Request)
         if (currentUserInbox)
             results[otherUser.name] = currentUserInbox.unread_messages ?? 0;
     }
-    console.log(results);
     return Response.json({results: results}, {status: 200});
   }
   catch {

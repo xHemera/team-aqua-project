@@ -371,7 +371,7 @@ export default function SocialPage() {
     });
 
     socket.on("cancel", async ({user, oUser}) => {
-      if (oUser == currentUser?.name)
+      if (oUser == userPseudo)
       {
         setWaitingForDuelResponse(false);
         setDuelChallengeTo(null);
