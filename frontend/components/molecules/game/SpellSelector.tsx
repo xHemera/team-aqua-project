@@ -22,15 +22,37 @@ type Hero = {
   skills: Spell[];
 };
 
+type DisplaySpell = Spell | {
+  id: string;
+  manaCost: number;
+  info: {
+    name: string;
+    icon: string;
+    description: string;
+  };
+};
+
 type SpellSelectorProps = {
   hero: Hero;
   className?: string;
 };
 
 const manaIcon = "/gameResources/items/Item_Tear_of_Phagousa.webp";
+const basicAttackIcon = "/gameResources/spells/attack_boost.png";
+
+const basicAttack: DisplaySpell = {
+  id: "basic-attack",
+  manaCost: 0,
+  info: {
+    name: "Basic Attack",
+    icon: basicAttackIcon,
+    description: "A simple attack that deals damage based on the hero's stats.",
+  },
+};
 
 export default function SpellSelector({ hero, className }: SpellSelectorProps) {
   const [hoveredSpell, setHoveredSpell] = useState<Spell | null>(null);
+  const spells: DisplaySpell[] = [basicAttack, ...hero.skills];
 
   return (
     <div className={`mx-auto min-h-0 w-full p-0 sm:p-4 ${className ?? ""}`}>
@@ -40,7 +62,11 @@ export default function SpellSelector({ hero, className }: SpellSelectorProps) {
             <div className="rounded-lg border border-[#3c3650] bg-[#0f0e13] p-3 sm:p-4">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <p className="min-w-0 flex-1 truncate text-base font-semibold sm:text-base">{hoveredSpell.info.name}</p>
-                <div className="flex items-center gap-2 shrink-0">
+                <div
+                  className={`flex shrink-0 items-center gap-2 rounded-xl bg-[#288FF6] px-2 py-1 ${
+                    hoveredSpell.manaCost > 0 ? "" : "invisible"
+                  }`}
+                >
                   <Image src={manaIcon} alt="Mana" width={20} height={20} />
                   <span className="text-base font-semibold">{hoveredSpell.manaCost}</span>
                 </div>
@@ -50,8 +76,8 @@ export default function SpellSelector({ hero, className }: SpellSelectorProps) {
           ) : null}
         </div>
 
-        <div className="grid grid-cols-3 gap-1.5 sm:gap-4">
-          {hero.skills.slice(0, 3).map((spell) => (
+        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 sm:gap-4">
+          {spells.slice(0, 4).map((spell) => (
             <SpellButton
               key={spell.id}
               name={spell.info.name}
