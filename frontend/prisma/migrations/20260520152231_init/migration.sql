@@ -4,7 +4,6 @@ CREATE TABLE "Spell" (
     "characterId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "type" TEXT NOT NULL,
-    "effect" INTEGER NOT NULL,
     "mpCost" INTEGER NOT NULL,
     "level" INTEGER NOT NULL,
 
@@ -18,6 +17,7 @@ CREATE TABLE "Character" (
     "name" TEXT NOT NULL,
     "hp" INTEGER NOT NULL,
     "level" INTEGER NOT NULL,
+    "xp" INTEGER NOT NULL,
 
     CONSTRAINT "Character_pkey" PRIMARY KEY ("id")
 );
