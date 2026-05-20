@@ -35,6 +35,9 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
   {
     const res = await fetch("/api/admin/ban", {
       method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({username: user.name}),
     })
     if (!res.ok)
@@ -47,6 +50,9 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
   {
     const res = await fetch("/api/admin/ban", {
       method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({username: user.name}),
     })
     if (!res.ok)
@@ -59,6 +65,9 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
   {
     const res = await fetch("/api/admin/role", {
       method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({user: id, isModo: modo}),
     })
     if (!res.ok)

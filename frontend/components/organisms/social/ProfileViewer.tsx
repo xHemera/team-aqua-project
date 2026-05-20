@@ -178,8 +178,11 @@ export default function ProfileViewerModal({
       onClose();
       return;
     }
-    const res = await fetch("api/social/friend", {
+    const res = await fetch("/api/social/friend", {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({currentUser: currentUser.name, otherUser: inputUser.name}),
     })
     if (!res.ok)
@@ -247,6 +250,9 @@ export default function ProfileViewerModal({
       {
         const bres = await fetch("/api/social/block", {
           method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({currentUser: currentUser.name, otherUser: inputUser.name}),
         })
         if (!bres)
@@ -264,6 +270,9 @@ export default function ProfileViewerModal({
     {
       const bres = await fetch("/api/social/block", {
           method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({currentUser: currentUser.name, otherUser: inputUser.name}),
         })
         if (!bres)
@@ -414,6 +423,9 @@ export default function ProfileViewerModal({
                 if (!currentUser || !inputUser) return;
                 const res = await fetch("/api/social/report", {
                   method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
                   body: JSON.stringify({user: currentUser.name, reportedUser: inputUser.name})
                 });
                 if (res.status === 201)

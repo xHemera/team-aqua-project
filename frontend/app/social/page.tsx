@@ -344,6 +344,9 @@ export default function SocialPage() {
         }),
         fetch(`api/social/unread`, {
           method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({sender: currentUser.name, receiver: selectedUser})
         }),
       ])
@@ -484,6 +487,9 @@ export default function SocialPage() {
       if (!currentUser || !selectedUser) return;
         const ures = await fetch(`api/social/unread`, {
         method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({sender: currentUser.name, receiver: selectedUser})
       });
       if (!ures.ok)
@@ -597,6 +603,9 @@ export default function SocialPage() {
       const [cres, ires] = await Promise.all([
         fetch("/api/social/contact", {
           method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({currentUser: currentUser.name, addUser: inviteUsername}),
         }),
         fetch(`/api/social/inbox?username=${currentUser.name}`, {
@@ -633,8 +642,11 @@ export default function SocialPage() {
   async function addFriend()
   {
     if (!currentUser || !friendRequestSender) return;
-    const res = await fetch("api/social/friend", {
+    const res = await fetch("/api/social/friend", {
       method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({currentUser: currentUser.name, otherUser: selectedUser}),
     })
     if (!res.ok)
@@ -684,6 +696,9 @@ export default function SocialPage() {
 
     const response = await fetch("/api/upload", {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: formData,
     });
 
@@ -700,6 +715,9 @@ export default function SocialPage() {
 
       const res = await fetch("/api/social/attachment", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: formData,
       });
       if (!res.ok)
@@ -750,6 +768,9 @@ export default function SocialPage() {
     });
     const response = await fetch("/api/social/msg", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({sender: currentUser.name,
           msg: cleanMessage, receiver: selectedUser,
           draftIds: draftIds}),
@@ -767,6 +788,9 @@ export default function SocialPage() {
       }),
       fetch(`api/social/unread`, {
         method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({sender: currentUser.name, receiver: selectedUser})
       }),
     ]);
@@ -813,6 +837,9 @@ export default function SocialPage() {
     })
     const res = await fetch("/api/social/otherFriend", {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({currentUser: currentUser.name, opponent: selectedUser}),
     });
     if (!res.ok)

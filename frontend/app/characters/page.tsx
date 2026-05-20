@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MAX_SKILL_LEVEL, PLAYER_RESOURCES } from "./character-roster";
 import CharacterViewer from "@/components/organisms/characters/CharacterViewer";
 import Sidebar from "@/components/Sidebar";
 import NotificationToast from "@/components/organisms/home/NotificationToast";
@@ -12,8 +11,8 @@ import { useRouter } from "next/navigation";
 
 export default function CharactersPage() {
   const [characters, setCharacters] = useState<CharacterData[]>([]);
-  const [resources, setResources] = useState<PlayerResources>(PLAYER_RESOURCES);
-  const [maxSkillLevel, setMaxSkillLevel] = useState<number>(MAX_SKILL_LEVEL);
+  const [resources, setResources] = useState<PlayerResources>({ruby: 0});
+  const [maxSkillLevel, setMaxSkillLevel] = useState<number>(10);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>("");
   const selectedCharacter = characters.find((c) => c.id === selectedCharacterId) ?? characters[0] ?? null;
   const router = useRouter();
@@ -23,9 +22,31 @@ export default function CharactersPage() {
   const [userPseudo, setUserPseudo] = useState<string | null>(null);
 
   useEffect(() => {
+    const getUserData = async () => {
+      const { data } = await authClient.getSession();
+      if (data && data.user.name)
+        setUserPseudo(data.user.name);
+      else
+        router.push("/not-connected");
+    };
+
+    const timeoutId = window.setTimeout(() => {
+      void getUserData();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!userPseudo) return;
     const loadCharacters = async () => {
       try {
-        const response = await fetch("/api/characters", { cache: "no-store" });
+        const response = await fetch(`/api/characters?username=${userPseudo}`, {
+          method: "GET",
+          cache: "no-store"
+        });
         if (!response.ok) {
           return;
         }
@@ -59,23 +80,7 @@ export default function CharactersPage() {
     };
 
     void loadCharacters();
-  }, []);
-
-  useEffect(() => {
-    const getUserData = async () => {
-      const { data } = await authClient.getSession();
-      if (data && data.user.name)
-        setUserPseudo(data.user.name);
-    };
-
-    const timeoutId = window.setTimeout(() => {
-      void getUserData();
-    }, 0);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, []);
+  }, [userPseudo]);
 
   useEffect(() => {
     if (!userPseudo || socket.connected) return;
@@ -132,11 +137,11 @@ export default function CharactersPage() {
 
   const handleUpgradeSkill = async (skillId: string): Promise<boolean> => {
     const response = await fetch("/api/characters", {
-      method: "POST",
+      method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ spellId: skillId }),
+      body: JSON.stringify({ name: userPseudo, skillId: skillId}),
     });
 
     if (!response.ok) {
@@ -154,7 +159,7 @@ export default function CharactersPage() {
     }
 
     if (!payload.spellId || typeof payload.level !== "number") {
-      return false;
+      return true;
     }
 
     return true;
@@ -167,7 +172,6 @@ export default function CharactersPage() {
       <div className="shrink-0 p-3">
         <Sidebar />
       </div>
-
       {/* Main Content */}
       <main className="flex-1 overflow-hidden p-3 pl-0">
         {selectedCharacter && (
