@@ -44,9 +44,9 @@ export default function ProfileInfo({ account, className = "" }: ProfileInfoProp
         onClick={handleOpenProfile}
         className={`flex items-center gap-3 rounded border border-[#3c3650] bg-[#0f0e13] px-3 py-2 hover:border-[#5b5480] ${className}`}
       >
-        <span className="truncate text-sm font-medium">{pseudo}</span>
+        <span className="truncate text-base font-medium sm:text-lg">{pseudo}</span>
 
-        <span className="relative h-8 w-8 overflow-hidden rounded-full border border-[#5b5480] bg-[#242033]">
+        <span className="relative h-9 w-9 overflow-hidden rounded-full border border-[#5b5480] bg-[#242033]">
           {profilePhoto ? (
             <Image
               src={profilePhoto}
@@ -56,7 +56,7 @@ export default function ProfileInfo({ account, className = "" }: ProfileInfoProp
               unoptimized
             />
           ) : (
-            <span className="flex h-full w-full items-center justify-center text-xs font-bold text-white">
+            <span className="flex h-full w-full items-center justify-center text-sm font-bold text-white">
               {avatarFallback}
             </span>
           )}

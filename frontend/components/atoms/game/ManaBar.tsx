@@ -41,7 +41,7 @@ export default function ManaBar({ currentMana, className = "" }: ManaBarProps) {
 
   return (
     <div className={`inline-flex flex-col items-center gap-2 ${className}`}>
-      <span className="text-xs font-semibold" style={{ color: valueColor }}>
+      <span className="text-sm font-semibold sm:text-base" style={{ color: valueColor }}>
         {clampedMana}
       </span>
 

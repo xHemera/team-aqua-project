@@ -147,7 +147,10 @@ export default function Game()
     }
 
     return (
-        <div className="flex min-h-screen w-full flex-col px-4 py-4">
+        <div
+          className="game-screen flex min-h-screen w-full flex-col px-4 py-4 text-[16px] leading-7 text-[#f5e6c8]"
+          style={{ fontFamily: "Inter, system-ui, sans-serif" }}
+        >
           <div className="flex items-start justify-between gap-4">
             <div className="flex flex-wrap gap-2">
               {teamSelected.map((h, idx) => (
@@ -157,7 +160,7 @@ export default function Game()
                   onClick={() => h && setSelectedHero(h)}
                   disabled={!h}
                   className={
-                    `rounded px-3 py-1 text-sm font-medium ${h ? (selectedHero?.identity.id === h.identity.id ? "border border-[#8b7fff] bg-[#2b2740]" : "border border-[#3c3650] bg-[#0f0e13]") : "border border-dashed border-gray-700 bg-[#0f0e13] text-gray-500"}`
+                    `rounded px-3 py-1 text-base font-medium ${h ? (selectedHero?.identity.id === h.identity.id ? "border border-[#8b7fff] bg-[#2b2740]" : "border border-[#3c3650] bg-[#0f0e13]") : "border border-dashed border-gray-700 bg-[#0f0e13] text-gray-500"}`
                   }
                 >
                   {h ? h.identity.name : "Vide"}
