@@ -184,14 +184,17 @@ export const formatCompactPower = (value: number) => {
   return `${formattedValue}${units[unitIndex]}`;
 };
 
-export const calculatePower = (stats: CharacterStats) => {
+export const calculatePower = (name: string, stats: CharacterStats) => {
   // More realistic power calculation for actual game balance
-  const offense = (stats.physicalDamage * 1.5) + (stats.magicalDamage * 1.5) + (stats.critChance * stats.critDamage / 100);
-  const resistanceScore = (stats.physicalResistance + stats.magicalResistance) * 12;
-  const defense = stats.hp * 0.5 + stats.mp * 0.2 + resistanceScore;
-  const utility = stats.speed * 2;
+  let power = 0;
+  if (stats.critChance > 100)
+    stats.critChance = 100;
+  if (name === "Archer")
+  {
+    power = stats.physicalDamage + (stats.critChance / 100 * stats.critDamage / 100) + (stats.hp * (stats.physicalResistance + stats.magicalResistance)) + stats.speed;
+  }
 
-  return Math.round(offense + defense + utility);
+  return Math.round(power);
 };
 
 export const getLevelUpState = (currentLevel: number, maxLevel: number, cost: number, availableResource: number) => {

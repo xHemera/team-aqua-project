@@ -246,8 +246,7 @@ io.on("connection", (socket) => {
     );
     if (fieldToDelete)
     {
-      console.log(fieldToDelete);
-      io.emit("cancel", {fieldToDelete, fieldToDelete});
+      io.emit("cancel", {user: fieldToDelete});
     }
     if (fieldToDelete)
       await redis.hDel("online_users", fieldToDelete);
