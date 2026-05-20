@@ -26,6 +26,8 @@ export default function CharactersPage() {
       const { data } = await authClient.getSession();
       if (data && data.user.name)
         setUserPseudo(data.user.name);
+      else
+        router.push("/not-connected");
     };
 
     const timeoutId = window.setTimeout(() => {
@@ -78,7 +80,7 @@ export default function CharactersPage() {
     };
 
     void loadCharacters();
-  }, []);
+  }, [userPseudo]);
 
   useEffect(() => {
     if (!userPseudo || socket.connected) return;
@@ -135,11 +137,11 @@ export default function CharactersPage() {
 
   const handleUpgradeSkill = async (skillId: string): Promise<boolean> => {
     const response = await fetch("/api/characters", {
-      method: "POST",
+      method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ spellId: skillId }),
+      body: JSON.stringify({ name: userPseudo, skillId: skillId}),
     });
 
     if (!response.ok) {
@@ -157,7 +159,7 @@ export default function CharactersPage() {
     }
 
     if (!payload.spellId || typeof payload.level !== "number") {
-      return false;
+      return true;
     }
 
     return true;
@@ -170,7 +172,6 @@ export default function CharactersPage() {
       <div className="shrink-0 p-3">
         <Sidebar />
       </div>
-
       {/* Main Content */}
       <main className="flex-1 overflow-hidden p-3 pl-0">
         {selectedCharacter && (

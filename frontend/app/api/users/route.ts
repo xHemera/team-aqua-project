@@ -156,6 +156,7 @@ export async function POST()
             name: character.identity.name,
             hp: character.baseStats.hp,
             level: 1,
+            xp: 0,
           }
         })
         if (!char)
