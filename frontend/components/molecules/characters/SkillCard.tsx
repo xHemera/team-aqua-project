@@ -175,6 +175,8 @@ export default function SkillCard({
               src={skill.image}
               alt={skill.name}
               fill
+              sizes="(max-width: 768px) 100vw"
+              loading="eager"
               className="object-cover"
             />
             <div

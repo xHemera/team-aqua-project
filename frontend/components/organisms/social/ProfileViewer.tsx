@@ -354,6 +354,8 @@ export default function ProfileViewerModal({
                     src={displayedAvatarUrl}
                     alt={`Avatar de ${displayedPseudo}`}
                     fill
+                    sizes="(max-width: 768px) 100vw"
+                    loading="eager"
                     className="object-cover"
                     unoptimized
                     onClick={() => handleProfileClick()}

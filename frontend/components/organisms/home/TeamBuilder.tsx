@@ -96,6 +96,8 @@ export function TeamBuilder({
                           src={selectedCharacter.portrait}
                           alt={selectedCharacter.name}
                           fill
+                          sizes="(max-width: 768px) 100vw"
+                          loading="eager"
                           className="object-cover transition-transform group-hover:scale-110"
                         />
                       </div>
@@ -166,6 +168,8 @@ export function TeamBuilder({
                       src={character.portrait}
                       alt={character.name}
                       fill
+                      sizes="(max-width: 768px) 100vw"
+                      loading="eager"
                       className="object-cover transition-transform group-hover:scale-110"
                       draggable={false}
                     />
