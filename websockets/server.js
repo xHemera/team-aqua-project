@@ -245,6 +245,11 @@ io.on("connection", (socket) => {
       key => onlineUsers[key] === socket.id
     );
     if (fieldToDelete)
+    {
+      console.log(fieldToDelete);
+      io.emit("cancel", {fieldToDelete, fieldToDelete});
+    }
+    if (fieldToDelete)
       await redis.hDel("online_users", fieldToDelete);
     const users = await redis.hGetAll("online_users");
     console.log("Client disconnected: ", users);

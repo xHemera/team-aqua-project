@@ -6,6 +6,7 @@ CREATE TABLE "Spell" (
     "type" TEXT NOT NULL,
     "mpCost" INTEGER NOT NULL,
     "level" INTEGER NOT NULL,
+    "xp" INTEGER NOT NULL,
 
     CONSTRAINT "Spell_pkey" PRIMARY KEY ("id")
 );
