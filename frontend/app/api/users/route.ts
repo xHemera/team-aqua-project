@@ -170,6 +170,7 @@ export async function POST()
               type: spell.type,
               mpCost: spell.manaCost,
               level: 1,
+              xp: 0,
             }
           });
         }

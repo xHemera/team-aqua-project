@@ -11,6 +11,7 @@ type CharacterDetailsPanelProps = {
   maxSkillLevel: number;
   onToggleSkill: (skill: CharacterSkill) => void;
   onUpgradeSkill: (skillId: string) => Promise<boolean>;
+  onPlusOneSkill: (skillId: string) => Promise<boolean>;
   canUpgradeSkill: (skill: CharacterSkill) => boolean;
 };
 
@@ -24,6 +25,7 @@ export default function CharacterDetailsPanel({
   maxSkillLevel,
   onToggleSkill,
   onUpgradeSkill,
+  onPlusOneSkill,
   canUpgradeSkill,
 }: CharacterDetailsPanelProps) {
   return (
@@ -83,6 +85,7 @@ export default function CharacterDetailsPanel({
               canUpgrade={canUpgradeSkill(skill)}
               onToggleDetails={onToggleSkill}
               onUpgrade={onUpgradeSkill}
+              onPlusOne={onPlusOneSkill}
             />
           ))}
         </div>

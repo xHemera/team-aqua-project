@@ -72,6 +72,7 @@ export async function GET(req: Request)
           unlockLevel: spell.unlockLevel,
           level: lvl,
           cost: spell.manaCost,
+          xp: s.xp,
         }
         skills.push(skill);
       }
@@ -165,6 +166,7 @@ export async function POST(req: Request)
               type: spell.type,
               mpCost: spell.manaCost,
               level: 1,
+              xp: 0,
             }
           });
         }
@@ -180,47 +182,98 @@ export async function POST(req: Request)
 export async function PUT(req: Request)
 {
   const h = await headers();
-    const ip = h
-    .get("x-forwarded-for")
-    ?.split(",")[0]
-    .trim() || "unknown";
+  const ip = h
+  .get("x-forwarded-for")
+  ?.split(",")[0]
+  .trim() || "unknown";
 
-    const allowed = await rateLimit(redis, `rl:characters${ip}`, 5, 1);
+  const allowed = await rateLimit(redis, `rl:upgrade${ip}`, 1, 1);
 
-    if (!allowed) {
-        console.log("Too many requests");
-        return Response.json({error: "Too many request"}, {status: 429});
-    }
-    try {
-      const data = await req.json();
-      const { name, skillId } = data;
-      const user = await prisma.user.findFirst({
-        where: { name: name },
-        select: {
-          id: true,
-          gameState: true,
-        }
-      });
-      if (!user || !user.gameState)
-        return Response.json({error: "Internal server error"}, {status: 500});
-      const skill = await prisma.spell.update({
-        where: { id: skillId, level: { lt: 10 } },
-        data: {
-          level: {
-            increment: 1
-          }
-        }
-      });
-      await prisma.gameState.update({
-        where: { id: user.gameState.id, rubis: { gt: 10 * (skill.level - 1) } },
-        data: {
-          rubis: {decrement: 10 * (skill.level - 1)}
-        }
-      });
-      return Response.json({msg: "OK"}, {status: 200});
-    }
-    catch (e) {
-      console.log(e);
+  if (!allowed) {
+      console.log("Too many requests");
+      return Response.json({error: "Too many request"}, {status: 429});
+  }
+  try {
+    const data = await req.json();
+    const { name, skillId } = data;
+    const user = await prisma.user.findFirst({
+      where: { name: name },
+      select: {
+        id: true,
+        gameState: true,
+      }
+    });
+    if (!user || !user.gameState)
       return Response.json({error: "Internal server error"}, {status: 500});
-    }
+    const skill = await prisma.spell.update({
+      where: { id: skillId, level: { lt: 10 } },
+      data: {
+        level: {
+          increment: 1
+        },
+        xp: 0
+      },
+      select: {
+        level: true,
+      }
+    });
+    const resources: PlayerResources = { ruby: user.gameState.rubis };
+    return Response.json({spellId: skillId, resources: resources, level: skill.level}, {status: 200});
+  }
+  catch (e) {
+    console.log(e);
+    return Response.json({error: "Internal server error"}, {status: 500});
+  }
+}
+
+export async function PATCH(req: Request)
+{
+  const h = await headers();
+  const ip = h
+  .get("x-forwarded-for")
+  ?.split(",")[0]
+  .trim() || "unknown";
+
+  const allowed = await rateLimit(redis, `rl:characters${ip}`, 10, 1);
+
+  if (!allowed) {
+      console.log("Too many requests");
+      return Response.json({error: "Too many request"}, {status: 429});
+  }
+  try {
+    const data = await req.json();
+    const { name, skillId } = data;
+    const user = await prisma.user.findFirst({
+      where: { name: name },
+      select: {
+        id: true,
+        gameState: true,
+      }
+    });
+    if (!user || !user.gameState)
+      return Response.json({error: "Internal server error"}, {status: 500});
+    const spell = await prisma.spell.update({
+      where: { id: skillId },
+      data: {
+        xp: {
+          increment: 1
+        }
+      },
+      select: {
+        level: true,
+      }
+    });
+    const ugs = await prisma.gameState.update({
+      where: { id: user.gameState.id },
+      data: {
+        rubis: {decrement: 1 * (spell.level)}
+      }
+    });
+    const resources: PlayerResources = { ruby: ugs.rubis };
+    return Response.json({spellId: skillId, resources: resources, level: spell.level}, {status: 200});
+  }
+  catch (e) {
+    console.log(e);
+    return Response.json({error: "Internal server error"}, {status: 500});
+  }
 }

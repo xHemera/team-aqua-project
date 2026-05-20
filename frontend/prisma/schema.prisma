@@ -14,6 +14,7 @@ model Spell {
   type        String
   mpCost      Int
   level       Int
+  xp          Int
   character   Character? @relation(fields: [characterId], references: [id], onDelete: Cascade)
 }
 

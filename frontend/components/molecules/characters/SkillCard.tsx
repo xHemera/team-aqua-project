@@ -12,6 +12,7 @@ type SkillCardProps = {
   canUpgrade: boolean;
   onToggleDetails: (skill: CharacterSkill) => void;
   onUpgrade: (skillId: string) => Promise<boolean>;
+  onPlusOne: (skillId: string) => Promise<boolean>;
 };
 
 const CHARGE_STEPS = 10;
@@ -27,6 +28,7 @@ export default function SkillCard({
   canUpgrade,
   onToggleDetails,
   onUpgrade,
+  onPlusOne,
 }: SkillCardProps) {
   const [chargeProgress, setChargeProgress] = useState(0);
   const holdDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -46,6 +48,10 @@ export default function SkillCard({
     setChargeProgress(nextValue);
   };
 
+  useEffect(() => {
+    setChargeValue(skill.xp);
+  }, [])
+
   const stopHold = () => {
     if (holdDelayTimerRef.current) {
       clearTimeout(holdDelayTimerRef.current);
@@ -57,6 +63,15 @@ export default function SkillCard({
     }
     autoRepeatingRef.current = false;
   };
+
+  const executePlusOne = async () => {
+
+    const success = await onPlusOne(skill.id);
+
+    if (!success) {
+      stopHold();
+    }
+  }
 
   const executeUpgrade = async () => {
     if (upgradeInFlightRef.current) {
@@ -70,6 +85,7 @@ export default function SkillCard({
     if (!success) {
       stopHold();
     }
+    skill.level += 1;
   };
 
   const triggerChargeTick = () => {
@@ -78,6 +94,8 @@ export default function SkillCard({
     }
 
     const next = chargeProgressRef.current + 1;
+    void executePlusOne();
+
     if (next < CHARGE_STEPS) {
       setChargeValue(next);
       return;
