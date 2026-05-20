@@ -255,7 +255,7 @@ export default function Sidebar() {
         onClick={handleProfileClick}
         title={pseudo ?? "Profile"}
         variant="ghost"
-        className={`!h-12 !w-12 !p-0 overflow-hidden rounded-lg border-2 transition-all duration-300 ${
+        className={`relative h-12 w-12 p-0 overflow-hidden rounded-lg border-2 transition-all duration-300 ${
           isProfileActive
             ? "border-[#c9a227] shadow-[0_0_10px_rgba(201,162,39,0.2)]"
             : "border-[#2a2638] hover:border-[#c9a227]/50"
@@ -265,18 +265,16 @@ export default function Sidebar() {
           <Image
             src={customUserAvatar}
             alt={pseudo ?? "Profile"}
-            width={48}
-            height={48}
-            className="h-12 w-12 object-cover"
+            fill
+            className="object-cover"
             unoptimized
           />
         ) : (
           <Image
             src={DEFAULT_PROFILE_ICON.url}
             alt={pseudo ?? "Profile"}
-            width={48}
-            height={48}
-            className="h-12 w-12 object-cover"
+            fill
+            className="object-cover"
             unoptimized
           />
         )}
