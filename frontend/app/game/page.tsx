@@ -7,20 +7,16 @@ import { useEffect, useState } from "react";
 import SpellSelector from "@/components/molecules/game/SpellSelector";
 import ProfileInfo from "@/components/atoms/game/ProfileInfo";
 import ManaBar from "@/components/atoms/game/ManaBar";
+import Fighter from "@/components/atoms/game/Fighter";
 
 import { CHARACTERS } from "@/public/gameResources/heroes";
 import Button from "@/components/atoms/Button";
 
 export default function Game()
 {
-    const archer = CHARACTERS.find((char) => char.identity.id === "archer");
-    const assassin = CHARACTERS.find((char) => char.identity.id === "assassin");
-    const healer = CHARACTERS.find((char) => char.identity.id === "healer");
-    const knight = CHARACTERS.find((char) => char.identity.id === "knight");
-    const mage = CHARACTERS.find((char) => char.identity.id === "mage");
-
     const router = useRouter();
     const [userPseudo, setUserPseudo] = useState("");
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
     const [teamSelected, setTeamSelected] = useState<Array<typeof CHARACTERS[number] | null> | null>(null);
     const [selectedHero, setSelectedHero] = useState<typeof CHARACTERS[number] | null>(null);
     const [opponent, setOpponent] = useState("");
@@ -51,6 +47,24 @@ export default function Game()
         setOppSock(opp.socketId);
       };
       getUserData();
+
+      const loadProfileAvatar = async () => {
+        const profileResponse = await fetch("/api/profile/", {
+          method: "GET",
+          cache: "no-store",
+        });
+        if (!profileResponse.ok) {
+          return;
+        }
+
+        const profile = await profileResponse.json() as {
+          image?: string | null;
+          avatar?: { url?: string | null } | null;
+        };
+        setUserAvatar(profile.image ?? profile.avatar?.url ?? null);
+      };
+
+      void loadProfileAvatar();
     }, []);
 
     // Load selected team from Home (localStorage key: "home-team-slots")
@@ -147,31 +161,24 @@ export default function Game()
     }
 
     return (
-        <div
-          className="game-screen flex min-h-screen w-full flex-col px-4 py-4 text-[16px] leading-7 text-[#f5e6c8]"
-          style={{ fontFamily: "Inter, system-ui, sans-serif" }}
-        >
+        <div className="game-screen flex min-h-screen w-full flex-col px-4 py-4 text-[16px] leading-7 text-[#f5e6c8]" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
           <div className="flex items-start justify-between gap-4">
-            <div className="flex flex-wrap gap-2">
+            <div className="grid w-full max-w-3xl grid-cols-3 gap-3">
               {teamSelected.map((h, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => h && setSelectedHero(h)}
                   disabled={!h}
-                  className={
-                    `rounded px-3 py-1 text-base font-medium ${h ? (selectedHero?.identity.id === h.identity.id ? "border border-[#8b7fff] bg-[#2b2740]" : "border border-[#3c3650] bg-[#0f0e13]") : "border border-dashed border-gray-700 bg-[#0f0e13] text-gray-500"}`
-                  }
                 >
-                  {h ? h.identity.name : "Vide"}
+                  {h ? <Fighter character={h} own={selectedHero?.identity.id === h.identity.id} /> : <div className="flex aspect-square items-center justify-center rounded-2xl border border-dashed border-gray-700 bg-[#0f0e13] text-sm text-gray-500">Vide</div>}
                 </button>
               ))}
             </div>
 
             <ProfileInfo account={{ pseudo: opponent }} />
           </div>
-
-          <div className="flex-1" />
+        <div className="flex-1" />
 
           <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(260px,3fr)] lg:items-stretch">
             <div className="min-w-0 lg:flex lg:items-end">
@@ -181,10 +188,10 @@ export default function Game()
             <div className="flex flex-col gap-3 lg:h-full lg:items-end lg:justify-between">
               <div className="flex flex-col gap-3 lg:items-end">
                 <ManaBar currentMana={42} />
-                <ProfileInfo account={{ pseudo: userPseudo }} />
+                <ProfileInfo account={{ pseudo: userPseudo, profilePhoto: userAvatar }} />
               </div>
 
-              <Button variant="secondary" onClick={handleLogout} className="w-full lg:w-auto">
+              <Button variant="secondary" onClick={() => router.push("/home")} className="w-full lg:w-auto">
                 Forfeit
               </Button>
             </div>
