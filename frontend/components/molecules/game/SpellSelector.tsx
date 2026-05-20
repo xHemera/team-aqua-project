@@ -1,0 +1,65 @@
+"use client";
+
+import { useState } from "react";
+import Image from "next/image";
+import SpellButton from "@/components/atoms/game/SpellButton";
+
+type Spell = {
+  id: string;
+  manaCost: number;
+  info: {
+    name: string;
+    icon: string;
+    description: string;
+  };
+};
+
+type Hero = {
+  identity: {
+    id: string;
+    name: string;
+  };
+  skills: Spell[];
+};
+
+type SpellSelectorProps = {
+  hero: Hero;
+};
+
+const manaIcon = "/gameResources/items/Item_Tear_of_Phagousa.webp";
+
+export default function SpellSelector({ hero }: SpellSelectorProps) {
+  const [hoveredSpell, setHoveredSpell] = useState<Spell | null>(null);
+
+  return (
+    <div className="mx-auto min-h-0 w-full p-0 sm:p-4">
+      <div onMouseLeave={() => setHoveredSpell(null)}>
+        <div className="mb-2 hidden min-h-[84px] sm:mb-3 sm:block">
+          {hoveredSpell ? (
+            <div className="rounded-lg border border-[#3c3650] bg-[#0f0e13] p-3 sm:p-4">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <p className="min-w-0 flex-1 truncate text-base font-semibold sm:text-base">{hoveredSpell.info.name}</p>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Image src={manaIcon} alt="Mana" width={20} height={20} />
+                  <span className="text-base font-semibold">{hoveredSpell.manaCost}</span>
+                </div>
+              </div>
+              <p className="mt-1 text-sm leading-snug">{hoveredSpell.info.description}</p>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-4">
+          {hero.skills.slice(0, 3).map((spell) => (
+            <SpellButton
+              key={spell.id}
+              name={spell.info.name}
+              icon={spell.info.icon}
+              onMouseEnter={() => setHoveredSpell(spell)}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

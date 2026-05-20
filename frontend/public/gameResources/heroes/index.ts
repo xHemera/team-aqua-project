@@ -9,4 +9,5 @@ export const CHARACTERS = [
     assassin,
     healer,
     knight,
-    mage ];
+    mage 
+];
