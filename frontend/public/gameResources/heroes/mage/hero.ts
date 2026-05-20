@@ -2,8 +2,9 @@ const ID = "mage";
 
 const PATH = `/gameResources/heroes/${ID}/assets`;
 
-const portrait = `${PATH}/avatar/Beryl_Garment1_Small_Icon.webp`;
-const body = `${PATH}/body/Beryl_Garment1.webp`;
+const portrait = `${PATH}/mage_icon.webp`;
+const body = `${PATH}/mage_splash.webp`;
+const chibi = `${PATH}/mage_chibi.webp`;
 const spell1Icon = `${PATH}/spells/fire_spell.png`;
 const spell2Icon = `${PATH}/spells/mana_replenish.png`;
 const spell3Icon = `${PATH}/spells/counterspell.png`;
@@ -16,6 +17,7 @@ export const mage = {
     assets: {
       portrait: portrait,
       body: body,
+      chibi: chibi,
     },
   },
 

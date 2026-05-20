@@ -2,8 +2,9 @@ const ID = "assassin";
 
 const PATH = `/gameResources/heroes/${ID}/assets`;
 
-const portrait = `${PATH}/avatar/Charon_Garment1_Icon_Small.webp`;
-const body = `${PATH}/body/Charon_Garment1.webp`;
+const portrait = `${PATH}/assassin_icon.webp`;
+const body = `${PATH}/assassin_splash.webp`;
+const chibi = `${PATH}/assassin_chibi.webp`;
 const spell1Icon = `${PATH}/spells/silenced.png`;
 const spell2Icon = `${PATH}/spells/poison_dagger.png`;
 const spell3Icon = `${PATH}/spells/frenzy_spell.png`;
@@ -16,6 +17,7 @@ export const assassin = {
       assets: {
         portrait: portrait,
         body: body,
+        chibi: chibi,
       },
     },
 

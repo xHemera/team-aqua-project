@@ -2,8 +2,9 @@ const ID = "healer";
 
 const PATH = `/gameResources/heroes/${ID}/assets`;
 
-const portrait = `${PATH}/avatar/Fatutu_Small_Icon.webp`;
-const body = `${PATH}/body/Fatutu_Garment1.webp`;
+const portrait = `${PATH}/healer_icon.webp`;
+const body = `${PATH}/healer_splash.webp`;
+const chibi = `${PATH}/healer_chibi.webp`;
 const spell1Icon = `${PATH}/spells/healing_spell.png`;
 const spell2Icon = `${PATH}/spells/defense_boost.png`;
 const spell3Icon = `${PATH}/spells/divine_protection_spell.png`;
@@ -15,6 +16,7 @@ export const healer = {
     assets: {
       portrait: portrait,
       body: body,
+      chibi: chibi,
     },
   },
 

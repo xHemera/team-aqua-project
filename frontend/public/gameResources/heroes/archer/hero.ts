@@ -2,8 +2,9 @@ const ID = "archer";
 
 const PATH = `/gameResources/heroes/${ID}/assets`;
 
-const portrait = `${PATH}/avatar/Paper_Heron_Garment1_Small_Icon.webp`;
-const body = `${PATH}/body/Paper_Heron_Garment1.webp`;
+const portrait = `${PATH}/archer_icon.webp`;
+const body = `${PATH}/archer_splash.webp`;
+const chibi = `${PATH}/archer_chibi.webp`;
 const spell1Icon = `${PATH}/spells/water_spell.png`;
 const spell2Icon = `${PATH}/spells/attack_boost2.png`;
 const spell3Icon = `${PATH}/spells/stunned.png`;
@@ -16,6 +17,7 @@ export const archer = {
     assets: {
       portrait: portrait,
       body: body,
+      chibi: chibi,
     },
   },
 

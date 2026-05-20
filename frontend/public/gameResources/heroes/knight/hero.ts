@@ -2,8 +2,9 @@ const ID = "knight";
 
 const PATH = `/gameResources/heroes/${ID}/assets`;
 
-const portrait = `${PATH}/avatar/Nautika_Garment1_Small_Icon.webp`;
-const body = `${PATH}/body/Nautika_Garment1.webp`;
+const portrait = `${PATH}/knight_icon.webp`;
+const body = `${PATH}/knight_splash.webp`;
+const chibi = `${PATH}/knight_chibi.webp`;
 const spell1Icon = `${PATH}/spells/fortify_spell.png`;
 const spell2Icon = `${PATH}/spells/attack_boost.png`;
 const spell3Icon = `${PATH}/spells/on_fire_(burning).png`;
@@ -16,6 +17,7 @@ export const knight = {
     assets: {
       portrait: portrait,
       body: body,
+      chibi: chibi,
     },
   },
 
