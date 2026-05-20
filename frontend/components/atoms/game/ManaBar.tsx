@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import type { CSSProperties } from "react";
 
 type ManaBarProps = {
@@ -8,6 +9,7 @@ type ManaBarProps = {
 };
 
 const MANA_MAX = 100;
+const manaIcon = "/gameResources/items/mana.webp";
 
 const lerp = (start: number, end: number, ratio: number) => {
   return start + (end - start) * ratio;
@@ -45,16 +47,20 @@ export default function ManaBar({ currentMana, className = "" }: ManaBarProps) {
         {clampedMana}
       </span>
 
-      <div
-        className="relative flex h-52 w-5 items-end overflow-hidden rounded-md border bg-[#0e1726]"
-        style={trackStyle}
-        role="progressbar"
-        aria-label="Mana"
-        aria-valuemin={0}
-        aria-valuemax={MANA_MAX}
-        aria-valuenow={clampedMana}
-      >
-        <div className="w-full mana-stripes" style={fillStyle} />
+      <div className="flex flex-col items-center gap-2">
+        <div
+          className="relative flex h-52 w-5 items-end overflow-hidden rounded-md border bg-[#0e1726]"
+          style={trackStyle}
+          role="progressbar"
+          aria-label="Mana"
+          aria-valuemin={0}
+          aria-valuemax={MANA_MAX}
+          aria-valuenow={clampedMana}
+        >
+          <div className="w-full mana-stripes" style={fillStyle} />
+        </div>
+
+        <Image src={manaIcon} alt="Mana" width={22} height={22} className="h-8 w-8" unoptimized />
       </div>
 
       <style jsx>{`

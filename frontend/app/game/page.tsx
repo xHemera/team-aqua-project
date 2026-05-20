@@ -8,6 +8,8 @@ import SpellSelector from "@/components/molecules/game/SpellSelector";
 import ProfileInfo from "@/components/atoms/game/ProfileInfo";
 import ManaBar from "@/components/atoms/game/ManaBar";
 import Fighter from "@/components/atoms/game/Fighter";
+import EnemyFighter from "@/components/atoms/game/EnemyFighter";
+import type { CharacterData } from "@/components/organisms/characters/types";
 
 import { CHARACTERS } from "@/public/gameResources/heroes";
 import Button from "@/components/atoms/Button";
@@ -17,6 +19,7 @@ export default function Game()
     const router = useRouter();
     const [userPseudo, setUserPseudo] = useState("");
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
+    const [playerCharacters, setPlayerCharacters] = useState<CharacterData[] | null>(null);
     const [teamSelected, setTeamSelected] = useState<Array<typeof CHARACTERS[number] | null> | null>(null);
     const [selectedHero, setSelectedHero] = useState<typeof CHARACTERS[number] | null>(null);
     const [opponent, setOpponent] = useState("");
@@ -66,6 +69,29 @@ export default function Game()
 
       void loadProfileAvatar();
     }, []);
+
+    useEffect(() => {
+      if (!userPseudo) return;
+
+      const loadPlayerCharacters = async () => {
+        const response = await fetch(`/api/characters?username=${encodeURIComponent(userPseudo)}`, {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = await response.json() as {
+          characters: CharacterData[];
+        };
+
+        setPlayerCharacters(payload.characters);
+      };
+
+      void loadPlayerCharacters();
+    }, [userPseudo]);
 
     // Load selected team from Home (localStorage key: "home-team-slots")
     useEffect(() => {
@@ -160,40 +186,65 @@ export default function Game()
       );
     }
 
-    return (
-        <div className="game-screen flex min-h-screen w-full flex-col px-4 py-4 text-[16px] leading-7 text-[#f5e6c8]" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
-          <div className="flex items-start justify-between gap-4">
-            <div className="grid w-full max-w-3xl grid-cols-3 gap-3">
-              {teamSelected.map((h, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => h && setSelectedHero(h)}
-                  disabled={!h}
-                >
-                  {h ? <Fighter character={h} own={selectedHero?.identity.id === h.identity.id} /> : <div className="flex aspect-square items-center justify-center rounded-2xl border border-dashed border-gray-700 bg-[#0f0e13] text-sm text-gray-500">Vide</div>}
-                </button>
-              ))}
-            </div>
+    const enemyTeam = [
+      CHARACTERS.find((character) => character.identity.id === "knight") ?? null,
+      CHARACTERS.find((character) => character.identity.id === "mage") ?? null,
+    ].filter((character): character is (typeof CHARACTERS)[number] => Boolean(character));
 
-            <ProfileInfo account={{ pseudo: opponent }} />
+    const selectedHeroCard = selectedHero ?? firstHero;
+    const selectedCharacter = playerCharacters?.find((character) => character.name === selectedHeroCard.identity.name) ?? null;
+
+    return (
+        <div className="game-screen relative flex min-h-screen w-full flex-col px-4 py-4 text-[16px] leading-7 text-[#f5e6c8]" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 py-6">
+            <div className="w-full max-w-4xl -translate-y-20 rounded-3xl">
+              <div className="flex flex-col gap-4 sm:gap-5">
+                <div className="grid w-2/3 grid-cols-2 justify-items-center gap-2 sm:gap-3">
+                  {enemyTeam.map((character) => (
+                    <div key={character.identity.id} className="w-full opacity-90">
+                      <EnemyFighter character={character} />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                  {teamSelected.map((character, index) => (
+                    <div key={character?.identity.id ?? `own-slot-${index}`}>
+                      {character ? (
+                        <Fighter character={character} active={selectedHero?.identity.id === character.identity.id} />
+                      ) : (
+                        <div className="flex aspect-square items-center justify-center rounded-2xl border border-dashed border-gray-700 bg-[#0f0e13] text-sm text-gray-500">
+                          Vide
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
-        <div className="flex-1" />
+
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1" />
+            <ProfileInfo account={{ pseudo: opponent }} className="ml-auto" />
+          </div>
+
+          <div className="flex-1" />
 
           <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(260px,3fr)] lg:items-stretch">
             <div className="min-w-0 lg:flex lg:items-end">
-              <SpellSelector hero={selectedHero ?? firstHero} className="w-full" />
+              <SpellSelector hero={selectedHeroCard} character={selectedCharacter} className="w-full" />
             </div>
 
             <div className="flex flex-col gap-3 lg:h-full lg:items-end lg:justify-between">
               <div className="flex flex-col gap-3 lg:items-end">
                 <ManaBar currentMana={42} />
-                <ProfileInfo account={{ pseudo: userPseudo, profilePhoto: userAvatar }} />
               </div>
 
               <Button variant="secondary" onClick={() => router.push("/home")} className="w-full lg:w-auto">
                 Forfeit
               </Button>
+              <ProfileInfo account={{ pseudo: userPseudo, profilePhoto: userAvatar }} />
             </div>
           </div>
         </div>

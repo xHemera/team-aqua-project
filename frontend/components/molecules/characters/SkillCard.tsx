@@ -200,8 +200,7 @@ export default function SkillCard({
                   segment.highlight ? (
                     <span
                       key={idx}
-                      className="font-bold"
-                      style={{ color: config.color }}
+                      style={{ color: config.color, fontWeight: 700 }}
                     >
                       {segment.text}
                     </span>
