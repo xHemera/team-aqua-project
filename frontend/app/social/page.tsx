@@ -769,9 +769,6 @@ export default function SocialPage() {
 
     const response = await fetch("/api/upload", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: formData,
     });
 
@@ -788,9 +785,6 @@ export default function SocialPage() {
 
       const res = await fetch("/api/social/attachment", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: formData,
       });
       if (!res.ok)
