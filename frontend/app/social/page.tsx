@@ -956,7 +956,7 @@ export default function SocialPage() {
             unreadMap={unreadMap}
             inboxes={inboxes}
             customUserAvatar={customUserAvatar}
-            currentUserName={currentUser?.name ?? ""}
+            currentUserName={currentUser.name ?? ""}
             onSelectUser={(userName) => {
               setSelectedUser(userName);
             }}
