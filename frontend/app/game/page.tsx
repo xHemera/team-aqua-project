@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import SpellSelector from "@/components/molecules/game/SpellSelector";
 import ProfileInfo from "@/components/atoms/game/ProfileInfo";
+import ManaBar from "@/components/atoms/game/ManaBar";
 
 import { CHARACTERS } from "@/public/gameResources/heroes";
+import Button from "@/components/atoms/Button";
 
 export default function Game()
 {
@@ -162,8 +164,10 @@ export default function Game()
             ))}
           </div>
           <SpellSelector hero={selectedHero ?? firstHero} />
-          <ProfileInfo account={{ pseudo: userPseudo }} className="absolute top-4 right-4" />
+          <ProfileInfo account={{ pseudo: userPseudo }} className="absolute bottom-20 right-4" />
           <ProfileInfo account={{ pseudo: opponent }} className="absolute top-4 left-4" />
+          <Button onClick={handleLogout} className="absolute bottom-4 right-4">Forfeit</Button>
+          <ManaBar currentMana={42} className="absolute bottom-36 right-4" />
         </div>
     )
 }
