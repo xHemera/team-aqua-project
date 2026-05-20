@@ -27,6 +27,10 @@ export class CharacterInstance {
 	stunned:			number = 0;
 	overHp:				number = 0;
 	invul:				number = 0;
+    taunted:            number  = 0;
+    shieldHp:           number  = 0; 
+    lastStandUsable:    boolean = false; 
+    lastStandUsed:      boolean = false; 
 	spells:				Map<string, Spell> = new Map();
 
     constructor(uid: string, character: HeroData, owner: number) {

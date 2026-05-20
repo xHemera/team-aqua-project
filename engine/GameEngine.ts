@@ -3,6 +3,7 @@ import { advanceTurn, getActiveCharacter, initTurnQueue } from "./GameState/Turn
 import { CharacterInstance, ModEntry } from "./Instances/CharacterInstance";
 import { resolvePhyDamage } from "./Utils/resolveDamage";
 import { GameAction } from "./Utils/GameAction";
+import { checkLastStand } from "./Utils/lastStand";
 
 function findCharacter(state: GameState, uid: string): CharacterInstance | undefined {
 	return state.players
@@ -25,6 +26,7 @@ function tickAllMods(character: CharacterInstance): void {
 	if (character.stunned   > 0) character.stunned   -= 1;
 	if (character.invisible > 0) character.invisible -= 1;
 	if (character.invul > 0) character.invul -=1;
+	if (character.taunted  > 0) character.taunted  -= 1;
 }
 
 function tickPoison(state: GameState): GameState {
@@ -110,6 +112,9 @@ export function processAction(state: GameState, action: GameAction): GameState {
 		resolveSkill(action.skillId, user, targets);
 	}
 
+	state.players
+	.flatMap(p => p.characters)
+	.forEach(c => checkLastStand(c));
 	tickAllMods(user);
 
 	let newState = tickPoison(state);

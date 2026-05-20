@@ -24,3 +24,38 @@ export class ShieldBash extends Spell {
     }
   }
 }
+
+export class IronWill extends Spell {
+  constructor(scaling: number[][]) {
+    super(scaling);
+    this.id        = "s2";
+    this.name      = "Iron Will";
+    this.mpCost    = 15;
+    this.targeting = "self";
+  }
+
+  applyEffect(user: CharacterInstance, targets: CharacterInstance[]): void {
+    const skillLevel = user.character.skills.find(s => s.id === this.id)?.level ?? 1;
+    const [damageReduction, duration] = this.scaling[skillLevel - 1];
+    user.phyResMod.push({ value: damageReduction, turn: duration });
+    user.magResMod.push({ value: damageReduction, turn: duration });
+
+    targets.forEach(enemy => {
+      enemy.taunted = Math.max(enemy.taunted, duration);
+    });
+  }
+}
+
+export class LastStand extends Spell {
+  constructor(scaling: number[][]) {
+    super(scaling);
+    this.id        = "s3";
+    this.name      = "Last Stand";
+    this.mpCost    = 25;
+    this.targeting = "self";
+  }
+
+  applyEffect(user: CharacterInstance): void {
+    user.lastStandUsable = true;
+  }
+}
