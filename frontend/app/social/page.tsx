@@ -356,6 +356,7 @@ export default function SocialPage() {
       {
         setWaitingForDuelResponse(false);
         setDuelChallengeTo(null);
+        setOpponent(null);
         router.push("social");
       }
     });
@@ -371,7 +372,7 @@ export default function SocialPage() {
     });
 
     socket.on("cancel", async ({user, oUser}) => {
-      if (oUser == userPseudo)
+      if (oUser === userPseudo || user === selectedUser)
       {
         setWaitingForDuelResponse(false);
         setDuelChallengeTo(null);
@@ -1044,7 +1045,7 @@ export default function SocialPage() {
           </div>
         </div>
       )}
-
+      {opponent}
       {isAddContactModalOpen && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 px-4">
           <div className="w-full max-w-md rounded-2xl border border-[#c9a227]/25 bg-[#1b1826] p-5 shadow-2xl">
