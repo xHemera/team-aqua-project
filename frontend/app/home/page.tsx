@@ -124,18 +124,35 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-      if (!userPseudo || socket.connected) return;
+    if (!userPseudo || socket.connected) return;
 
-      const timeoutId = window.setTimeout(() => {
-        socket.connect();
-        socket.emit("login", userPseudo);
-      }, 0);
+    const timeoutId = window.setTimeout(() => {
+      socket.connect();
+      socket.emit("login", userPseudo);
+    }, 0);
 
-      return () => {
-        window.clearTimeout(timeoutId);
-        socket.off("online_users");
-      };
-    }, [userPseudo]);
+    return () => {
+      window.clearTimeout(timeoutId);
+      socket.off("online_users");
+    };
+  }, [userPseudo]);
+
+  useEffect(() => {
+    if (!userPseudo) return;
+    async function fetchTeam()
+    {
+      const res = await fetch(`/api/home?currentUser=${userPseudo}`, {
+        method: "GET",
+      });
+      if (res.ok)
+      {
+        const data = await res.json();
+        if (data.team)
+          setTeamSlots(data.team);
+      }
+    };
+    fetchTeam();
+  }, []);
 
   useEffect(() => {
     if (!userPseudo) return;
@@ -175,6 +192,14 @@ export default function Home() {
   }, [userPseudo]);
 
   useEffect(() => {
+    async function postTeam()
+    {
+      const res = await fetch("/api/home", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", },
+        body: JSON.stringify({userPseudo: userPseudo, char: teamSlots})
+      });
+    }
     localStorage.setItem(STORAGE_KEYS.team, JSON.stringify(teamSlots));
   }, [teamSlots]);
 
