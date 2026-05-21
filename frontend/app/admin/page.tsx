@@ -85,6 +85,7 @@ export default function AdminPage() {
     const cU = users.find(u => u.name === userPseudo);
       if (cU && cU.badges.includes("ADMIN"))
         setCurrentRole("ADMIN");
+    
   }, [userPseudo])
 
   useEffect(() => {
