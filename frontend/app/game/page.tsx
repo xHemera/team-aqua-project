@@ -25,7 +25,6 @@ export default function Game()
   const [selectedHero, setSelectedHero] = useState<typeof CHARACTERS[number] | null>(null);
   const [opponent, setOpponent] = useState("");
   const [oppGaveUp, setOppGaveUp] = useState(false);
-  const [oppSock, setOppSock] = useState("");
 
   //fetch the current user pseudo
   useEffect(() => {
@@ -48,7 +47,6 @@ export default function Game()
       }
       const opp = await res.json();
       setOpponent(opp.name);
-      setOppSock(opp.socketId);
     };
     getUserData();
 
@@ -62,8 +60,8 @@ export default function Game()
       }
 
       const profile = await profileResponse.json() as {
-        image?: string | null;
-        avatar?: { url?: string | null } | null;
+        image: string | null;
+        avatar: { url: string | null } | null;
       };
       setUserAvatar(profile.image ?? profile.avatar?.url ?? null);
     };
@@ -121,10 +119,19 @@ export default function Game()
   }, [teamSelected]);
 
   useEffect(() => {
+    //connect the socket
     if (socket.connected) return;
-    router.push("/home");
-    return ;
-  }, []);
+    socket.connect();
+		socket.emit("login", userPseudo);
+
+		socket.on("online_users", (users) => {
+			console.log("Users from Redis:", users);
+		});
+
+		return () => {
+			socket.off("online_users");
+		};
+  }, [userPseudo]);
 
   useEffect(() => {
     if (!userPseudo) return;
@@ -133,12 +140,20 @@ export default function Game()
         handleLogout();
     };
     const handleDisconnect = (users: {[x: string]: string;}) => {
-      if (users[opponent] !== oppSock)
+      if (!users[opponent])
       {
-        setOppGaveUp(true);
-        socket.off("ban", handleBan);
-        socket.off("online_users", handleDisconnect);
-        router.push("/home");
+        setTimeout(() => {
+          socket.once("online_users", (users) => {
+            if (users[opponent])
+              return ;
+            else
+            {
+              socket.off("ban", handleBan);
+              socket.off("online_users", handleDisconnect);
+              router.push("/home");
+            }
+          });
+        }, 3000);
       }
     };
 
@@ -150,7 +165,7 @@ export default function Game()
       socket.off("ban", handleBan);
       socket.off("online_users", handleDisconnect);
     };
-  }, [userPseudo, opponent, oppSock]);
+  }, [userPseudo, opponent]);
   
   const handleLogout = async () => {
   const response = await fetch("/api/profile", {
@@ -167,7 +182,7 @@ export default function Game()
       socket.emit("isdisconnecting");
       socket.disconnect();
       await authClient.signOut();
-      // router.push("/");
+      router.push("/");
   };
 
   if (!teamSelected) {
