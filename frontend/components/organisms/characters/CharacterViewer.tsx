@@ -30,7 +30,7 @@ export default function CharacterViewer({
   const [selectedSkill, setSelectedSkill] = useState<CharacterSkill | null>(null);
   const [showDetailsPanel, setShowDetailsPanel] = useState(true);
 
-  const power = useMemo(() => calculatePower(selectedCharacter.name, selectedCharacter.stats), [selectedCharacter.stats]);
+  const power = useMemo(() => calculatePower(selectedCharacter.name, selectedCharacter.stats, selectedCharacter.skills), [selectedCharacter.stats]);
   const characterRole = CHARACTER_ROLES[selectedCharacter.name] ?? {
     title: "Adventurer",
     color: "#c9a227",

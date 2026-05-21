@@ -184,14 +184,50 @@ export const formatCompactPower = (value: number) => {
   return `${formattedValue}${units[unitIndex]}`;
 };
 
-export const calculatePower = (name: string, stats: CharacterStats) => {
+export const calculatePower = (name: string, stats: CharacterStats, skills: CharacterSkill[]) => {
   // More realistic power calculation for actual game balance
   let power = 0;
   if (stats.critChance > 100)
     stats.critChance = 100;
   if (name === "Archer")
   {
-    power = stats.physicalDamage + (stats.critChance / 100 * stats.critDamage / 100) + (stats.hp * (stats.physicalResistance + stats.magicalResistance)) + stats.speed;
+    power = stats.physicalDamage + (stats.critChance *
+      stats.critDamage / 100) +
+    (stats.hp * (stats.physicalResistance
+      + stats.magicalResistance)) * stats.speed +
+      (skills[0].level * 30000) + (skills[1].level * 10000) + (skills[2].level * 20000);
+  }
+  if (name === "Assassin")
+  {
+    power = stats.physicalDamage + stats.speed + (stats.critChance *
+      stats.critDamage / 100) +
+    (stats.hp * (stats.physicalResistance
+      + stats.magicalResistance)) * stats.speed +
+      (skills[0].level * 10000) + (skills[1].level * 20000) + (skills[2].level * 30000);
+  }
+  if (name === "Healer")
+  {
+    power = stats.hp * 2 + (stats.critChance *
+      stats.critDamage / 100) +
+    (stats.hp * (stats.physicalResistance
+      + stats.magicalResistance)) * stats.speed +
+      (skills[0].level * 10000) + (skills[1].level * 20000) + (skills[2].level * 30000);
+  }
+  if (name === "Knight")
+  {
+    power = stats.physicalDamage + stats.hp + (stats.critChance *
+      stats.critDamage / 100) +
+    (stats.hp * (stats.physicalResistance
+      + stats.magicalResistance)) * stats.speed +
+      (skills[0].level * 20000) + (skills[1].level * 10000) + (skills[2].level * 30000);
+  }
+  if (name === "Mage")
+  {
+    power = stats.magicalDamage * 4 + (stats.critChance *
+      stats.critDamage / 100) +
+    (stats.hp * (stats.physicalResistance
+      + stats.magicalResistance)) * stats.speed +
+      (skills[0].level * 30000) + (skills[1].level * 10000) + (skills[2].level * 20000);
   }
 
   return Math.round(power);
