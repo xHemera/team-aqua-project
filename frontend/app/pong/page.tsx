@@ -11,6 +11,8 @@ export default function PongPage() {
   const boardHeight = 900;
   const router = useRouter();
   const [winner, setWinner] = useState<null | "left" | "right">(null);
+  const xp = useRef(0);
+  const angle = (Math.random() * Math.PI / 3) - Math.PI / 6; 
 
   // Joueurs 1 ref
   const player1 = useRef({
@@ -110,49 +112,45 @@ export default function PongPage() {
         b.speedY *= -1;
       }
 
-      // Collision joueur 1
-      if (
-        b.x - b.radius <= p1.x + p1.width &&
-        b.y >= p1.y &&
-        b.y <= p1.y + p1.height
-      ) {
-        b.speedX *= -1;
+      const paddleCollision = (b: any, p: any, isLeft: boolean) => {
+        const nextX = b.x + b.speedX;
 
-        // Accélération
-        if (b.speedX > 0) {
-          b.speedX += 0.5;
-        } else {
-          b.speedX -= 0.5;
+        const withinY =
+          b.y + b.radius > p.y &&
+          b.y - b.radius < p.y + p.height;
+
+        const hitX = isLeft
+          ? nextX - b.radius <= p.x + p.width && b.x > p.x
+          : nextX + b.radius >= p.x && b.x < p.x + p.width;
+
+        if (withinY && hitX) {
+          // reposition anti-bug
+          if (isLeft) {
+            b.x = p.x + p.width + b.radius;
+          } else {
+            b.x = p.x - b.radius;
+          }
+
+          // inversion direction
+          b.speedX *= -1;
+
+        // multiplicateur accélération
+        const accel = 1.08;
+
+        b.speedX *= accel;
+        b.speedY *= accel;
+
+        // XP random entre 0 et 2
+        const gainedXp = Math.floor(Math.random() * 3);
+        xp.current += gainedXp;
+
+        // limite vitesse
+        const maxSpeed = 18;
+
+        b.speedX = Math.max(Math.min(b.speedX, maxSpeed), -maxSpeed);
+        b.speedY = Math.max(Math.min(b.speedY, maxSpeed), -maxSpeed);
         }
-
-        if (b.speedY > 0) {
-          b.speedY += 0.5;
-        } else {
-          b.speedY -= 0.5;
-        }
-      }
-
-      // Collision joueur 2
-      if (
-        b.x + b.radius >= p2.x &&
-        b.y >= p2.y &&
-        b.y <= p2.y + p2.height
-      ) {
-        b.speedX *= -1;
-
-        // Accélération
-        if (b.speedX > 0) {
-          b.speedX += 0.5;
-        } else {
-          b.speedX -= 0.5;
-        }
-
-        if (b.speedY > 0) {
-          b.speedY += 0.5;
-        } else {
-          b.speedY -= 0.5;
-        }
-      }
+      };
 
       // Sortie gauche -> joueur droit gagne
       if (b.x < 0) {
@@ -212,7 +210,12 @@ export default function PongPage() {
 
       context.fillStyle = "white";
       context.fill();
+      context.fillStyle = "white";
+      context.font = "30px Arial";
+      context.fillText(`XP: ${xp.current}`, boardWidth - 150, 50);
 
+      paddleCollision(b, p1, true);
+      paddleCollision(b, p2, false);
       requestAnimationFrame(update);
 
     };
@@ -239,7 +242,7 @@ return (
       <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
         <div className="bg-white text-black p-8 rounded-xl text-center space-y-4">
           <h2 className="text-2xl font-bold">
-            Vous avez gagné PLACEHOLDER XP pour chaque personnage !
+            Vous avez gagné {xp.current} XP pour chaque personnage !
           </h2>
 
           <button
