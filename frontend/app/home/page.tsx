@@ -531,7 +531,7 @@ export default function Home() {
                 title="Pong"
                 icon="fa-flame"
                 accentClassName="bg-gradient-to-br from-[#5c2f2f]/20 via-[#c75d4d]/15 to-transparent"
-                value="Match"
+                value="Farm XP"
                 onClick={() => router.push("/pong")}
               />
 
