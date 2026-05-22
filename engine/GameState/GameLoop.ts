@@ -1,6 +1,7 @@
-import { getCurrentTurnCharacter} from "../GameEngine";
+import { getCurrentTurnCharacter, processAction} from "../GameEngine";
+import { GameAction } from "../Utils/GameAction";
 import { GameState } from "./GameState"
-import { initGame } from "./initGame";
+import { initGame } from "./initGameState";
 
 export type GameLoopState = {
 	gameState:			GameState;
@@ -28,4 +29,16 @@ export class GameLoop {
 		winner:             this.state.winnerId,
 		};
 	}
-}
+
+	submitAction(action: GameAction): GameLoopState {
+		if (this.state.gamePhase !== "battle") return this.getLoopState();
+
+		const activeCharacter = getCurrentTurnCharacter(this.state);
+		if (!activeCharacter || activeCharacter.uid !== action.userUid) {
+		return this.getLoopState();
+		}
+
+		this.state = processAction(this.state, action);
+		return this.getLoopState();
+	}
+	}
