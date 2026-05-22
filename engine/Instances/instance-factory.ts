@@ -31,3 +31,12 @@ export function getHeroData(characterId: string): HeroData {
 	if (!data) throw new Error(`WHO IS THIS: ${characterId}`);
 	return data;
 }
+
+export function getRawHero(characterId: string): typeof archer {
+  const raw: Record<string, typeof archer> = {
+    archer, assassin, healer, knight, mage,
+  };
+  const hero = raw[characterId];
+  if (!hero) throw new Error(`WHO IS THIS: ${characterId}`);
+  return hero;
+}
