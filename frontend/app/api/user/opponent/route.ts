@@ -22,7 +22,12 @@ export async function GET(req: Request)
         const currentUser = searchParams.get("pseudo");
         if (!currentUser)
             return Response.json({error: "Internal server error"}, {status: 500});
-        const opponent = await redis.hGet("inGamePlayers", currentUser);
+        const raw = await redis.hGet("inGamePlayers", currentUser);
+        if (!raw)
+            return Response.json({error: "Internal server error"}, {status: 500});
+        const data = JSON.parse(raw);
+        const opponent = data.opp;
+        const roomId = data.roomId;
         if (opponent)
         {
             const user = await prisma.user.findFirst({
@@ -44,7 +49,7 @@ export async function GET(req: Request)
                 const name = i.charAt(0).toUpperCase() + i.slice(1);
                 team.push(name);
             }
-            return Response.json({name: opponent, team: team, avatar: user.image}, {status: 200});
+            return Response.json({name: opponent, team: team, avatar: user.image, roomId: roomId}, {status: 200});
         }
         return Response.json({error: "Internal server error"}, {status: 500});
     }

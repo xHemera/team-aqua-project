@@ -265,7 +265,7 @@ export default function Home() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({userPseudo: userPseudo}),
-    })
+    });
     if (!res.ok)
       return ; //afficher un message lie a l'erreur
   };

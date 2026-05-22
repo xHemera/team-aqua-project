@@ -34,6 +34,7 @@ export default function Game()
   const [oppSock, setOppSock] = useState("");
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isYourTurn, setIsYourTurn] = useState(true);
+  const [roomId, setRoomId] = useState(0);
 
 
   //fetch the current user pseudo
@@ -73,6 +74,7 @@ export default function Game()
       setOpponent(opp.name);
       setOppTeam(opp.team);
       setOppAvatar(opp.avatar);
+      setRoomId(opp.roomId);
     };
     getUserData();
 
@@ -207,7 +209,7 @@ export default function Game()
       router.push("/");
   };
 
-  if (!teamSelected) {
+  if (!teamSelected || !oppTeam) {
     return (
       <div className="flex w-full justify-center px-4">
         <div className="rounded border border-[#3c3650] bg-[#0f0e13] p-4 text-[#cfc8e6]">Chargement...</div>
