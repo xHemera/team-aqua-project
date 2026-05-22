@@ -207,7 +207,7 @@ export default function Game()
       router.push("/");
   };
 
-  if (!teamSelected) {
+  if (!teamSelected || !oppTeam) {
     return (
       <div className="flex w-full justify-center px-4">
         <div className="rounded border border-[#3c3650] bg-[#0f0e13] p-4 text-[#cfc8e6]">Chargement...</div>
