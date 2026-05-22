@@ -93,15 +93,14 @@ export async function PUT(req: Request)
         });
         if (!user || !user.gameState)
             return Response.json({error: "Internal server error"}, {status: 500});
-        for (const c of char)
-        {
-            await prisma.gameState.update({
-                where: { id: user.gameState.id },
-                data: {
-                    team: { push: c }
+        await prisma.gameState.update({
+            where: { id: user.gameState.id },
+            data: {
+                team: {
+                    set: char,
                 }
-            });
-        }
+            }
+        });
         return Response.json({msg: "OK"}, {status: 200});
     }
     catch (e) {

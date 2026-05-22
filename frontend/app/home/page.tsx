@@ -192,6 +192,8 @@ export default function Home() {
   }, [userPseudo]);
 
   useEffect(() => {
+    if (!userPseudo || !teamSlots)
+      return ;
     async function postTeam()
     {
       const res = await fetch("/api/home", {
@@ -200,6 +202,7 @@ export default function Home() {
         body: JSON.stringify({userPseudo: userPseudo, char: teamSlots})
       });
     }
+    postTeam();
     localStorage.setItem(STORAGE_KEYS.team, JSON.stringify(teamSlots));
   }, [teamSlots]);
 
