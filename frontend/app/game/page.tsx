@@ -4,6 +4,8 @@ import { authClient } from "@/lib/auth-client";
 import { socket } from "@/socket";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Team } from "./spells";
+import { spells } from "./index";
 import SpellSelector from "@/components/molecules/game/SpellSelector";
 import ProfileInfo from "@/components/atoms/game/ProfileInfo";
 import ManaBar from "@/components/atoms/game/ManaBar";
@@ -20,10 +22,13 @@ export default function Game()
   const router = useRouter();
   const [userPseudo, setUserPseudo] = useState("");
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [oppAvatar, setOppAvatar] = useState<string | null>(null);
   const [playerCharacters, setPlayerCharacters] = useState<CharacterData[] | null>(null);
   const [teamSelected, setTeamSelected] = useState<Array<typeof CHARACTERS[number] | null> | null>(null);
   const [selectedHero, setSelectedHero] = useState<typeof CHARACTERS[number] | null>(null);
   const [opponent, setOpponent] = useState("");
+  const [team, setTeam] = useState<string[] | null>([]);
+  const [oppTeam, setOppTeam] = useState<string[] | null>([]);
   const [oppGaveUp, setOppGaveUp] = useState(false);
 
   //fetch the current user pseudo
@@ -37,16 +42,32 @@ export default function Game()
         router.push("/not-connected");
         return ;
       }
-      const res = await fetch(`api/user/opponent?pseudo=${data.user.name}`, {
-        method: "GET",
-      });
-      if (!res.ok)
+      const [cres, ores] = await Promise.all([
+        fetch (`/api/user?pseudo=${data.user.name}`, {
+          method: "GET",
+        }),
+        fetch(`api/user/opponent?pseudo=${data.user.name}`, {
+          method: "GET",
+        }),
+      ])
+      if (!ores.ok)
       {
         router.push("/home");
         return ;
       }
-      const opp = await res.json();
+      const res = await cres.json();
+      const team: Team = {
+        owner: data.user.name,
+        characters: res.team,
+        levels: res.levels,
+        skillsLevels: res.spellsLevels,
+      }
+      setTeam(res.team);
+      spells.initialData(team);
+      const opp = await ores.json();
       setOpponent(opp.name);
+      setOppTeam(opp.team);
+      setOppAvatar(opp.avatar);
     };
     getUserData();
 
@@ -95,21 +116,17 @@ export default function Game()
   // Load selected team from Home (localStorage key: "home-team-slots")
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("home-team-slots");
-      if (raw) {
-        const ids = JSON.parse(raw) as Array<string | null>;
-        if (Array.isArray(ids) && ids.length === 3) {
-          const mapped = ids.map((id) => (id ? CHARACTERS.find((h) => h.identity.id === id) ?? null : null));
-          setTeamSelected(mapped);
-          return;
-        }
+      if (team && team.length === 3) {
+        const mapped = team.map((id) => (id ? CHARACTERS.find((h) => h.identity.name === id) ?? null : null));
+        setTeamSelected(mapped);
+        return;
       }
     } catch (e) {
       // ignore malformed
     }
     // fallback: first three characters
     setTeamSelected(CHARACTERS.slice(0, 3).map((c) => c ?? null));
-  }, []);
+  }, [team]);
 
   // Initialize selected hero when team loads
   useEffect(() => {
@@ -213,7 +230,6 @@ export default function Game()
   return (
       <div className="game-screen relative flex min-h-screen w-full flex-col px-4 py-4 text-[16px] leading-7 text-[#f5e6c8]" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
         <TurnQueue />
-
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 py-6">
           <div className="w-full max-w-4xl -translate-y-20 rounded-3xl">
             <div className="flex flex-col gap-4 sm:gap-5">

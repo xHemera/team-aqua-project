@@ -5,6 +5,76 @@ import { rateLimit } from "@/lib/rateLimit";
 import { redis } from "@/lib/redis";
 import { authClient } from "@/lib/auth-client";
 
+export async function GET(req: Request)
+{
+    const h = await headers();
+    const ip = h
+    .get("x-forwarded-for")
+    ?.split(",")[0]
+    .trim() || "unknown";
+
+    const allowed = await rateLimit(redis, `rl:game${ip}`, 20, 1);
+
+    if (!allowed) {
+        console.log("Too many requests");
+        return Response.json({error: "Too many request"}, {status: 429});
+    }
+
+    try {
+        const {searchParams} = new URL(req.url);
+        const pseudo = searchParams.get("pseudo");
+        if (!pseudo)
+            return Response.json({error: "Internal server error"}, {status: 500});
+
+        const user = await prisma.user.findFirst({
+            where: { name: pseudo },
+            select: {
+                gameState: {
+                    select: {
+                        characters : {
+                            select: {
+                                spells: {
+                                    select: { level: true } 
+                                },
+                                name: true,
+                                level: true,
+                            },
+                        },
+                        team: true,
+                    } 
+                }
+            }
+        });
+        if (!user || !user.gameState || !user.gameState.characters)
+            return Response.json({error: "Internal server error"}, {status: 500});
+        let team: string[] = [];
+        for (const i of user.gameState.team)
+        {
+            const name = i.charAt(0).toUpperCase() + i.slice(1);
+            team.push(name);
+        }
+        let levels: number[] = [];
+        for (const c of team)
+        {
+            levels.push(user.gameState.characters.find((i) => i.name === c)?.level!);
+        }
+
+        let spellsLevels: number[] = [];
+        for (const c of team)
+        {
+            const char = user.gameState.characters.find((i) => i.name === c);
+            if (!char)
+                return Response.json({error: "Internal server error"}, {status: 500});
+            char.spells.map((i) => (spellsLevels.push(i.level)));
+        }
+        return Response.json({team: team, levels: levels, spellsLevels: spellsLevels}, {status: 200});
+    }
+    catch (e) {
+        console.log(e);
+        return Response.json({error: "Internal server error"}, {status: 500});
+    }
+}
+
 export async function POST(req: Request)
 {
     const h = await headers();
