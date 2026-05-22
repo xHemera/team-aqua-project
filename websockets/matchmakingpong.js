@@ -21,11 +21,11 @@ async function matchmaking()
     while (true)
     {
         try {
-            const count = await redis.lLen("players_queue");
+            const count = await redis.lLen("pong_queue");
             if (count >= 2)
             {
-                const p1 = await redis.lPop("players_queue");
-                const p2 = await redis.lPop("players_queue");
+                const p1 = await redis.lPop("pong_queue");
+                const p2 = await redis.lPop("pong_queue");
 
                 const test = await redis.hGetAll("online_users");
                 const receiverSockP1 = await redis.hGet("online_users", p1);
@@ -33,8 +33,8 @@ async function matchmaking()
 
                 if (!p1 || !p2 || !receiverSockP1 || !receiverSockP2)
                 {
-                    if (p1) await redis.lPush("players_queue", p1);
-                    if (p2) await redis.lPush("players_queue", p2);
+                    if (p1) await redis.lPush("pong_queue", p1);
+                    if (p2) await redis.lPush("pong_queue", p2);
                     await sleep(1000);
                     continue;
                 }
@@ -42,8 +42,8 @@ async function matchmaking()
                 await redis.hSet("inGamePlayers", p2, p1);
                 const users = await redis.hGetAll("inGamePlayers");
                 console.log(users);
-                io.to(receiverSockP1).emit("matchFound");
-                io.to(receiverSockP2).emit("matchFound");
+                io.to(receiverSockP1).emit("matchFoundPong");
+                io.to(receiverSockP2).emit("matchFoundPong");
             }
             await sleep(1000);
         }

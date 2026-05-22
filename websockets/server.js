@@ -3,6 +3,7 @@ import { Server } from "socket.io";
 import express from "express";
 import { createClient } from 'redis';
 import "./matchmaking.js";
+import "./matchmakingpong.js";
 
 //redis settings
 const redis = createClient({
