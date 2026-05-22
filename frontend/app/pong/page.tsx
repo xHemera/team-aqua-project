@@ -8,9 +8,8 @@ import Button from "@/components/atoms/Button";
 export default function PongPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // board
-  const boardWidth = 1500;
-  const boardHeight = 900;
+  const boardWidth = 1400;
+  const boardHeight = 820;
   const router = useRouter();
   const [winner, setWinner] = useState<null | "left" | "right">(null);
   const xp = useRef(0);
