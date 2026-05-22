@@ -2,7 +2,7 @@ import { GameState } from "../GameState/GameState";
 import { CharacterInstance } from "../Instances/CharacterInstance";
 import { GameAction } from "./GameAction";
 
-function findCharacter(state: GameState, uid: string): CharacterInstance | undefined {
+export function findCharacter(state: GameState, uid: string): CharacterInstance | undefined {
   return state.players
     .flatMap(p => p.characters)
     .find(c => c.uid === uid);
