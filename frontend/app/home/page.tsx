@@ -15,6 +15,7 @@ import {socket} from "../../socket"
 import NotificationToast from "@/components/organisms/home/NotificationToast";
 
 const PvpMatchmakingModal = dynamic(() => import("@/components/organisms/home/PvpMatchmakingModal"), { ssr: false });
+const PongMatchmakingModal = dynamic(() => import("@/components/organisms/home/PongMatchmakingModal"), { ssr: false });
 
 
 
@@ -61,6 +62,7 @@ export default function Home() {
   const [ruby, setRuby] = useState<number>(0);
 
   const [pvpOpen, setPvpOpen] = useState(false);
+  const [pongOpen, setPongOpen] = useState(false);
   const [minePopups, setMinePopups] = useState<MinePopup[]>([]);
   const minePopupIdRef = useRef(0);
 
@@ -188,6 +190,11 @@ export default function Home() {
       router.push("/game");
     });
 
+    socket.on("matchFoundPong", () => {
+      router.push("/pong");
+    });
+
+
     socket.on("ban", (banned) => {
       if (banned === userPseudo)
         handleLogout();
@@ -261,6 +268,35 @@ export default function Home() {
     })
     if (!res.ok)
       return ; //afficher un message lie a l'erreur
+  };
+
+  const handleStartPong = async () => {
+    if (!userPseudo)
+    {
+      return ;
+    }
+    setPongOpen(true);
+    const res = await fetch("/api/pong", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({userPseudo: userPseudo}),
+    })
+    if (!res.ok)
+      return ; //afficher un message lie a l'erreur
+  };
+
+  const handleClosePong = async () => {
+    const res = await fetch(`/api/pong?userPseudo=${userPseudo}`, {
+      method: "DELETE",
+    })
+    if (!res.ok)
+    {
+      setPongOpen(false);
+      return ; //afficher un message lie a l'erreur
+    }
+    setPongOpen(false);
   };
 
   const handleClosePvp = async () => {
@@ -452,7 +488,7 @@ export default function Home() {
                 icon="fa-flame"
                 accentClassName="bg-gradient-to-br from-[#5c2f2f]/20 via-[#c75d4d]/15 to-transparent"
                 value="Farm XP"
-                onClick={() => router.push("/pong")}
+                onClick={handleStartPong}
               />
 
               
@@ -523,7 +559,10 @@ export default function Home() {
         onClose={handleClosePvp}
       />
 
-      
+      <PongMatchmakingModal
+        open={pongOpen}
+        onClose={handleClosePong}
+      />
     </div>
   );
 }
