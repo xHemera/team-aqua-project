@@ -10,6 +10,7 @@ import ManaBar from "@/components/atoms/game/ManaBar";
 import Fighter from "@/components/atoms/game/Fighter";
 import EnemyFighter from "@/components/atoms/game/EnemyFighter";
 import TurnQueue from "@/components/atoms/game/TurnQueue";
+import InfoModal from "@/components/atoms/game/InfoModal";
 import type { CharacterData } from "@/components/organisms/characters/types";
 
 import { CHARACTERS } from "@/public/gameResources/heroes";
@@ -26,6 +27,8 @@ export default function Game()
   const [opponent, setOpponent] = useState("");
   const [oppGaveUp, setOppGaveUp] = useState(false);
   const [oppSock, setOppSock] = useState("");
+  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const [isYourTurn, setIsYourTurn] = useState(true);
 
   //fetch the current user pseudo
   useEffect(() => {
@@ -35,7 +38,7 @@ export default function Game()
         setUserPseudo(data.user.name);
       else
       {
-        router.push("/not-connected");
+        // router.push("/not-connected");
         return ;
       }
       const res = await fetch(`api/user/opponent?pseudo=${data.user.name}`, {
@@ -43,7 +46,7 @@ export default function Game()
       });
       if (!res.ok)
       {
-        router.push("/home");
+        // router.push("/home");
         return ;
       }
       const opp = await res.json();
@@ -122,7 +125,7 @@ export default function Game()
 
   useEffect(() => {
     if (socket.connected) return;
-    router.push("/home");
+    // router.push("/home");
     return ;
   }, []);
 
@@ -138,7 +141,7 @@ export default function Game()
         setOppGaveUp(true);
         socket.off("ban", handleBan);
         socket.off("online_users", handleDisconnect);
-        router.push("/home");
+        // router.push("/home");
       }
     };
 
@@ -247,9 +250,25 @@ export default function Game()
             <Button variant="secondary" onClick={() => router.push("/home")} className="w-full lg:w-auto">
               Forfeit
             </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setIsYourTurn((currentTurn) => !currentTurn);
+                setIsInfoModalOpen(true);
+              }}
+              className="w-full lg:w-auto"
+            >
+              Test
+            </Button>
             <ProfileInfo account={{ pseudo: userPseudo, profilePhoto: userAvatar }} />
           </div>
         </div>
+
+        <InfoModal
+          open={isInfoModalOpen}
+          isYourTurn={isYourTurn}
+          onClose={() => setIsInfoModalOpen(false)}
+        />
       </div>
   )
 }
