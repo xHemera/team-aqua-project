@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import AppPageShell from "@/components/AppPageShell";
+import Button from "@/components/atoms/Button";
 
 export default function PongPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -229,31 +231,30 @@ export default function PongPage() {
   }, []);
 
 return (
-  <div className="min-h-screen bg-black flex items-center justify-center relative">
-    <canvas
-      ref={canvasRef}
-      width={boardWidth}
-      height={boardHeight}
-      className="border-4 border-white"
-    />
+  <AppPageShell>
+    <div className="flex items-center justify-center w-full relative">
+      <canvas
+        ref={canvasRef}
+        width={boardWidth}
+        height={boardHeight}
+        className="border-4 border-white/10 rounded-md"
+      />
 
-    {/* MODAL WIN */}
-    {winner && (
-      <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
-        <div className="bg-white text-black p-8 rounded-xl text-center space-y-4">
-          <h2 className="text-2xl font-bold">
-            Vous avez gagné {xp.current} XP pour chaque personnage !
-          </h2>
+      {/* MODAL WIN */}
+      {winner && (
+        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+          <div className="bg-[#0c0a0f] text-white p-8 rounded-xl text-center space-y-4">
+            <h2 className="text-2xl font-bold">
+              Vous avez gagné {xp.current} XP pour chaque personnage !
+            </h2>
 
-          <button
-            className="px-6 py-2 bg-black text-white rounded"
-            onClick={() => router.push("home")}
-          >
-            Retour à l’accueil
-          </button>
+            <Button onClick={() => router.push("home")}>
+              Retour à l’accueil
+            </Button>
+          </div>
         </div>
-      </div>
-    )}
-  </div>
+      )}
+    </div>
+  </AppPageShell>
 );
 }
