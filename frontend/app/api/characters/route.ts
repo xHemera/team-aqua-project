@@ -1,329 +1,279 @@
-import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { CHARACTERS, MAX_CHARACTER_LEVEL, MAX_SKILL_LEVEL, PLAYER_RESOURCES } from "@/app/characters/character-roster";
+import { CHARACTERS } from "@/public/gameResources/heroes";
 import { headers } from "next/headers";
 import { rateLimit } from "@/lib/rateLimit";
 import { redis } from "@/lib/redis";
+import type { CharacterData, CharacterSkill, CharacterStats, PlayerResources } from "@/components/organisms/characters/types";
 
-type ApiCharacterSkill = {
-  id: string;
-  name: string;
-  image: string;
-  description: string;
-  unlockLevel?: number;
-  level: number;
-  cost: number;
-};
+export async function GET(req: Request)
+{
+  const h = await headers();
+  const ip = h
+  .get("x-forwarded-for")
+  ?.split(",")[0]
+  .trim() || "unknown";
 
-type ApiCharacterData = {
-  id: string;
-  name: string;
-  portrait: string;
-  body: string;
-  baseStats: (typeof CHARACTERS)[number]["baseStats"];
-  level: number;
-  xpPercent: number;
-  levelUpCost: number;
-  skills: ApiCharacterSkill[];
-  stats: (typeof CHARACTERS)[number]["stats"];
-};
+  const allowed = await rateLimit(redis, `rl:friend${ip}`, 20, 1);
 
-class UpgradeError extends Error {
-  status: number;
-
-  constructor(message: string, status: number) {
-    super(message);
-    this.status = status;
+  if (!allowed) {
+      console.log("Too many requests");
+      return Response.json({error: "Too many request"}, {status: 429});
   }
-}
-
-const ensureGameState = async (userId: string) => {
-  return prisma.gameState.upsert({
-    where: { user_id: userId },
-    create: {
-      user_id: userId,
-      rubis: PLAYER_RESOURCES.ruby,
-    },
-    update: {},
-    select: {
-      id: true,
-      rubis: true,
-    },
-  });
-};
-
-const ensureCharacterRoster = async (gameStateId: string) => {
-  const existingCharacters = await prisma.character.findMany({
-    where: { gameStateId },
-    select: {
-      id: true,
-      name: true,
-    },
-  });
-
-  const existingByName = new Map(existingCharacters.map((character) => [character.name, character]));
-
-  for (const templateCharacter of CHARACTERS) {
-    if (existingByName.has(templateCharacter.name)) {
-      continue;
-    }
-
-    await prisma.character.create({
-      data: {
-        gameStateId,
-        name: templateCharacter.name,
-        hp: templateCharacter.stats.hp,
-        level: templateCharacter.level,
-        spells: {
-          create: templateCharacter.skills.map((skill) => ({
-            name: skill.name,
-            type: "ability",
-            effect: 0,
-            mpCost: skill.cost,
-            level: skill.level,
-          })),
-        },
+  try {
+    const {searchParams} = new URL(req.url);
+    const currentUser = searchParams.get("username");
+    if (!currentUser)
+      return Response.json({error: "Internal server error"}, {status: 500});
+    
+    let characters: CharacterData[] = [];
+    const user = await prisma.user.findFirst({
+      where: {
+        name: currentUser,
       },
       select: {
         id: true,
-      },
+        gameState: {
+          select: {
+            characters: {
+              select: { 
+                name: true,
+                level: true,
+                spells: true,
+                id: true,
+                xp: true,
+              }
+            },
+            rubis: true,
+          }
+        }
+      }
     });
-  }
+    if (!user || !user.gameState || !user.gameState.characters)
+      return Response.json({error: "Internal server error"}, {status: 500});
 
-  const charactersWithSpells = await prisma.character.findMany({
-    where: { gameStateId },
-    include: {
-      spells: true,
-    },
-  });
+    for (const char of user.gameState.characters)
+    {
+      const c = CHARACTERS.find(i => i.identity.name === char.name);
+      if (!c)
+        return Response.json({error: "Internal server error"}, {status: 500});
 
-  for (const character of charactersWithSpells) {
-    const templateCharacter = CHARACTERS.find((item) => item.name === character.name);
-    if (!templateCharacter) {
-      continue;
-    }
-
-    const existingSpellNames = new Set(character.spells.map((spell) => spell.name));
-    const missingTemplateSkills = templateCharacter.skills.filter((skill) => !existingSpellNames.has(skill.name));
-
-    if (!missingTemplateSkills.length) {
-      continue;
-    }
-
-    await prisma.spell.createMany({
-      data: missingTemplateSkills.map((skill) => ({
-        characterId: character.id,
-        name: skill.name,
-        type: "ability",
-        effect: 0,
-        mpCost: skill.cost,
-        level: skill.level,
-      })),
-    });
-  }
-};
-
-const getApiCharacters = async (gameStateId: string): Promise<ApiCharacterData[]> => {
-  const dbCharacters = await prisma.character.findMany({
-    where: { gameStateId },
-    include: {
-      spells: true,
-    },
-  });
-
-  const dbCharactersByName = new Map(dbCharacters.map((character) => [character.name, character]));
-
-  return CHARACTERS.map((templateCharacter) => {
-    const dbCharacter = dbCharactersByName.get(templateCharacter.name);
-
-    if (!dbCharacter) {
-      return {
-        ...templateCharacter,
-      };
-    }
-
-    const dbSpellsByName = new Map(dbCharacter.spells.map((spell) => [spell.name, spell]));
-
-    return {
-      ...templateCharacter,
-      id: dbCharacter.id,
-      level: dbCharacter.level,
-      stats: {
-        ...templateCharacter.stats,
-        hp: dbCharacter.hp,
-      },
-      skills: templateCharacter.skills.map((templateSkill) => {
-        const dbSpell = dbSpellsByName.get(templateSkill.name);
-
-        return {
-          ...templateSkill,
-          id: dbSpell?.id ?? templateSkill.id,
-          level: dbSpell?.level ?? templateSkill.level,
-          cost: dbSpell?.mpCost ?? templateSkill.cost,
-        };
-      }),
-    };
-  });
-};
-
-export async function GET() {
-  const h = await headers();
-  const ip = h
-  .get("x-forwarded-for")
-  ?.split(",")[0]
-  .trim() || "unknown";
-
-  const allowed = await rateLimit(redis, `rl:character${ip}`, 5, 3);
-
-  if (!allowed) {
-      console.log("Too many requests");
-      return Response.json({error: "Too many request"}, {status: 429});
-  }
-
-  try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session || !session.user.id) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const gameState = await ensureGameState(session.user.id);
-    await ensureCharacterRoster(gameState.id);
-    const characters = await getApiCharacters(gameState.id);
-
-    return Response.json(
+      let skills: CharacterSkill[] = [];
+      for (const spell of c.skills)
       {
-        characters,
-        resources: {
-          ruby: gameState.rubis,
-        },
-        maxCharacterLevel: MAX_CHARACTER_LEVEL,
-        maxSkillLevel: MAX_SKILL_LEVEL,
-      },
-      { status: 200 },
-    );
-  } catch (error) {
-    console.error("Error fetching characters:", error);
-    return Response.json({ error: "Internal server error" }, { status: 500 });
+        const s = char.spells.find(i => i.name === spell.info.name)
+        if (!s)
+          continue;
+        const lvl = s.level;
+        const skill: CharacterSkill = {
+          id: s.id,
+          name: spell.info.name,
+          image: spell.info.icon,
+          description: spell.info.description,
+          unlockLevel: spell.unlockLevel,
+          level: lvl,
+          cost: spell.manaCost,
+          xp: s.xp,
+        }
+        skills.push(skill);
+      }
+
+      const result = {} as CharacterStats;
+      for (const key in c.baseStats) {
+        result[key as keyof CharacterStats] =
+          c.baseStats[key as keyof typeof c.baseStats] +
+          c.growth[key as keyof typeof c.growth] * (char.level - 1);
+      }
+      const character: CharacterData = {
+        id: char.id,
+        name: c.identity.name,
+        portrait: c.identity.assets.portrait,
+        body: c.identity.assets.body,
+        baseStats: c.baseStats,
+        stats: result,
+        level: char.level,
+        xpPercent: char.xp,
+        levelUpCost: 10,
+        skills: skills,
+      }
+      characters.push(character);
+    }
+    const resources: PlayerResources = {
+      ruby: user.gameState.rubis,
+    };
+    return Response.json({characters: characters, resources: resources, maxSkillLevel: 10}, {status: 201});
+  }
+  catch (e) {
+    console.log(e);
+    return Response.json({error: "Internal server error"}, {status: 500});
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(req: Request)
+{
   const h = await headers();
   const ip = h
   .get("x-forwarded-for")
   ?.split(",")[0]
   .trim() || "unknown";
 
-  const allowed = await rateLimit(redis, `rl:character${ip}`, 5, 3);
+  const allowed = await rateLimit(redis, `rl:characters${ip}`, 5, 1);
 
   if (!allowed) {
       console.log("Too many requests");
       return Response.json({error: "Too many request"}, {status: 429});
   }
-
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session || !session.user.id) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const body = (await request.json()) as { spellId?: string };
-    const spellId = body.spellId?.trim();
-
-    if (!spellId) {
-      return Response.json({ error: "spellId is required" }, { status: 400 });
-    }
-
-    const result = await prisma.$transaction(async (tx) => {
-      const spell = await tx.spell.findUnique({
-        where: { id: spellId },
-        include: {
-          character: {
-            include: {
-              gameState: {
-                select: {
-                  id: true,
-                  user_id: true,
-                  rubis: true,
-                },
-              },
-            },
-          },
-        },
-      });
-
-      if (!spell) {
-        throw new UpgradeError("Spell not found", 404);
+    const data = await req.json();
+    const { name } = data;
+    const userId = await prisma.user.findFirst({
+      where: { name: name },
+      select: {
+        id: true,
+        gameState: true,
       }
-
-      if (spell.character.gameState.user_id !== session.user.id) {
-        throw new UpgradeError("Forbidden", 403);
-      }
-
-      if (spell.level >= MAX_SKILL_LEVEL) {
-        throw new UpgradeError("Spell is already max level", 400);
-      }
-
-      const gameStateUpdate = await tx.gameState.updateMany({
-        where: {
-          id: spell.character.gameState.id,
-          user_id: session.user.id,
-          rubis: { gte: spell.mpCost },
-        },
-        data: {
-          rubis: { decrement: 10 },
-        },
-      });
-
-      if (gameStateUpdate.count === 0) {
-        throw new UpgradeError("Not enough rubies", 400);
-      }
-
-      const spellUpdate = await tx.spell.updateMany({
-        where: {
-          id: spell.id,
-          level: { lt: MAX_SKILL_LEVEL },
-        },
-        data: {
-          level: { increment: 1 },
-        },
-      });
-
-      if (spellUpdate.count === 0) {
-        throw new UpgradeError("Spell is already max level", 400);
-      }
-
-      const [updatedSpell, updatedGameState] = await Promise.all([
-        tx.spell.findUnique({
-          where: { id: spell.id },
-          select: { id: true, level: true },
-        }),
-        tx.gameState.findUnique({
-          where: { id: spell.character.gameState.id },
-          select: { rubis: true },
-        }),
-      ]);
-
-      if (!updatedSpell || !updatedGameState) {
-        throw new UpgradeError("Upgrade failed", 500);
-      }
-
-      return {
-        spellId: updatedSpell.id,
-        level: updatedSpell.level,
-        resources: {
-          ruby: updatedGameState.rubis,
-        },
-      };
     });
+    if (!userId)
+      return Response.json({error: "Internal server error"}, {status: 500});
 
-    return Response.json(result, { status: 200 });
-  } catch (error) {
-    if (error instanceof UpgradeError) {
-      return Response.json({ error: error.message }, { status: error.status });
+    const gs = await prisma.gameState.create({
+      data: {
+        user_id: userId.id,
+        rubis: 0,
+      }
+    });
+    if (!gs)
+      return Response.json({error: "Internal server error"}, {status: 500});
+
+    for (const character of CHARACTERS)
+    {
+      const char = await prisma.character.create({
+        data: {
+          gameStateId: gs.id,
+          name: character.identity.name,
+          hp: character.baseStats.hp,
+          level: 1,
+          xp: 0,
+        }
+      })
+      if (!char)
+        return Response.json({error: "Internal server error"}, {status: 500});
+      for (const spell of character.skills)
+      {
+        await prisma.spell.create({
+          data: {
+            characterId: char.id,
+            name: spell.info.name,
+            type: spell.type,
+            mpCost: spell.manaCost,
+            level: 1,
+            xp: 0,
+          }
+        });
+      }
     }
+    return Response.json({msg: "Created"}, {status: 201});
+  }
+  catch (e) {
+    console.log(e);
+    return Response.json({error: "Internal server error"}, {status: 500});
+  }
+}
 
-    console.error("Error upgrading spell:", error);
-    return Response.json({ error: "Internal server error" }, { status: 500 });
+export async function PUT(req: Request)
+{
+  const h = await headers();
+  const ip = h
+  .get("x-forwarded-for")
+  ?.split(",")[0]
+  .trim() || "unknown";
+
+  const allowed = await rateLimit(redis, `rl:upgrade${ip}`, 1, 1);
+
+  if (!allowed) {
+      console.log("Too many requests");
+      return Response.json({error: "Too many request"}, {status: 429});
+  }
+  try {
+    const data = await req.json();
+    const { name, skillId } = data;
+    const user = await prisma.user.findFirst({
+      where: { name: name },
+      select: {
+        id: true,
+        gameState: true,
+      }
+    });
+    if (!user || !user.gameState)
+      return Response.json({error: "Internal server error"}, {status: 500});
+    const skill = await prisma.spell.update({
+      where: { id: skillId, level: { lt: 10 } },
+      data: {
+        level: {
+          increment: 1
+        },
+        xp: 0
+      },
+      select: {
+        level: true,
+      }
+    });
+    const resources: PlayerResources = { ruby: user.gameState.rubis };
+    return Response.json({spellId: skillId, resources: resources, level: skill.level}, {status: 200});
+  }
+  catch (e) {
+    console.log(e);
+    return Response.json({error: "Internal server error"}, {status: 500});
+  }
+}
+
+export async function PATCH(req: Request)
+{
+  const h = await headers();
+  const ip = h
+  .get("x-forwarded-for")
+  ?.split(",")[0]
+  .trim() || "unknown";
+
+  const allowed = await rateLimit(redis, `rl:characters${ip}`, 10, 1);
+
+  if (!allowed) {
+      console.log("Too many requests");
+      return Response.json({error: "Too many request"}, {status: 429});
+  }
+  try {
+    const data = await req.json();
+    const { name, skillId } = data;
+    const user = await prisma.user.findFirst({
+      where: { name: name },
+      select: {
+        id: true,
+        gameState: true,
+      }
+    });
+    if (!user || !user.gameState)
+      return Response.json({error: "Internal server error"}, {status: 500});
+    const spell = await prisma.spell.update({
+      where: { id: skillId },
+      data: {
+        xp: {
+          increment: 1
+        }
+      },
+      select: {
+        level: true,
+      }
+    });
+    const ugs = await prisma.gameState.update({
+      where: { id: user.gameState.id },
+      data: {
+        rubis: {decrement: 1 * (spell.level)}
+      }
+    });
+    const resources: PlayerResources = { ruby: ugs.rubis };
+    return Response.json({spellId: skillId, resources: resources, level: spell.level}, {status: 200});
+  }
+  catch (e) {
+    console.log(e);
+    return Response.json({error: "Internal server error"}, {status: 500});
   }
 }

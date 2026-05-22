@@ -47,39 +47,20 @@ export async function GET(req: Request)
             }
         }
     });
-    const users = inboxes.flatMap(inbox =>
-        inbox.inboxUser
-        .map(iu => iu.user)
-        .filter((user): user is NonNullable<typeof user> =>
-        !!user && user.id !== cUser.id)
-    );
-    if (!users) return Response.json({error: "Internal server error"}, {status: 500});
-    await Promise.all(
-        users.map(async (user) => {
-            if (!user) return;
-            const iU = await prisma.inbox_users.findFirst({
-                where: {
-                    inbox: {
-                        inboxUser: {
-                            some: { user_id: cUser.id }
-                        },
-                        AND: {
-                            inboxUser: {
-                                some: { user_id: user.id }
-                            }
-                        }
-                    },
-                },
-                select: {
-                    unread_messages: true
-                }
-            });
-            let unread = 0;
-            if (!iU || !iU.unread_messages) { unread = 0; }
-            else { unread = iU.unread_messages; }
-            results[user.name] = unread;
-        })
-    );
+    for (const inbox of inboxes) {
+        const currentUserInbox = inbox.inboxUser.find(
+            iu => iu.user_id === cUser.id
+        );
+
+        const otherUser = inbox.inboxUser.find(
+            iu => iu.user_id !== cUser.id
+        )?.user;
+
+        if (!otherUser) continue;
+
+        if (currentUserInbox)
+            results[otherUser.name] = currentUserInbox.unread_messages ?? 0;
+    }
     return Response.json({results: results}, {status: 200});
   }
   catch {

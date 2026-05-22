@@ -154,6 +154,7 @@ io.on("connection", (socket) => {
     {
       io.to(receiverSock).emit("accept", {user, oUser});
     }
+    io.to(socket.id).emit("accept", {user, oUser});
   })
 
   //tells that the duel has been refused
@@ -163,6 +164,17 @@ io.on("connection", (socket) => {
     {
       io.to(receiverSock).emit("refuse", {user, oUser});
     }
+    io.to(socket.id).emit("refuse", {user, oUser});
+  })
+
+  //tells that the duel has been cancelled
+  socket.on("duel_cancelled", async ({user, oUser}) => {
+    const receiverSock = await redis.hGet("online_users", oUser);
+    if (receiverSock)
+    {
+      io.to(receiverSock).emit("cancel", {user, oUser});
+    }
+    io.to(socket.id).emit("cancel", {user, oUser});
   })
 
   //tells that the message has been read
@@ -232,6 +244,10 @@ io.on("connection", (socket) => {
     const fieldToDelete = Object.keys(onlineUsers).find(
       key => onlineUsers[key] === socket.id
     );
+    if (fieldToDelete)
+    {
+      io.emit("cancel", {user: fieldToDelete});
+    }
     if (fieldToDelete)
       await redis.hDel("online_users", fieldToDelete);
     const users = await redis.hGetAll("online_users");

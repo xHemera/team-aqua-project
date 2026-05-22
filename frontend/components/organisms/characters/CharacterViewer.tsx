@@ -15,6 +15,7 @@ interface CharacterViewerProps {
   resources: PlayerResources;
   maxSkillLevel: number;
   onUpgradeSkill: (skillId: string) => Promise<boolean>;
+  onPlusOneSkill: (skillId: string) => Promise<boolean>;
 }
 
 export default function CharacterViewer({
@@ -24,11 +25,12 @@ export default function CharacterViewer({
   resources,
   maxSkillLevel,
   onUpgradeSkill,
+  onPlusOneSkill,
 }: CharacterViewerProps) {
   const [selectedSkill, setSelectedSkill] = useState<CharacterSkill | null>(null);
   const [showDetailsPanel, setShowDetailsPanel] = useState(true);
 
-  const power = useMemo(() => calculatePower(selectedCharacter.stats), [selectedCharacter.stats]);
+  const power = useMemo(() => calculatePower(selectedCharacter.name, selectedCharacter.level, selectedCharacter.stats, selectedCharacter.skills), [selectedCharacter.stats]);
   const characterRole = CHARACTER_ROLES[selectedCharacter.name] ?? {
     title: "Adventurer",
     color: "#c9a227",
@@ -77,6 +79,7 @@ export default function CharacterViewer({
             maxSkillLevel={maxSkillLevel}
             onToggleSkill={(skill) => setSelectedSkill(selectedSkill?.id === skill.id ? null : skill)}
             onUpgradeSkill={onUpgradeSkill}
+            onPlusOneSkill={onPlusOneSkill}
             canUpgradeSkill={canUpgradeSkill}
           />
         </div>

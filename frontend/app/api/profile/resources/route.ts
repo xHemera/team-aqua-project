@@ -1,6 +1,5 @@
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { PLAYER_RESOURCES } from "@/app/characters/character-roster";
 import { headers } from "next/headers";
 
 const ensureGameState = async (userId: string) => {
@@ -8,7 +7,7 @@ const ensureGameState = async (userId: string) => {
     where: { user_id: userId },
     create: {
       user_id: userId,
-      rubis: PLAYER_RESOURCES.ruby,
+      rubis: 0,
     },
     update: {},
     select: {
@@ -49,7 +48,7 @@ export async function POST(request: Request) {
       where: { user_id: session.user.id },
       create: {
         user_id: session.user.id,
-        rubis: PLAYER_RESOURCES.ruby + rubisDelta,
+        rubis: 0 + rubisDelta,
       },
       update: {
         rubis: { increment: rubisDelta },

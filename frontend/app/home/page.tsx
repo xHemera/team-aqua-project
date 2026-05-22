@@ -10,7 +10,7 @@ import { authClient } from "@/lib/auth-client";
 import { MineSection } from "@/components/organisms/home/MineSection";
 import { TeamBuilder } from "@/components/organisms/home/TeamBuilder";
 import { ExpeditionTracker } from "@/components/organisms/home/ExpeditionTracker";
-import { CHARACTERS, PLAYER_RESOURCES } from "@/app/characters/character-roster";
+import { CHARACTERS } from "@/public/gameResources/heroes";
 import SidebarShell from "@/components/SidebarShell";
 import {socket} from "../../socket"
 import NotificationToast from "@/components/organisms/home/NotificationToast";
@@ -72,15 +72,15 @@ export default function Home() {
 
   const roster = useMemo(
     () => CHARACTERS.slice(0, 6).map((character) => ({
-      id: character.id,
-      name: character.name,
-      portrait: character.portrait,
+      id: character.identity.id,
+      name: character.identity.name,
+      portrait: character.identity.assets.portrait,
     })),
     [],
   );
 
   const defaultCharacterId = roster[0]?.id ?? null;
-  const [ruby, setRuby] = useState<number>(PLAYER_RESOURCES.ruby);
+  const [ruby, setRuby] = useState<number>(0);
 
   const [pvpOpen, setPvpOpen] = useState(false);
   const [minePopups, setMinePopups] = useState<MinePopup[]>([]);
@@ -124,18 +124,35 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-      if (!userPseudo || socket.connected) return;
+    if (!userPseudo || socket.connected) return;
 
-      const timeoutId = window.setTimeout(() => {
-        socket.connect();
-        socket.emit("login", userPseudo);
-      }, 0);
+    const timeoutId = window.setTimeout(() => {
+      socket.connect();
+      socket.emit("login", userPseudo);
+    }, 0);
 
-      return () => {
-        window.clearTimeout(timeoutId);
-        socket.off("online_users");
-      };
-    }, [userPseudo]);
+    return () => {
+      window.clearTimeout(timeoutId);
+      socket.off("online_users");
+    };
+  }, [userPseudo]);
+
+  useEffect(() => {
+    if (!userPseudo) return;
+    async function fetchTeam()
+    {
+      const res = await fetch(`/api/home?currentUser=${userPseudo}`, {
+        method: "GET",
+      });
+      if (res.ok)
+      {
+        const data = await res.json();
+        if (data.team)
+          setTeamSlots(data.team);
+      }
+    };
+    fetchTeam();
+  }, []);
 
   useEffect(() => {
     if (!userPseudo) return;
@@ -175,6 +192,17 @@ export default function Home() {
   }, [userPseudo]);
 
   useEffect(() => {
+    if (!userPseudo || !teamSlots)
+      return ;
+    async function postTeam()
+    {
+      await fetch("/api/home", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", },
+        body: JSON.stringify({userPseudo: userPseudo, char: teamSlots})
+      });
+    }
+    postTeam();
     localStorage.setItem(STORAGE_KEYS.team, JSON.stringify(teamSlots));
   }, [teamSlots]);
 
@@ -278,6 +306,9 @@ export default function Home() {
     setPvpOpen(true);
     const res = await fetch("/api/home", {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({userPseudo: userPseudo}),
     })
     if (!res.ok)
@@ -525,11 +556,11 @@ export default function Home() {
               />
 
               <FeatureActionTile
-                title="Arena"
+                title="Pong"
                 icon="fa-flame"
                 accentClassName="bg-gradient-to-br from-[#5c2f2f]/20 via-[#c75d4d]/15 to-transparent"
-                value="Coming Soon"
-                onClick={() => {}}
+                value="Farm XP"
+                onClick={() => router.push("/pong")}
               />
 
               <ExpeditionTracker

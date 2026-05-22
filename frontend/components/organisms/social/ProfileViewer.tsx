@@ -162,6 +162,16 @@ export default function ProfileViewerModal({
   }, [inputUser, currentUser])
 
 
+  // Handle report notification timeout
+  useEffect(() => {
+    if (!reportNotification) return;
+    const timeoutId = setTimeout(() => {
+      setReportNotification(null);
+    }, 3000);
+    return () => clearTimeout(timeoutId);
+  }, [reportNotification]);
+
+
   const handleProfileClick = async () => {
       if (inputUser) {
         router.push(`/profile/${inputUser.name}`);
@@ -178,8 +188,11 @@ export default function ProfileViewerModal({
       onClose();
       return;
     }
-    const res = await fetch("api/social/friend", {
+    const res = await fetch("/api/social/friend", {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({currentUser: currentUser.name, otherUser: inputUser.name}),
     })
     if (!res.ok)
@@ -247,6 +260,9 @@ export default function ProfileViewerModal({
       {
         const bres = await fetch("/api/social/block", {
           method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({currentUser: currentUser.name, otherUser: inputUser.name}),
         })
         if (!bres)
@@ -264,6 +280,9 @@ export default function ProfileViewerModal({
     {
       const bres = await fetch("/api/social/block", {
           method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({currentUser: currentUser.name, otherUser: inputUser.name}),
         })
         if (!bres)
@@ -306,6 +325,19 @@ export default function ProfileViewerModal({
     <>
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={onClose}>
       {inputUser && showNotification && notification && notifSender && (notifSender !== inputUser.name) && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
+      {reportNotification && (
+        <div className="pointer-events-none absolute left-1/2 top-4 z-50 -translate-x-1/2">
+          <div
+            className={`rounded-xl border px-4 py-2 text-sm font-semibold shadow-lg ${
+              reportNotification.type === "success"
+                ? "border-emerald-400/50 bg-emerald-500/90 text-white"
+                : "border-red-400/50 bg-red-500/90 text-white"
+            }`}
+          >
+            {reportNotification.message}
+          </div>
+        </div>
+      )}
       <Card
         className="w-full max-w-md rounded-2xl border border-[#3c3650] bg-[#15131d] p-6 shadow-2xl"
         role="dialog"
@@ -322,6 +354,8 @@ export default function ProfileViewerModal({
                     src={displayedAvatarUrl}
                     alt={`Avatar de ${displayedPseudo}`}
                     fill
+                    sizes="(max-width: 768px) 100vw"
+                    loading="eager"
                     className="object-cover"
                     unoptimized
                     onClick={() => handleProfileClick()}
@@ -414,6 +448,9 @@ export default function ProfileViewerModal({
                 if (!currentUser || !inputUser) return;
                 const res = await fetch("/api/social/report", {
                   method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
                   body: JSON.stringify({user: currentUser.name, reportedUser: inputUser.name})
                 });
                 if (res.status === 201)

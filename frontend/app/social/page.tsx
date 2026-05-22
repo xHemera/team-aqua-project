@@ -11,6 +11,7 @@ import { ConversationList } from "@/components/organisms/social/ConversationList
 import { MessageThread } from "@/components/organisms/social/MessageThread";
 import { FriendRequestBanner } from "@/components/molecules/social/FriendRequestBanner";
 import { DuelRequestBanner } from "@/components/molecules/social/DuelRequestBanner";
+import { DuelWaitingModal } from "@/components/molecules/social/DuelWaitingModal";
 import { type } from "./index"
 import { emitGlobalError, emitGlobalNotification } from "@/lib/error-events";
 
@@ -46,12 +47,17 @@ export default function SocialPage() {
   const [hasBlocked, setHasBlocked] = useState(false);
   const [challenge, setChallenge] = useState(false);
   const [opponent, setOpponent] = useState<string | null>(null);
+  const [waitingForDuelResponse, setWaitingForDuelResponse] = useState(false);
+  const [duelChallengeTo, setDuelChallengeTo] = useState<string | null>(null);
   const [typer, setTyper] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
   const [unread, setUnread] = useState(false);
   const [customUserAvatar, setCustomUserAvatar] = useState<string | null>(null);
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [click, setClick] = useState(true);
+  const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
+  const [messageOffset, setMessageOffset] = useState(0);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
 
 
   const MAX_MESSAGE_LENGTH = 500;
@@ -86,6 +92,37 @@ export default function SocialPage() {
       // Silent fail
     }
   };
+
+  const saveChallengeToStorage = (opponentName: string | null) => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (opponentName) {
+        localStorage.setItem("pending_challenge_opponent", opponentName);
+      } else {
+        localStorage.removeItem("pending_challenge_opponent");
+      }
+    } catch {
+      // Silent fail
+    }
+  };
+
+  const loadChallengeFromStorage = (): string | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+      return localStorage.getItem("pending_challenge_opponent");
+    } catch {
+      return null;
+    }
+  };
+
+  // Load challenge from storage on component mount
+  useEffect(() => {
+    const storedOpponent = loadChallengeFromStorage();
+    if (storedOpponent) {
+      setChallenge(true);
+      setOpponent(storedOpponent);
+    }
+  }, []);
 
   const toggleMessageExpanded = useCallback((messageId: string) => {
     setExpandedMessages((prev) => {
@@ -298,20 +335,50 @@ export default function SocialPage() {
         setHasBlocked(false);
     });;
 
-    //prompt the challenge request
+    //prompt the challenge request OR show waiting modal if we sent it
     socket.on("challenge", async({sender, receiver}) => {
       if (receiver == userPseudo)
       {
         setChallenge(true);
         setOpponent(sender);
+        saveChallengeToStorage(sender);
+      }
+      if (sender == userPseudo)
+      {
+        setWaitingForDuelResponse(true);
+        setDuelChallengeTo(receiver);
       }
     });
 
-    //send to the game if duel is accepted
+    //duel refused - close waiting modal
+    socket.on("refuse", async ({user, oUser}) => {
+      if (oUser == userPseudo)
+      {
+        setWaitingForDuelResponse(false);
+        setDuelChallengeTo(null);
+        setOpponent(null);
+        router.push("social");
+      }
+    });
+
+    // send to the game if duel is accepted
     socket.on("accept", async ({user, oUser}) => {
       if (oUser == userPseudo)
       {
+        setWaitingForDuelResponse(false);
+        setDuelChallengeTo(null);
         router.push("game");
+      }
+    });
+
+    socket.on("cancel", async ({user, oUser}) => {
+      if (oUser === userPseudo || user === selectedUser)
+      {
+        setWaitingForDuelResponse(false);
+        setDuelChallengeTo(null);
+        setChallenge(false);
+        setOpponent(null);
+        saveChallengeToStorage(null);
       }
     });
 
@@ -344,6 +411,9 @@ export default function SocialPage() {
         }),
         fetch(`api/social/unread`, {
           method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({sender: currentUser.name, receiver: selectedUser})
         }),
       ])
@@ -354,6 +424,11 @@ export default function SocialPage() {
       const newMessages: type.Messages[] = data.msgs;
 			if (!newMessages) return;
     	setCurrentMessages(newMessages);
+      
+      // Reset pagination states for new conversation
+      setMessageOffset(0);
+      setHasMoreMessages(newMessages.length >= 20);
+      
       if (!ures.ok)
         return;
       fetchUnread();
@@ -379,6 +454,20 @@ export default function SocialPage() {
     {
       if (!currentUser || !selectedUser) return;
       
+      // Refetch current user to get updated blocked users list
+      let updatedCurrentUser = currentUser;
+      try {
+        const userRes = await fetch(`api/social/user?username=${currentUser.name}`, {
+          method: "GET",
+        });
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          updatedCurrentUser = userData.user;
+        }
+      } catch {
+        // Use cached currentUser if fetch fails
+      }
+      
       // Check if I blocked them
       let iAmBlockingThem = false;
       const res1 = await fetch(`api/social/user?username=${selectedUser}`, {
@@ -388,7 +477,7 @@ export default function SocialPage() {
         const data1 = await res1.json();
         const blockedUser: type.User = data1.user;
         if (blockedUser) {
-          for (const id of currentUser.blockedUsers) {
+          for (const id of updatedCurrentUser.blockedUsers) {
             if (id == blockedUser.id) {
               iAmBlockingThem = true;
               break;
@@ -407,7 +496,7 @@ export default function SocialPage() {
         const blockingUser: type.User = data2.user;
         if (blockingUser) {
           for (const id of blockingUser.blockedUsers) {
-            if (id == currentUser.id) {
+            if (id == updatedCurrentUser.id) {
               theyBlockedMe = true;
               break;
             }
@@ -484,6 +573,9 @@ export default function SocialPage() {
       if (!currentUser || !selectedUser) return;
         const ures = await fetch(`api/social/unread`, {
         method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({sender: currentUser.name, receiver: selectedUser})
       });
       if (!ures.ok)
@@ -597,6 +689,9 @@ export default function SocialPage() {
       const [cres, ires] = await Promise.all([
         fetch("/api/social/contact", {
           method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({currentUser: currentUser.name, addUser: inviteUsername}),
         }),
         fetch(`/api/social/inbox?username=${currentUser.name}`, {
@@ -633,8 +728,11 @@ export default function SocialPage() {
   async function addFriend()
   {
     if (!currentUser || !friendRequestSender) return;
-    const res = await fetch("api/social/friend", {
+    const res = await fetch("/api/social/friend", {
       method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({currentUser: currentUser.name, otherUser: selectedUser}),
     })
     if (!res.ok)
@@ -684,6 +782,9 @@ export default function SocialPage() {
 
     const response = await fetch("/api/upload", {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: formData,
     });
 
@@ -700,6 +801,9 @@ export default function SocialPage() {
 
       const res = await fetch("/api/social/attachment", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: formData,
       });
       if (!res.ok)
@@ -737,6 +841,52 @@ export default function SocialPage() {
     });
   };
 
+  // Load older messages
+  const handleLoadOlderMessages = async () => {
+    if (!currentUser || !selectedUser || isLoadingOlderMessages || !hasMoreMessages) return;
+    
+    setIsLoadingOlderMessages(true);
+    try {
+      const params = new URLSearchParams({
+        user: currentUser.name,
+        otherUser: selectedUser,
+        skip: (messageOffset + 20).toString(),
+        take: "20",
+      });
+      
+      const res = await fetch(`/api/social/msg?${params.toString()}`, {
+        method: "GET",
+      });
+      
+      if (!res.ok) {
+        setIsLoadingOlderMessages(false);
+        return;
+      }
+      
+      const data = await res.json();
+      const olderMessages: type.Messages[] = data.msgs;
+      
+      if (!olderMessages || olderMessages.length === 0) {
+        setHasMoreMessages(false);
+        setIsLoadingOlderMessages(false);
+        return;
+      }
+      
+      // Prepend older messages
+      setCurrentMessages((prev) => [...olderMessages, ...prev]);
+      setMessageOffset((prev) => prev + olderMessages.length);
+      
+      // If we got fewer than 20 messages, there are no more older messages
+      if (olderMessages.length < 20) {
+        setHasMoreMessages(false);
+      }
+    } catch (error) {
+      console.error("Error loading older messages:", error);
+    } finally {
+      setIsLoadingOlderMessages(false);
+    }
+  };
+
   //sends a message to selected user
   const sendMessage = async () => {
     const cleanMessage = message.trim();
@@ -750,6 +900,9 @@ export default function SocialPage() {
     });
     const response = await fetch("/api/social/msg", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({sender: currentUser.name,
           msg: cleanMessage, receiver: selectedUser,
           draftIds: draftIds}),
@@ -767,6 +920,9 @@ export default function SocialPage() {
       }),
       fetch(`api/social/unread`, {
         method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({sender: currentUser.name, receiver: selectedUser})
       }),
     ]);
@@ -777,6 +933,10 @@ export default function SocialPage() {
     if (!newMessages) return;
     
     setCurrentMessages(newMessages);
+    
+    // Reset pagination states so "Load older messages" button reappears
+    setMessageOffset(0);
+    setHasMoreMessages(newMessages.length >= 20);
 
     socket.emit("notTyping", {
       sender : currentUser.name,
@@ -807,12 +967,17 @@ export default function SocialPage() {
   };
 
   const acceptDuel = async () => {
+    setChallenge(false);
+    saveChallengeToStorage(null);
     socket.emit("duel_accepted", {
       user: currentUser.name,
       oUser: selectedUser,
     })
     const res = await fetch("/api/social/otherFriend", {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({currentUser: currentUser.name, opponent: selectedUser}),
     });
     if (!res.ok)
@@ -822,6 +987,7 @@ export default function SocialPage() {
 
   const refuseDuel = async () => {
     setChallenge(false);
+    saveChallengeToStorage(null);
     socket.emit("duel_refused", {
       user: currentUser.name,
       oUser: selectedUser,
@@ -879,7 +1045,7 @@ export default function SocialPage() {
           </div>
         </div>
       )}
-
+      {opponent}
       {isAddContactModalOpen && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 px-4">
           <div className="w-full max-w-md rounded-2xl border border-[#c9a227]/25 bg-[#1b1826] p-5 shadow-2xl">
@@ -929,7 +1095,7 @@ export default function SocialPage() {
             unreadMap={unreadMap}
             inboxes={inboxes}
             customUserAvatar={customUserAvatar}
-            currentUserName={currentUser?.name ?? ""}
+            currentUserName={currentUser.name ?? ""}
             onSelectUser={(userName) => {
               setSelectedUser(userName);
             }}
@@ -967,6 +1133,9 @@ export default function SocialPage() {
               typer={typer}
               onMessageExpand={toggleMessageExpanded}
               onProfileClick={handleProfileClick}
+              onLoadOlderMessages={handleLoadOlderMessages}
+              isLoadingOlderMessages={isLoadingOlderMessages}
+              hasMoreMessages={hasMoreMessages}
             />
 
             <footer className="sticky bottom-0 border-t border-[#c9a227]/30 bg-[#15131d] p-4">
@@ -1046,6 +1215,20 @@ export default function SocialPage() {
           </section>
         </section>
       </div>
+
+      {waitingForDuelResponse && duelChallengeTo && (
+      <DuelWaitingModal
+        opponentName={duelChallengeTo}
+        onCancel={() => {
+          setWaitingForDuelResponse(false);
+          setDuelChallengeTo(null);
+          socket.emit("duel_cancelled", {
+            user: userPseudo,
+            oUser: duelChallengeTo,
+          });
+        }}
+      />
+    )}
 
       <ProfileViewerModal
         open={showProfileViewer}

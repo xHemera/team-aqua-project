@@ -122,6 +122,8 @@ export function ExpeditionTracker({
                     src={activeExpeditionCharacter.portrait}
                     alt={activeExpeditionCharacter.name}
                     fill
+                    sizes="(max-width: 768px) 100vw"
+                    loading="eager"
                     className="object-cover"
                     draggable={false}
                   />

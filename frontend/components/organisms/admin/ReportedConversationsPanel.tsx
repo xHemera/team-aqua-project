@@ -88,6 +88,9 @@ export default function ReportedConversationsPanel({
       }),
       fetch("/api/admin/ban", {
         method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({username: selectedReport.reportedUser}),
       }),
     ]);

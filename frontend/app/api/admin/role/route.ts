@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { authClient } from "@/lib/auth-client";
 import { rateLimit } from "@/lib/rateLimit";
 import { redis } from "@/lib/redis";
+import { CHARACTERS } from "@/public/gameResources/heroes";
 
 export async function POST(req: Request)
 {
@@ -19,7 +20,6 @@ export async function POST(req: Request)
     const data = await req.json();
     const { name, email, password } = data;
     const apiKey = req.headers.get('apiKey');
-    
     if (apiKey !== process.env.API_KEY)
         return Response.json({error: "Unauthorized"}, {status: 401});
     try
@@ -29,7 +29,8 @@ export async function POST(req: Request)
             select: { badges: true }
         });
         if (user && user.badges.includes("ADMIN"))
-            throw Response.json({error: "Not acceptable"}, {status: 406});
+            return Response.json({error: "Not acceptable"}, {status: 406});
+
         await authClient.signUp.email({
             name: name,
             email: email,
@@ -39,8 +40,54 @@ export async function POST(req: Request)
             where: { name: name },
             data: {
                 badges: { push: "ADMIN" }
+            },
+        });
+        const userId = await prisma.user.findFirst({
+            where: { name: name },
+            select: {
+                id: true,
+                gameState: true,
             }
         });
+        if (!userId)
+            return Response.json({error: "Internal server error"}, {status: 500});
+
+        const gs = await prisma.gameState.create({
+            data: {
+                user_id: userId.id,
+                rubis: 0,
+            }
+        });
+        if (!gs)
+            return Response.json({error: "Internal server error"}, {status: 500});
+
+        for (const character of CHARACTERS)
+        {
+            const char = await prisma.character.create({
+                data: {
+                gameStateId: gs.id,
+                name: character.identity.name,
+                hp: character.baseStats.hp,
+                level: 1,
+                xp: 0,
+                }
+            });
+            if (!char)
+                return Response.json({error: "Internal server error"}, {status: 500});
+            for (const spell of character.skills)
+            {
+                await prisma.spell.create({
+                    data: {
+                        characterId: char.id,
+                        name: spell.info.name,
+                        type: spell.type,
+                        mpCost: spell.manaCost,
+                        level: 1,
+                        xp: 0,
+                    }
+                });
+            }
+        }
     }
     catch (e) {
         if (e)

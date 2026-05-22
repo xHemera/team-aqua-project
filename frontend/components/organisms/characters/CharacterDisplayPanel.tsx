@@ -81,6 +81,8 @@ export default function CharacterDisplayPanel({
             src={selectedCharacter.body}
             alt={selectedCharacter.name}
             fill
+            sizes="(max-width: 768px) 100vw"
+            loading="eager"
             className="object-contain object-center"
             priority
           />

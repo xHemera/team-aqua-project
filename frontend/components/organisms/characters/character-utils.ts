@@ -1,4 +1,8 @@
+import { CHARACTERS } from "@/public/gameResources/heroes";
+import { resolveSpellDescriptionSegments } from "@/lib/spell-description";
 import type { CharacterSkill, CharacterStats, ResolvedSkillEffect } from "./types";
+
+type HeroSkillDefinition = (typeof CHARACTERS)[number]["skills"][number];
 
 export const LEVEL_UP_READY_CLASS = "!border-[#2f7f4f] !bg-[#1f5b37] !text-[#dcffe9] hover:!bg-[#286f44]";
 
@@ -47,59 +51,84 @@ export const CHARACTER_STAT_ROWS = [
 
 export const getStatBonus = (baseValue: number, totalValue: number) => Math.max(totalValue - baseValue, 0);
 
-const FORMULA_TOKEN_PATTERN = /\{([^}]+)\}/g;
+const formatNumber = (value: number): string => {
+  if (Number.isInteger(value)) {
+    return value.toString();
+  }
+
+  return (Math.round(value * 10) / 10).toString();
+};
+
+const buildContext = (stats: CharacterStats, skill: CharacterSkill) => {
+  return {
+    level: skill.level,
+    skilllevel: skill.level,
+    spelllevel: skill.level,
+    skill_level: skill.level,
+    physicaldamage: stats.physicalDamage,
+    magicaldamage: stats.magicalDamage,
+    critchance: stats.critChance,
+    critdamage: stats.critDamage,
+    hp: stats.hp,
+    mp: stats.mp,
+    physicalresistance: stats.physicalResistance,
+    magicalresistance: stats.magicalResistance,
+    speed: stats.speed,
+  } as const;
+};
+
+const findSkillDefinition = (skill: CharacterSkill): HeroSkillDefinition | null => {
+  const normalizedName = skill.name.trim().toLowerCase();
+
+  for (const hero of CHARACTERS) {
+    const matchedSkill = hero.skills.find((definition) => definition.info.name.trim().toLowerCase() === normalizedName);
+    if (matchedSkill) {
+      return matchedSkill;
+    }
+  }
+
+  return null;
+};
+
+const getScalingRow = (skill: CharacterSkill) => {
+  const definition = findSkillDefinition(skill);
+  if (!definition) {
+    return [];
+  }
+
+  const safeIndex = Math.min(Math.max(skill.level - 1, 0), definition.scaling.length - 1);
+  return definition.scaling[safeIndex] ?? definition.scaling[0] ?? [];
+};
 
 // Evaluate a formula expression safely
 const evaluateFormula = (expression: string, stats: CharacterStats, skill: CharacterSkill): number | null => {
   try {
-    // Normalize the expression
     let formula = expression.trim().toLowerCase();
+    const context = buildContext(stats, skill);
 
-    // Replace stat references
-    const statMappings: Record<string, number> = {
-      "physical damage": stats.physicalDamage.toString(),
-      "physical damage": stats.physicalDamage.toString(),
-      "magic damage": stats.magicalDamage.toString(),
-      "magical damage": stats.magicalDamage.toString(),
-      "physical resistance": stats.physicalResistance.toString(),
-      "physical resist": stats.physicalResistance.toString(),
-      "magical resistance": stats.magicalResistance.toString(),
-      "magic resistance": stats.magicalResistance.toString(),
-      "skill level": skill.level.toString(),
-      "max hp": stats.hp.toString(),
-      "max mp": stats.mp.toString(),
-    };
+    formula = formula
+      .replace(/\bskill\s*level\b/gi, "skillLevel")
+      .replace(/\bspell\s*level\b/gi, "spellLevel")
+      .replace(/\bphysical\s*damage\b/gi, "physicalDamage")
+      .replace(/\bmagical\s*damage\b/gi, "magicalDamage")
+      .replace(/\bphysical\s*resistance\b/gi, "physicalResistance")
+      .replace(/\bphysical\s*resist\b/gi, "physicalResistance")
+      .replace(/\bmagical\s*resistance\b/gi, "magicalResistance")
+      .replace(/\bmagic\s*resistance\b/gi, "magicalResistance")
+      .replace(/\bcrit\s*chance\b/gi, "critChance")
+      .replace(/\bcrit\s*damage\b/gi, "critDamage")
+      .replace(/\bmax\s*hp\b/gi, "hp")
+      .replace(/\bmax\s*mp\b/gi, "mp")
+      .replace(/\b([a-z_][a-z0-9_]*)\b/gi, (match) => {
+        const key = match.toLowerCase();
+        return key in context ? `context.${key}` : match;
+      });
 
-    // Replace known stat names
-    for (const [pattern, value] of Object.entries(statMappings)) {
-      const regex = new RegExp(`\\b${pattern.replace(/\s+/g, "\\s+")}\\b`, "gi");
-      formula = formula.replace(regex, value);
-    }
-
-    // Handle percentage notation (e.g., "15%" -> "15")
-    formula = formula.replace(/(\d+)%/g, "$1");
-
-    // Check if formula still has unknown variables (contains letters)
-    if (/[a-zA-Z]/.test(formula)) {
-      // It might contain Math functions or other valid JS
-      const validFunctions = ["math.floor", "math.ceil", "math.round", "math.max", "math.min"];
-      const hasOnlyValidFunctions = validFunctions.some(fn => formula.includes(fn));
-
-      if (!hasOnlyValidFunctions && /[a-zA-Z]/.test(formula.replace(/math\./gi, ""))) {
-        return null; // Unknown variable
-      }
-    }
-
-    // Replace Math with actual Math object reference
-    formula = formula.replace(/math\./gi, "Math.");
-
-    // Validate characters (only numbers, operators, parens, dots, Math.)
-    if (!/^[\d\+\-\*\/\(\)\.\s,Math]+$/.test(formula.replace(/Math\./g, ""))) {
+    if (/[a-zA-Z]/.test(formula.replace(/context\./g, "")) && !/[\+\-\*\/\(\)\.]/.test(formula)) {
       return null;
     }
 
-    // Evaluate using Function constructor (safer than eval)
-    const result = new Function(`"use strict"; return (${formula});`)();
+    const result = new Function("context", `"use strict"; return (${formula});`)(context);
 
     if (typeof result !== "number" || !Number.isFinite(result)) {
       return null;
@@ -111,57 +140,27 @@ const evaluateFormula = (expression: string, stats: CharacterStats, skill: Chara
   }
 };
 
-// Format a number for display
-const formatNumber = (value: number): string => {
-  if (Number.isInteger(value)) {
-    return value.toString();
-  }
-  // Round to 1 decimal place if needed
-  const rounded = Math.round(value * 10) / 10;
-  return rounded.toString();
-};
-
 // Parse a description and resolve all formulas
 export const resolveSkillDescription = (
   description: string,
   stats: CharacterStats,
   skill: CharacterSkill
 ): ResolvedSkillEffect => {
-  const segments: Array<{ text: string; highlight?: boolean }> = [];
-  let lastIndex = 0;
-
-  // Find all formula tokens {expression}
-  for (const match of description.matchAll(FORMULA_TOKEN_PATTERN)) {
-    const fullMatch = match[0];
-    const expression = match[1];
-    const startIndex = match.index ?? 0;
-
-    // Add text before this formula
-    if (startIndex > lastIndex) {
-      segments.push({ text: description.slice(lastIndex, startIndex) });
-    }
-
-    // Evaluate the formula
-    const result = evaluateFormula(expression, stats, skill);
+  const scalingRow = getScalingRow(skill);
+  const segments = resolveSpellDescriptionSegments(description, ({ token, tokenIndex }) => {
+    const result = evaluateFormula(token, stats, skill);
 
     if (result !== null) {
-      segments.push({ text: formatNumber(result), highlight: true });
-    } else {
-      // Could not evaluate, keep original but styled differently
-      segments.push({ text: `{${expression}}`, highlight: true });
+      return formatNumber(result);
     }
 
-    lastIndex = startIndex + fullMatch.length;
-  }
-
-  // Add remaining text
-  if (lastIndex < description.length) {
-    segments.push({ text: description.slice(lastIndex) });
-  }
+    const fallbackValue = scalingRow[tokenIndex];
+    return typeof fallbackValue === "number" ? formatNumber(fallbackValue) : null;
+  });
 
   return {
     title: skill.name,
-    segments: segments.length > 0 ? segments : [{ text: description }],
+    segments,
   };
 };
 
@@ -185,14 +184,110 @@ export const formatCompactPower = (value: number) => {
   return `${formattedValue}${units[unitIndex]}`;
 };
 
-export const calculatePower = (stats: CharacterStats) => {
-  // More realistic power calculation for actual game balance
-  const offense = (stats.physicalDamage * 1.5) + (stats.magicalDamage * 1.5) + (stats.critChance * stats.critDamage / 100);
-  const resistanceScore = (stats.physicalResistance + stats.magicalResistance) * 12;
-  const defense = stats.hp * 0.5 + stats.mp * 0.2 + resistanceScore;
-  const utility = stats.speed * 2;
+export const calculatePower = (
+  name: string,
+  level: number,
+  stats: CharacterStats,
+  skills: CharacterSkill[]
+) => {
 
-  return Math.round(offense + defense + utility);
+  const critChance = Math.min(stats.critChance, 100);
+
+  let power = 0;
+
+  const physicalDamage = stats.physicalDamage;
+  const magicalDamage = stats.magicalDamage;
+
+  const hp = stats.hp;
+
+  const defense =
+    (stats.physicalResistance * 7) +
+    (stats.magicalResistance * 7);
+
+  const speed =
+    stats.speed * 10;
+
+  const crit =
+    critChance *
+    (stats.critDamage / 100) *
+    6;
+
+  if (name === "Archer")
+  {
+    power =
+      (physicalDamage * 1.45) +
+      (speed * 1.2) +
+      (crit * 1.4) +
+      (hp * 0.12) +
+      (defense * 0.7) +
+
+      (skills[0].level * 220) +
+      (skills[1].level * 120) +
+      (skills[2].level * 180);
+  }
+
+  if (name === "Assassin")
+  {
+    power =
+      (physicalDamage * 1.45) +
+      (speed * 1.35) +
+      (crit * 1.7) +
+      (hp * 0.08) +
+      (defense * 0.45) +
+
+      (skills[0].level * 180) +
+      (skills[1].level * 240) +
+      (skills[2].level * 260);
+  }
+
+  if (name === "Healer")
+  {
+    power =
+      (magicalDamage * 1.35) +
+      (hp * 0.30) +
+      (defense * 1.55) +
+      (speed * 0.7) +
+      (crit * 0.6) +
+
+      (skills[0].level * 180) +
+      (skills[1].level * 320) +
+      (skills[2].level * 240);
+  }
+
+  if (name === "Knight")
+  {
+    power =
+      (physicalDamage * 1.2) +
+      (hp * 0.42) +
+      (defense * 2.4) +
+      (speed * 0.5) +
+      (crit * 0.4) +
+
+      (skills[0].level * 240) +
+      (skills[1].level * 150) +
+      (skills[2].level * 340);
+  }
+
+  if (name === "Mage")
+  {
+    power =
+      (magicalDamage * 2.0) +
+      (hp * 0.12) +
+      (defense * 0.7) +
+      (speed * 0.9) +
+      (crit * 1.45) +
+
+      (skills[0].level * 320) +
+      (skills[1].level * 140) +
+      (skills[2].level * 280);
+  }
+
+  const levelMultiplier =
+    1 + ((level - 1) * 0.04);
+
+  power *= levelMultiplier;
+
+  return Math.round(power);
 };
 
 export const getLevelUpState = (currentLevel: number, maxLevel: number, cost: number, availableResource: number) => {

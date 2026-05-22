@@ -12,10 +12,10 @@ model Spell {
   characterId String
   name        String
   type        String
-  effect      Int
   mpCost      Int
   level       Int
-  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  xp          Int
+  character   Character? @relation(fields: [characterId], references: [id], onDelete: Cascade)
 }
 
 model Character {
@@ -24,6 +24,7 @@ model Character {
   name        String
   hp          Int
   level       Int
+  xp          Int
   spells      Spell[]
   gameState   GameState @relation(fields: [gameStateId], references: [id], onDelete: Cascade)
 }
@@ -33,6 +34,7 @@ model GameState {
   user_id     String    @unique
   rubis       Int
   characters  Character[]
+  team        String[]
   user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 

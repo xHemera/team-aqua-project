@@ -1,23 +1,24 @@
 export type CharacterSkill = {
-  id: 			string;
-  name: 		string;
-  image: 		string;
+  id: 			    string;
+  name: 		    string;
+  image: 		    string;
   description: 	string;
   unlockLevel?: number;
-  level: 		number;
-  cost:			number;
+  level: 		    number;
+  cost:		    	number;
+  xp:           number;
 };
 
 export type CharacterStats = {
   physicalDamage: 		number;
-  magicalDamage: 		number;
-  critChance: 			number;
-  critDamage: 			number;
-  hp: 					number;
-  mp: 					number;
+  magicalDamage: 		  number;
+  critChance: 			  number;
+  critDamage: 			  number;
+  hp: 					      number;
+  mp: 					      number;
   physicalResistance:	number;
   magicalResistance:	number;
-  speed:				number;
+  speed:				      number;
 };
 
 export type CharacterData = {

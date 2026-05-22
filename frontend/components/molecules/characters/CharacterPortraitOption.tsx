@@ -28,6 +28,8 @@ export default function CharacterPortraitOption({
         src={character.portrait}
         alt={character.name}
         fill
+        sizes="(max-width: 768px) 100vw"
+        loading="eager"
         className="object-cover"
         style={{ transform: isSelected ? "scale(1.05)" : "scale(1)" }}
       />
