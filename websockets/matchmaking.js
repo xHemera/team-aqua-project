@@ -1,5 +1,6 @@
 import { createClient } from 'redis';
 import { io } from "./server.js"
+import { randomInt } from 'node:crypto';
 
 export const redis = createClient({
     url: "redis://aqua-redis:6379"
@@ -27,7 +28,6 @@ async function matchmaking()
                 const p1 = await redis.lPop("players_queue");
                 const p2 = await redis.lPop("players_queue");
 
-                const test = await redis.hGetAll("online_users");
                 const receiverSockP1 = await redis.hGet("online_users", p1);
                 const receiverSockP2 = await redis.hGet("online_users", p2);
 
@@ -38,8 +38,9 @@ async function matchmaking()
                     await sleep(1000);
                     continue;
                 }
-                await redis.hSet("inGamePlayers", p1, p2);
-                await redis.hSet("inGamePlayers", p2, p1);
+                const roomId = randomInt(0, 1000);
+                await redis.hSet("inGamePlayers", p1, JSON.stringify({opp: p2, roomId: roomId}));
+                await redis.hSet("inGamePlayers", p2, JSON.stringify({opp: p1, roomId: roomId}));
                 const users = await redis.hGetAll("inGamePlayers");
                 console.log(users);
                 io.to(receiverSockP1).emit("matchFound");

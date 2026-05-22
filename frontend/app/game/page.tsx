@@ -34,6 +34,7 @@ export default function Game()
   const [oppSock, setOppSock] = useState("");
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isYourTurn, setIsYourTurn] = useState(true);
+  const [roomId, setRoomId] = useState(0);
 
 
   //fetch the current user pseudo
@@ -73,6 +74,7 @@ export default function Game()
       setOpponent(opp.name);
       setOppTeam(opp.team);
       setOppAvatar(opp.avatar);
+      setRoomId(opp.roomId);
     };
     getUserData();
 
@@ -235,6 +237,7 @@ export default function Game()
   return (
       <div className="game-screen relative flex min-h-screen w-full flex-col px-4 py-4 text-[16px] leading-7 text-[#f5e6c8]" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
         <TurnQueue />
+        {roomId}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 py-6">
           <div className="w-full max-w-4xl -translate-y-20 rounded-3xl">
             <div className="flex flex-col gap-4 sm:gap-5">
