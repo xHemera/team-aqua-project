@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { rateLimit } from "@/lib/rateLimit";
 import { redis } from "@/lib/redis";
+import prisma from "@/lib/prisma";
 
 export async function GET(req: Request)
 {
@@ -24,8 +25,26 @@ export async function GET(req: Request)
         const opponent = await redis.hGet("inGamePlayers", currentUser);
         if (opponent)
         {
-            const socket = await redis.hGet("online_users", opponent);
-            return Response.json({name: opponent, socketId: socket}, {status: 200});
+            const user = await prisma.user.findFirst({
+                where: {
+                    name: opponent,
+                },
+                select: {
+                    image: true,
+                    gameState: {select: {
+                        team: true,
+                    }}
+                }
+            });
+            if (!user || !user.gameState)
+                return Response.json({error: "Internal server error"}, {status: 500});
+            let team: string[] = [];
+            for (const i of user.gameState.team)
+            {
+                const name = i.charAt(0).toUpperCase() + i.slice(1);
+                team.push(name);
+            }
+            return Response.json({name: opponent, team: team, avatar: user.image}, {status: 200});
         }
         return Response.json({error: "Internal server error"}, {status: 500});
     }

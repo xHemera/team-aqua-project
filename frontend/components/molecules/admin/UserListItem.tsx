@@ -106,7 +106,7 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
         >
           See profile
         </Button>
-        <Button
+        {currentRole === "ADMIN" && <Button
           type="button"
           size="sm"
           variant={isAdmin || currentRole !== "ADMIN" ? "secondary" : "primary"}
@@ -123,11 +123,11 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
           title="Action de moderation pour admin"
         >
           {isAdmin ? "Admin" : currentRole !== "ADMIN" ? "Moderator" : isModo ? "demote moderator" : "Promote to moderator"}
-        </Button>
-        <Button
+        </Button>}
+        {currentRole === "ADMIN" && <Button
           type="button"
           size="sm"
-          variant={isAdmin || currentRole !== "ADMIN" ? "secondary" : "primary"}
+          variant={isAdmin ? "secondary" : "primary"}
           className="h-9 px-3 text-xs"
           onClick={() => {
               if (isAdmin || currentRole !== "ADMIN")
@@ -135,14 +135,14 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
               if (banned)
                 unbanUser()
               else
-                banUser(); 
+                banUser();
               setBanned(!banned);
             }
           }
           title="Ban"
         >
-          {isAdmin ? "Admin" : currentRole !== "ADMIN" ? "Moderator" : !banned ? "Ban" : "Unban"}
-        </Button>
+          {isAdmin ? "Admin" : !banned ? "Ban" : "Unban"}
+        </Button>}
       </div>
     </Card>
   );

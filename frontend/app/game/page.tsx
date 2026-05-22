@@ -4,6 +4,8 @@ import { authClient } from "@/lib/auth-client";
 import { socket } from "@/socket";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Team } from "./spells";
+import { spells } from "./index";
 import SpellSelector from "@/components/molecules/game/SpellSelector";
 import ProfileInfo from "@/components/atoms/game/ProfileInfo";
 import ManaBar from "@/components/atoms/game/ManaBar";
@@ -21,14 +23,18 @@ export default function Game()
   const router = useRouter();
   const [userPseudo, setUserPseudo] = useState("");
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [oppAvatar, setOppAvatar] = useState<string | null>(null);
   const [playerCharacters, setPlayerCharacters] = useState<CharacterData[] | null>(null);
   const [teamSelected, setTeamSelected] = useState<Array<typeof CHARACTERS[number] | null> | null>(null);
   const [selectedHero, setSelectedHero] = useState<typeof CHARACTERS[number] | null>(null);
   const [opponent, setOpponent] = useState("");
+  const [team, setTeam] = useState<string[] | null>([]);
+  const [oppTeam, setOppTeam] = useState<string[] | null>([]);
   const [oppGaveUp, setOppGaveUp] = useState(false);
   const [oppSock, setOppSock] = useState("");
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isYourTurn, setIsYourTurn] = useState(true);
+
 
   //fetch the current user pseudo
   useEffect(() => {
@@ -41,17 +47,32 @@ export default function Game()
         // router.push("/not-connected");
         return ;
       }
-      const res = await fetch(`api/user/opponent?pseudo=${data.user.name}`, {
-        method: "GET",
-      });
-      if (!res.ok)
+      const [cres, ores] = await Promise.all([
+        fetch (`/api/user?pseudo=${data.user.name}`, {
+          method: "GET",
+        }),
+        fetch(`api/user/opponent?pseudo=${data.user.name}`, {
+          method: "GET",
+        }),
+      ])
+      if (!ores.ok)
       {
         // router.push("/home");
         return ;
       }
-      const opp = await res.json();
+      const res = await cres.json();
+      const team: Team = {
+        owner: data.user.name,
+        characters: res.team,
+        levels: res.levels,
+        skillsLevels: res.spellsLevels,
+      }
+      setTeam(res.team);
+      spells.initialData(team);
+      const opp = await ores.json();
       setOpponent(opp.name);
-      setOppSock(opp.socketId);
+      setOppTeam(opp.team);
+      setOppAvatar(opp.avatar);
     };
     getUserData();
 
@@ -65,8 +86,8 @@ export default function Game()
       }
 
       const profile = await profileResponse.json() as {
-        image?: string | null;
-        avatar?: { url?: string | null } | null;
+        image: string | null;
+        avatar: { url: string | null } | null;
       };
       setUserAvatar(profile.image ?? profile.avatar?.url ?? null);
     };
@@ -100,21 +121,17 @@ export default function Game()
   // Load selected team from Home (localStorage key: "home-team-slots")
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("home-team-slots");
-      if (raw) {
-        const ids = JSON.parse(raw) as Array<string | null>;
-        if (Array.isArray(ids) && ids.length === 3) {
-          const mapped = ids.map((id) => (id ? CHARACTERS.find((h) => h.identity.id === id) ?? null : null));
-          setTeamSelected(mapped);
-          return;
-        }
+      if (team && team.length === 3) {
+        const mapped = team.map((id) => (id ? CHARACTERS.find((h) => h.identity.name === id) ?? null : null));
+        setTeamSelected(mapped);
+        return;
       }
     } catch (e) {
       // ignore malformed
     }
     // fallback: first three characters
     setTeamSelected(CHARACTERS.slice(0, 3).map((c) => c ?? null));
-  }, []);
+  }, [team]);
 
   // Initialize selected hero when team loads
   useEffect(() => {
@@ -124,10 +141,19 @@ export default function Game()
   }, [teamSelected]);
 
   useEffect(() => {
+    //connect the socket
     if (socket.connected) return;
-    // router.push("/home");
-    return ;
-  }, []);
+    socket.connect();
+		socket.emit("login", userPseudo);
+
+		socket.on("online_users", (users) => {
+			console.log("Users from Redis:", users);
+		});
+
+		return () => {
+			socket.off("online_users");
+		};
+  }, [userPseudo]);
 
   useEffect(() => {
     if (!userPseudo) return;
@@ -136,12 +162,20 @@ export default function Game()
         handleLogout();
     };
     const handleDisconnect = (users: {[x: string]: string;}) => {
-      if (users[opponent] !== oppSock)
+      if (!users[opponent])
       {
-        setOppGaveUp(true);
-        socket.off("ban", handleBan);
-        socket.off("online_users", handleDisconnect);
-        // router.push("/home");
+        setTimeout(() => {
+          socket.once("online_users", (users) => {
+            if (users[opponent])
+              return ;
+            else
+            {
+              socket.off("ban", handleBan);
+              socket.off("online_users", handleDisconnect);
+              router.push("/home");
+            }
+          });
+        }, 3000);
       }
     };
 
@@ -153,7 +187,7 @@ export default function Game()
       socket.off("ban", handleBan);
       socket.off("online_users", handleDisconnect);
     };
-  }, [userPseudo, opponent, oppSock]);
+  }, [userPseudo, opponent]);
   
   const handleLogout = async () => {
   const response = await fetch("/api/profile", {
@@ -170,7 +204,7 @@ export default function Game()
       socket.emit("isdisconnecting");
       socket.disconnect();
       await authClient.signOut();
-      // router.push("/");
+      router.push("/");
   };
 
   if (!teamSelected) {
@@ -201,7 +235,6 @@ export default function Game()
   return (
       <div className="game-screen relative flex min-h-screen w-full flex-col px-4 py-4 text-[16px] leading-7 text-[#f5e6c8]" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
         <TurnQueue />
-
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 py-6">
           <div className="w-full max-w-4xl -translate-y-20 rounded-3xl">
             <div className="flex flex-col gap-4 sm:gap-5">

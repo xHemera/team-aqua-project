@@ -15,12 +15,6 @@ type TeamDragState = {
   y: number;
 };
 
-type PendingTeamDragState = {
-  id: string;
-  startX: number;
-  startY: number;
-};
-
 type TeamBuilderProps = {
   roster: Character[];
   teamSlots: Array<string | null>;

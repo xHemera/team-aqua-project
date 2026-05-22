@@ -34,6 +34,7 @@ model GameState {
   user_id     String    @unique
   rubis       Int
   characters  Character[]
+  team        String[]
   user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 

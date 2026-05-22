@@ -184,51 +184,108 @@ export const formatCompactPower = (value: number) => {
   return `${formattedValue}${units[unitIndex]}`;
 };
 
-export const calculatePower = (name: string, stats: CharacterStats, skills: CharacterSkill[]) => {
-  // More realistic power calculation for actual game balance
+export const calculatePower = (
+  name: string,
+  level: number,
+  stats: CharacterStats,
+  skills: CharacterSkill[]
+) => {
+
+  const critChance = Math.min(stats.critChance, 100);
+
   let power = 0;
-  if (stats.critChance > 100)
-    stats.critChance = 100;
+
+  const physicalDamage = stats.physicalDamage;
+  const magicalDamage = stats.magicalDamage;
+
+  const hp = stats.hp;
+
+  const defense =
+    (stats.physicalResistance * 7) +
+    (stats.magicalResistance * 7);
+
+  const speed =
+    stats.speed * 10;
+
+  const crit =
+    critChance *
+    (stats.critDamage / 100) *
+    6;
+
   if (name === "Archer")
   {
-    power = stats.physicalDamage + (stats.critChance *
-      stats.critDamage / 100) +
-    (stats.hp * (stats.physicalResistance
-      + stats.magicalResistance)) * stats.speed +
-      (skills[0].level * 30000) + (skills[1].level * 10000) + (skills[2].level * 20000);
+    power =
+      (physicalDamage * 1.45) +
+      (speed * 1.2) +
+      (crit * 1.4) +
+      (hp * 0.12) +
+      (defense * 0.7) +
+
+      (skills[0].level * 220) +
+      (skills[1].level * 120) +
+      (skills[2].level * 180);
   }
+
   if (name === "Assassin")
   {
-    power = stats.physicalDamage + stats.speed + (stats.critChance *
-      stats.critDamage / 100) +
-    (stats.hp * (stats.physicalResistance
-      + stats.magicalResistance)) * stats.speed +
-      (skills[0].level * 10000) + (skills[1].level * 20000) + (skills[2].level * 30000);
+    power =
+      (physicalDamage * 1.45) +
+      (speed * 1.35) +
+      (crit * 1.7) +
+      (hp * 0.08) +
+      (defense * 0.45) +
+
+      (skills[0].level * 180) +
+      (skills[1].level * 240) +
+      (skills[2].level * 260);
   }
+
   if (name === "Healer")
   {
-    power = stats.hp * 2 + (stats.critChance *
-      stats.critDamage / 100) +
-    (stats.hp * (stats.physicalResistance
-      + stats.magicalResistance)) * stats.speed +
-      (skills[0].level * 10000) + (skills[1].level * 20000) + (skills[2].level * 30000);
+    power =
+      (magicalDamage * 1.35) +
+      (hp * 0.30) +
+      (defense * 1.55) +
+      (speed * 0.7) +
+      (crit * 0.6) +
+
+      (skills[0].level * 180) +
+      (skills[1].level * 320) +
+      (skills[2].level * 240);
   }
+
   if (name === "Knight")
   {
-    power = stats.physicalDamage + stats.hp + (stats.critChance *
-      stats.critDamage / 100) +
-    (stats.hp * (stats.physicalResistance
-      + stats.magicalResistance)) * stats.speed +
-      (skills[0].level * 20000) + (skills[1].level * 10000) + (skills[2].level * 30000);
+    power =
+      (physicalDamage * 1.2) +
+      (hp * 0.42) +
+      (defense * 2.4) +
+      (speed * 0.5) +
+      (crit * 0.4) +
+
+      (skills[0].level * 240) +
+      (skills[1].level * 150) +
+      (skills[2].level * 340);
   }
+
   if (name === "Mage")
   {
-    power = stats.magicalDamage * 4 + (stats.critChance *
-      stats.critDamage / 100) +
-    (stats.hp * (stats.physicalResistance
-      + stats.magicalResistance)) * stats.speed +
-      (skills[0].level * 30000) + (skills[1].level * 10000) + (skills[2].level * 20000);
+    power =
+      (magicalDamage * 2.0) +
+      (hp * 0.12) +
+      (defense * 0.7) +
+      (speed * 0.9) +
+      (crit * 1.45) +
+
+      (skills[0].level * 320) +
+      (skills[1].level * 140) +
+      (skills[2].level * 280);
   }
+
+  const levelMultiplier =
+    1 + ((level - 1) * 0.04);
+
+  power *= levelMultiplier;
 
   return Math.round(power);
 };
