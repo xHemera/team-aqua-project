@@ -1,5 +1,6 @@
-import { getCurrentTurnCharacter, initGame } from "../GameEngine";
+import { getCurrentTurnCharacter} from "../GameEngine";
 import { GameState } from "./GameState"
+import { initGame } from "./initGame";
 
 export type GameLoopState = {
 	gameState:			GameState;
