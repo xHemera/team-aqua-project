@@ -76,6 +76,7 @@ export function applyDamage(target: CharacterInstance, damage: number): void {
 		damage        -= absorbed;
 	}
 	target.currentHp = Math.max(0, target.currentHp - damage);
+	checkLastStand(target);
 }
 
 function checkLastStand(character: CharacterInstance): void {
@@ -93,5 +94,8 @@ function checkLastStand(character: CharacterInstance): void {
   if (hpPercent < hpThreshold) {
     character.shieldHp      = Math.floor(character.character.stats.hp * shieldPercent / 100);
     character.lastStandUsed = true;
+  }
+  if (character.currentHp <= 0) {
+	character.currentHp = 1;
   }
 }
