@@ -21,7 +21,6 @@ function tickAllMods(character: CharacterInstance): void {
 
 	if (character.stunned   > 0) character.stunned   -= 1;
 	if (character.invisible > 0) character.invisible -= 1;
-	if (character.invul     > 0) character.invul     -= 1;
 	if (character.taunted   > 0) character.taunted   -= 1;
 }
 
@@ -87,6 +86,9 @@ export function processAction(state: GameState, action: GameAction): GameState {
 	const user = findCharacter(state, action.userUid);
 
 	if (!user) return state;
+
+	if (user.invul     > 0) user.invul     -= 1;
+
 	if (user.stunned > 0) {
 		tickAllMods(user);
 		return advanceTurn(state);
