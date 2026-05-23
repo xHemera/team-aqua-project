@@ -263,24 +263,23 @@ export default function Game()
           </div>
         </div>
 
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1" />
-          <ProfileInfo account={{ pseudo: opponent }} className="ml-auto" />
+        <div className="flex items-start justify-end gap-4">
+          <ProfileInfo account={{ pseudo: opponent }} />
         </div>
 
-        <div className="flex-1" />
+        <div className="mt-auto" />
 
-        <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(260px,3fr)] lg:items-stretch">
-          <div className="min-w-0 lg:flex lg:items-end">
+        <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(11rem,15rem)] gap-3 sm:gap-4 md:grid-cols-[minmax(0,7fr)_minmax(240px,280px)] md:items-stretch">
+          <div className="min-w-0 flex items-end">
             <SpellSelector hero={selectedHeroCard} character={selectedCharacter} className="w-full" />
           </div>
 
-          <div className="flex flex-col gap-3 lg:h-full lg:items-end lg:justify-between">
-            <div className="flex flex-col gap-3 lg:items-end">
+          <div className="flex flex-col items-end gap-3 md:h-full md:justify-between">
+            <div className="flex flex-col items-end gap-3">
               <ManaBar currentMana={42} />
             </div>
 
-            <Button variant="secondary" onClick={() => router.push("/home")} className="w-full lg:w-auto">
+            <Button variant="secondary" onClick={() => router.push("/home")} className="w-full md:w-auto">
               Forfeit
             </Button>
             <Button
@@ -289,11 +288,11 @@ export default function Game()
                 setIsYourTurn((currentTurn) => !currentTurn);
                 setIsInfoModalOpen(true);
               }}
-              className="w-full lg:w-auto"
+              className="w-full md:w-auto"
             >
               Test
             </Button>
-            <ProfileInfo account={{ pseudo: userPseudo, profilePhoto: userAvatar }} />
+            <ProfileInfo account={{ pseudo: userPseudo, profilePhoto: userAvatar }} className="self-end" />
           </div>
         </div>
 

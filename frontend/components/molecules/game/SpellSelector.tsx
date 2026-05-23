@@ -225,7 +225,7 @@ export default function SpellSelector({ hero, character, className }: SpellSelec
           ) : null}
         </div>
 
-        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 sm:gap-4">
+        <div className="grid grid-cols-2 gap-1.5 md:grid-cols-4 md:gap-4">
           {spells.slice(0, 4).map((spell) => (
             <SpellButton
               key={spell.id}

@@ -9,28 +9,14 @@ import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { MineSection } from "@/components/organisms/home/MineSection";
 import { TeamBuilder } from "@/components/organisms/home/TeamBuilder";
-import { ExpeditionTracker } from "@/components/organisms/home/ExpeditionTracker";
 import { CHARACTERS } from "@/public/gameResources/heroes";
 import SidebarShell from "@/components/SidebarShell";
 import {socket} from "../../socket"
 import NotificationToast from "@/components/organisms/home/NotificationToast";
 
 const PvpMatchmakingModal = dynamic(() => import("@/components/organisms/home/PvpMatchmakingModal"), { ssr: false });
-const ExpeditionModal = dynamic(() => import("@/components/organisms/home/ExpeditionModal"), { ssr: false });
 
-type ActiveExpedition = {
-  characterId: string;
-  startedAt: number;
-  endsAt: number;
-  durationSeconds: number;
-  durationLabel: string;
-  xp: number;
-};
 
-type ExpeditionReward = {
-  characterId: string;
-  xp: number;
-};
 
 type MinePopup = {
   id: number;
@@ -51,23 +37,15 @@ type PendingTeamDragState = {
   startY: number;
 };
 
-const EXPEDITION_DURATIONS = [
-  { id: "scout", label: "15s", seconds: 15, xp: 120 },
-  { id: "journey", label: "45s", seconds: 45, xp: 340 },
-  { id: "odyssey", label: "90s", seconds: 90, xp: 760 },
-] as const;
+
 
 const STORAGE_KEYS = {
   team: "home-team-slots",
 };
 
-const formatTimer = (totalSeconds: number) => {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
-};
 
-// Page Home: hub de progression front-only (Mine, PvP, Expedition, Team Builder).
+
+// Page Home: hub de progression front-only (Mine, PvP, Team Builder).
 export default function Home() {
 
   const roster = useMemo(
@@ -86,12 +64,7 @@ export default function Home() {
   const [minePopups, setMinePopups] = useState<MinePopup[]>([]);
   const minePopupIdRef = useRef(0);
 
-  const [expeditionOpen, setExpeditionOpen] = useState(false);
-  const [selectedExpeditionCharacterId, setSelectedExpeditionCharacterId] = useState<string | null>(defaultCharacterId);
-  const [selectedDurationId, setSelectedDurationId] = useState<string>(EXPEDITION_DURATIONS[0].id);
-  const [activeExpedition, setActiveExpedition] = useState<ActiveExpedition | null>(null);
-  const [expeditionReward, setExpeditionReward] = useState<ExpeditionReward | null>(null);
-  const [nowTs, setNowTs] = useState<number>(() => Date.now());
+  
 
   const [teamSlots, setTeamSlots] = useState<Array<string | null>>([roster[0]?.id ?? null, roster[1]?.id ?? null, roster[2]?.id ?? null]);
   const [dragPreview, setDragPreview] = useState<TeamDragState | null>(null);
@@ -206,30 +179,7 @@ export default function Home() {
     localStorage.setItem(STORAGE_KEYS.team, JSON.stringify(teamSlots));
   }, [teamSlots]);
 
-  useEffect(() => {
-    if (!activeExpedition) {
-      return;
-    }
-    const interval = window.setInterval(() => {
-      setNowTs(Date.now());
-    }, 120);
-
-    return () => {
-      window.clearInterval(interval);
-    };
-  }, [activeExpedition]);
-
-  useEffect(() => {
-    if (!activeExpedition || nowTs < activeExpedition.endsAt) {
-      return;
-    }
-
-    setExpeditionReward({
-      characterId: activeExpedition.characterId,
-      xp: activeExpedition.xp,
-    });
-    setActiveExpedition(null);
-  }, [activeExpedition, nowTs]);
+  
 
   useEffect(() => {
   if (!userPseudo) return;
@@ -262,9 +212,7 @@ export default function Home() {
     router.push("/");
   };
 
-  const expeditionRemainingSeconds = activeExpedition
-    ? Math.max(0, Math.ceil((activeExpedition.endsAt - nowTs) / 1000))
-    : 0;
+  
 
   const handleMine = (event: React.MouseEvent<HTMLButtonElement>) => {
     const reward = Math.floor(Math.random() * 24) + 12;
@@ -327,51 +275,7 @@ export default function Home() {
     setPvpOpen(false);
   };
 
-  const handleStartExpedition = () => {
-    if (!selectedExpeditionCharacterId || activeExpedition) {
-      return;
-    }
-
-    const selectedDuration = EXPEDITION_DURATIONS.find((duration) => duration.id === selectedDurationId);
-    if (!selectedDuration) {
-      return;
-    }
-
-    const startedAt = Date.now();
-    setActiveExpedition({
-      characterId: selectedExpeditionCharacterId,
-      startedAt,
-      endsAt: startedAt + selectedDuration.seconds * 1000,
-      durationSeconds: selectedDuration.seconds,
-      durationLabel: selectedDuration.label,
-      xp: selectedDuration.xp,
-    });
-    setExpeditionOpen(false);
-  };
-
-  const handleClaimExpeditionReward = async () => {
-    if (!expeditionReward) {
-      return;
-    }
-
-    setExpeditionReward(null);
-
-    try {
-      const response = await fetch("/api/profile/resources", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ rubisDelta: 0 }),
-      });
-
-      if (!response.ok) {
-        return;
-      }
-    } catch {
-      // Keep optimistic UI update if persistence fails.
-    }
-  };
+  
 
   const handleDropToTeamSlot = (slotIndex: number, characterId: string) => {
     if (slotIndex < 0 || slotIndex > 2) {
@@ -481,19 +385,7 @@ export default function Home() {
     window.addEventListener("pointerup", handlePointerUp, { once: true });
   };
 
-  const expeditionLabel = activeExpedition
-    ? `In progress • ${formatTimer(expeditionRemainingSeconds)}`
-    : expeditionReward
-      ? "Reward ready"
-      : "Ready";
-
-  const activeExpeditionCharacter = activeExpedition
-    ? roster.find((character) => character.id === activeExpedition.characterId) ?? null
-    : null;
-  const expeditionProgress = activeExpedition
-    ? Math.max(0, Math.min(1, (nowTs - activeExpedition.startedAt) / (activeExpedition.durationSeconds * 1000)))
-    : 0;
-  const expeditionProgressPercent = expeditionProgress * 100;
+  
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#0c0a0f] font-serif text-white">
@@ -518,7 +410,7 @@ export default function Home() {
           {/* Main Content Grid */}
           <div className="flex min-h-0 flex-1 flex-col gap-5">
             {/* Features Row */}
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 lg:gap-4">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-4">
               <button
                 type="button"
                 onClick={handleMine}
@@ -563,17 +455,7 @@ export default function Home() {
                 onClick={() => router.push("/pong")}
               />
 
-              <ExpeditionTracker
-                activeExpedition={activeExpedition}
-                expeditionReward={expeditionReward}
-                nowTs={nowTs}
-                activeExpeditionCharacter={activeExpeditionCharacter}
-                expeditionProgressPercent={expeditionProgressPercent}
-                expeditionRemainingSeconds={expeditionRemainingSeconds}
-                expeditionLabel={expeditionLabel}
-                onClaimReward={handleClaimExpeditionReward}
-                onOpenExpedition={() => setExpeditionOpen(true)}
-              />
+              
             </div>
 
             <TeamBuilder
@@ -641,18 +523,7 @@ export default function Home() {
         onClose={handleClosePvp}
       />
 
-      <ExpeditionModal
-        open={expeditionOpen}
-        characters={roster}
-        durations={[...EXPEDITION_DURATIONS]}
-        selectedCharacterId={selectedExpeditionCharacterId}
-        selectedDurationId={selectedDurationId}
-        expeditionActive={Boolean(activeExpedition)}
-        onClose={() => setExpeditionOpen(false)}
-        onSelectCharacter={setSelectedExpeditionCharacterId}
-        onSelectDuration={setSelectedDurationId}
-        onStart={handleStartExpedition}
-      />
+      
     </div>
   );
 }
