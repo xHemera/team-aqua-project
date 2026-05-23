@@ -22,7 +22,7 @@ export function resolveTargets(
 
   const rawTargets = action.targetUids
     .map(uid => findCharacter(state, uid))
-    .filter((c): c is CharacterInstance => c !== undefined);
+    .filter((c): c is CharacterInstance => c !== undefined && c.invisible === 0);
 
   if (!tauntedKnight) return rawTargets;
 
@@ -30,4 +30,14 @@ export function resolveTargets(
   if (!targetsEnemies) return rawTargets;
 
   return [tauntedKnight];
+}
+
+export function getValidTargets(
+  state: GameState,
+  user:  CharacterInstance
+): CharacterInstance[] {
+  return state.players
+    .filter(p => p.id !== user.owner)
+    .flatMap(p => p.characters)
+    .filter(c => c.invisible === 0);
 }

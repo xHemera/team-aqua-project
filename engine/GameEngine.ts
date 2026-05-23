@@ -83,11 +83,6 @@ function resolveSkill(skillId: string, user: CharacterInstance, targets: Charact
 	spell.applyEffect(user, targets);
 }
 
-export function initGame(state: GameState): GameState {
-	const turnQueue = initTurnQueue(state);
-	return { ...state, gamePhase: "battle", turnQueue };
-}
-
 export function processAction(state: GameState, action: GameAction): GameState {
 	const user = findCharacter(state, action.userUid);
 
