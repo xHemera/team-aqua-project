@@ -101,6 +101,11 @@ export function processAction(state: GameState, action: GameAction): GameState {
 		resolveBasicAttack(user, targets);
 	} else if (action.type === "skill" && action.skillId) {
 		resolveSkill(action.skillId, user, targets);
+	} else if (action.type === "skip") {
+		user.currentMp = Math.min(
+		user.character.stats.mp,
+		user.currentMp + (user.character.stats.mp / 10)
+	);
 	}
 
 	state.players

@@ -103,38 +103,52 @@ async function playTurn() {
     .filter(p => p.id === user.owner)
     .flatMap(p => p.characters);
 
+  // Skip obligatoire si aucune cible visible et aucun spell allié/self
+  const hasActionableSpell = [...user.spells.values()].some(s =>
+    s.targeting === "teamSingle" || s.targeting === "teamAoe" || s.targeting === "self"
+  );
+  const mustSkip = validTargets.length === 0 && !hasActionableSpell;
+
   printState();
   console.log(`Tour ${loopState.gameState.turn} — Joueur ${user.owner} — ${user.character.name}`);
 
+  if (mustSkip) {
+    console.log("Aucune cible disponible — tour passé automatiquement (regen MP).");
+    loop.submitAction({ type: "skip", userUid: user.uid, targetUids: [] });
+    return playTurn();
+  }
+
   console.log("\nActions:");
+  console.log("  [skip] Passer le tour (regen MP)");
   console.log("  [0] Attaque basique");
   user.spells.forEach((spell, id) => {
     const mpOk = user.currentMp >= spell.mpCost ? "" : " [MP insuffisant]";
     console.log(`  [${id}] ${spell.name} (MP: ${spell.mpCost}) — ${spell.targeting}${mpOk}`);
   });
 
-  const actionInput = await ask("\nChoisir action (0 / s1 / s2 / s3): ");
+  const actionInput = await ask("\nChoisir action (skip / 0 / s1 / s2 / s3): ");
   let targetUids: string[] = [];
 
-  if (actionInput === "0") {
+  if (actionInput === "skip") {
+    loop.submitAction({ type: "skip", userUid: user.uid, targetUids: [] });
+
+  } else if (actionInput === "0") {
     if (validTargets.length === 0) {
       console.log("Aucune cible disponible.");
       return playTurn();
     }
     console.log("\nCibles ennemies:");
     validTargets.forEach((e, i) => console.log(`  [${i}] ${e.character.name} HP:${Math.round(e.currentHp)}`));
-
     const targetInput = await ask("Choisir cible: ");
     const target = validTargets[parseInt(targetInput)];
     if (!target) { console.log("Cible invalide"); return playTurn(); }
-
     targetUids = [target.uid];
     loop.submitAction({ type: "basic", userUid: user.uid, targetUids });
 
   } else {
     const spell = user.spells.get(actionInput);
-    if (!spell)                          { console.log("Skill invalide");     return playTurn(); }
-    if (user.currentMp < spell.mpCost)   { console.log("Pas assez de MP");   return playTurn(); }
+    if (!spell)                        { console.log("Skill invalide");   return playTurn(); }
+    if (user.currentMp < spell.mpCost) { console.log("Pas assez de MP"); return playTurn(); }
 
     if (spell.targeting === "single") {
       if (validTargets.length === 0) {
@@ -156,6 +170,14 @@ async function playTurn() {
 
     } else if (spell.targeting === "teamAoe") {
       targetUids = allies.map(c => c.uid);
+
+    } else if (spell.targeting === "teamSingle") {
+      console.log("\nCibles alliées:");
+      allies.forEach((a, i) => console.log(`  [${i}] ${a.character.name} HP:${Math.round(a.currentHp)}`));
+      const targetInput = await ask("Choisir cible: ");
+      const target = allies[parseInt(targetInput)];
+      if (!target) { console.log("Cible invalide"); return playTurn(); }
+      targetUids = [target.uid];
     }
 
     loop.submitAction({ type: "skill", skillId: actionInput, userUid: user.uid, targetUids });
