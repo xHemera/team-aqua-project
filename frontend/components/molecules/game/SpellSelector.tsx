@@ -237,11 +237,7 @@ export default function SpellSelector({ hero, character, className }: SpellSelec
                       </span>
                     </div>
                   </div>
-                ) : (
-                  <div className="shrink-0 rounded border border-[#2a2a2a] bg-[#0a0a0a] px-2.5 py-1">
-                    <span className="font-serif text-[11px] italic text-[#5a5a5a]">free</span>
-                  </div>
-                )}
+                ) : null}
               </div>
 
               {/* decorative divider */}
@@ -262,13 +258,7 @@ export default function SpellSelector({ hero, character, className }: SpellSelec
                 ))}
               </p>
             </div>
-          ) : (
-            <div className="flex h-[120px] items-center justify-center rounded-lg border border-dashed border-[#2a1f14] bg-[#0a0806]">
-              <span className="font-serif text-sm italic tracking-wider text-[#4a3a28]">
-                hover a spell to read its description
-              </span>
-            </div>
-          )}
+          ) : null}
         </div>
 
         {/* spell buttons grid */}
