@@ -70,8 +70,8 @@ export default function Game() {
         skillsLevels: res.spellsLevels,
       };
       setTeam(res.team);
-      spells.initialData(team);
       const opp = await ores.json();
+      spells.initialData(team, opp.roomId);
       setOpponent(opp.name);
       setOppTeam(opp.team);
       setOppAvatar(opp.avatar);

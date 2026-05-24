@@ -8,10 +8,11 @@ export type Team = {
     skillsLevels: number[];
 }
 
-export async function initialData(team: Team)
+export async function initialData(team: Team, roomId: number)
 {
     socket.emit("initiate", {
         team: team,
+        roomId: roomId,
     });
 }
 

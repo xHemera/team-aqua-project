@@ -5,6 +5,7 @@ import { createClient } from 'redis';
 import { initGame, processAction, getCurrentTurnCharacter } from "../engine/GameEngine.ts";
 import "./matchmaking.js";
 import "./matchmakingpong.js";
+import { createGameInstance, broadcastGameState } from "./gameManager.js";
 
 //redis settings
 const redis = createClient({
@@ -258,16 +259,43 @@ io.on("connection", (socket) => {
       gameRooms.set(roomId, {
         gameState: null,
         players: [],
-        playerSockets: [socket.id],
+        playerSockets: [],
+        teamData: {},
       });
-    } else {
-      const room = gameRooms.get(roomId);
-      if (!room.playerSockets.includes(socket.id)) {
-        room.playerSockets.push(socket.id);
-      }
     }
 
-    console.log(`[GAME] ${team.owner} joined room ${roomId}`);
+    const room = gameRooms.get(roomId);
+    if (!room.playerSockets.includes(socket.id)) {
+      room.playerSockets.push(socket.id);
+    }
+    if (!room.players.includes(team.owner)) {
+      room.players.push(team.owner);
+    }
+
+    room.teamData[team.owner] = {
+      pseudo: team.owner,
+      characters: team.characters,
+      levels: team.levels,
+      skillsLevels: team.skillsLevels,
+    };
+
+    console.log(`[GAME] ${team.owner} initiated in room ${roomId}`);
+
+    // When both players have initiated, create the GameState
+    if (room.players.length === 2 && !room.gameState) {
+      const [p1, p2] = room.players;
+      console.log(`[GAME] Both players ready, creating game in room ${roomId}`);
+
+      room.gameState = createGameInstance(
+        roomId,
+        room.teamData[p1],
+        room.teamData[p2],
+      );
+
+      broadcastGameState(roomId);
+      io.to(`game:${roomId}`).emit("gameReady", { roomId });
+      console.log(`[GAME] Room ${roomId} game started`);
+    }
   });
 
   // Unified game action (spell cast or basic attack)
