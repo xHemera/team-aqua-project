@@ -17,7 +17,6 @@ import type { CharacterData } from "@/components/organisms/characters/types";
 
 import { CHARACTERS } from "@/public/gameResources/heroes";
 
-
 export default function Game() {
   const router = useRouter();
   const [userPseudo, setUserPseudo] = useState("");
@@ -259,51 +258,25 @@ export default function Game() {
     >
       {/* background layers */}
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[#0a0806]" />
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_40%,#1a1420_0%,#0a0806_70%)]" />
+      <div className="pointer-events-none fixed inset-0 -z-10 animate-aurora bg-[radial-gradient(ellipse_at_50%_30%,#1a1420_0%,#0a0806_60%)]" />
 
-      {/* sky */}
-      <div className="pointer-events-none fixed inset-0 -z-10 opacity-30">
-        <div className="absolute left-1/2 top-0 h-[40vh] w-[60vw] -translate-x-1/2 bg-[radial-gradient(ellipse_at_top,#4a3050_0%,transparent_70%)]" />
-        <div className="absolute left-[20%] top-[10%] h-[2px] w-[2px] animate-star rounded-full bg-[#c9b896]" />
-        <div className="absolute right-[30%] top-[5%] h-[1px] w-[1px] animate-star-delayed rounded-full bg-[#c9b896]" />
-        <div className="absolute left-[40%] top-[15%] h-[1.5px] w-[1.5px] animate-star rounded-full bg-[#c9b896]" />
-        <div className="absolute right-[15%] top-[20%] h-[1px] w-[1px] animate-star-delayed rounded-full bg-[#c9b896]" />
+      {/* animated gradient sweep */}
+      <div className="pointer-events-none fixed inset-0 -z-10 opacity-[0.04]">
+        <div className="absolute inset-0 animate-sweep"
+          style={{
+            background: "linear-gradient(90deg, transparent 0%, #c9b896 50%, transparent 100%)",
+            backgroundSize: "200% 100%",
+          }}
+        />
       </div>
 
       {/* ground platform */}
       <div className="pointer-events-none fixed bottom-0 left-0 right-0 -z-10 h-[45vh]">
         <div className="absolute inset-0 bg-gradient-to-t from-[#0f0a06] via-[#1a1410] to-transparent" />
-        <div className="absolute inset-0 opacity-[0.04]"
-          style={{
-            backgroundImage: `
-              repeating-linear-gradient(90deg, transparent, transparent 40px, #c9a84c 40px, #c9a84c 41px),
-              repeating-linear-gradient(0deg, transparent, transparent 40px, #c9a84c 40px, #c9a84c 41px)
-            `
-          }}
-        />
-        {/* ground glow */}
-        <div className="absolute left-1/2 top-0 h-[30vh] w-[80vw] -translate-x-1/2 bg-[radial-gradient(ellipse_at_bottom,#c9a84c_0%,transparent_70%)] opacity-[0.06]" />
-      </div>
-
-      {/* floating particles */}
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        {[...Array(6)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute h-[2px] w-[2px] animate-dust rounded-full bg-[#c9a84c]/20"
-            style={{
-              left: `${10 + i * 15}%`,
-              top: `${30 + (i % 3) * 20}%`,
-              animationDelay: `${i * 0.7}s`,
-              animationDuration: `${4 + (i % 3) * 2}s`,
-            }}
-          />
-        ))}
       </div>
 
       {/* vs divider glow */}
-      <div className="pointer-events-none fixed left-1/2 top-1/2 -z-10 h-[2px] w-[40vw] -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-transparent via-[#c9a84c]/10 to-transparent" />
-      <div className="pointer-events-none fixed left-1/2 top-1/2 -z-10 h-[1px] w-[20vw] -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-transparent via-[#c9a84c]/20 to-transparent" />
+      <div className="pointer-events-none fixed left-1/2 top-1/2 -z-10 h-px w-[30vw] -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-transparent via-[#c9a84c]/8 to-transparent" />
 
       <TurnQueue />
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 py-6">
@@ -403,23 +376,16 @@ export default function Game() {
       />
 
       <style jsx>{`
-        @keyframes star {
-          0%, 100% { opacity: 0; transform: scale(0.5); }
-          50% { opacity: 1; transform: scale(1.2); }
+        @keyframes aurora {
+          0%, 100% { opacity: 0.6; }
+          50% { opacity: 1; }
         }
-        @keyframes star-delayed {
-          0%, 100% { opacity: 0; }
-          50% { opacity: 0.7; }
+        @keyframes sweep {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
         }
-        @keyframes dust {
-          0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
-          20% { opacity: 1; }
-          80% { opacity: 0.3; }
-          100% { transform: translateY(-60px) translateX(20px); opacity: 0; }
-        }
-        .animate-star { animation: star 4s ease-in-out infinite; }
-        .animate-star-delayed { animation: star-delayed 5s ease-in-out infinite; }
-        .animate-dust { animation: dust 6s ease-out infinite; }
+        .animate-aurora { animation: aurora 8s ease-in-out infinite; }
+        .animate-sweep { animation: sweep 12s linear infinite; }
       `}</style>
     </div>
   );
