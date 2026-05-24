@@ -32,6 +32,25 @@ export default function ManaBar({ currentMana, className = "" }: ManaBarProps) {
           >
             {/* shine overlay */}
             <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(255,255,255,0)_0%,rgba(255,255,255,0.1)_30%,rgba(255,255,255,0)_100%)]" />
+
+            {/* shimmer sweep */}
+            <div className="absolute inset-0 animate-shimmer bg-[linear-gradient(-45deg,transparent_30%,rgba(255,255,255,0.12)_50%,transparent_70%)]" />
+          </div>
+
+          {/* bubbles */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            {[...Array(3)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute h-[2px] w-[2px] rounded-full bg-[#c8d4ff] opacity-50"
+                style={{
+                  left: `${30 + i * 20}%`,
+                  bottom: `${manaPercent * (0.2 + i * 0.25)}%`,
+                  animation: `bubble-${i} 2.5s ease-in-out infinite`,
+                  animationDelay: `${i * 0.8}s`,
+                }}
+              />
+            ))}
           </div>
 
           {/* value */}
@@ -52,6 +71,30 @@ export default function ManaBar({ currentMana, className = "" }: ManaBarProps) {
           <Image src={manaIcon} alt="Mana" width={18} height={18} className="opacity-70" unoptimized />
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+
+        @keyframes bubble-0 {
+          0%, 100% { transform: translateY(0) scale(1); opacity: 0.5; }
+          50% { transform: translateY(-18px) scale(1.5); opacity: 0; }
+        }
+        @keyframes bubble-1 {
+          0%, 100% { transform: translateY(0) scale(1); opacity: 0.4; }
+          50% { transform: translateY(-14px) scale(1.3); opacity: 0; }
+        }
+        @keyframes bubble-2 {
+          0%, 100% { transform: translateY(0) scale(1); opacity: 0.45; }
+          50% { transform: translateY(-22px) scale(1.6); opacity: 0; }
+        }
+
+        .animate-shimmer {
+          animation: shimmer 2.2s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 }
