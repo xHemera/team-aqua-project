@@ -21,7 +21,7 @@ export default function ManaBar({ currentMana, className = "" }: ManaBarProps) {
         <div className="relative flex h-48 w-7 items-end overflow-hidden rounded-full border-2 border-[#2a2d42] bg-[#0c0d14] shadow-[inset_0_0_12px_rgba(0,0,0,0.6),0_0_8px_rgba(107,111,158,0.15)]">
           {/* liquid fill */}
           <div
-            className="absolute bottom-0 w-full transition-all duration-300 ease-out"
+            className="absolute bottom-0 w-full animate-pulse-glow transition-all duration-300 ease-out"
             style={{
               height: `${manaPercent}%`,
               background:
@@ -31,13 +31,7 @@ export default function ManaBar({ currentMana, className = "" }: ManaBarProps) {
             }}
           >
             {/* shine overlay */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(255,255,255,0)_0%,rgba(255,255,255,0.1)_30%,rgba(255,255,255,0)_100%)]" />
-
-            {/* shimmer sweep */}
-            <div className="absolute inset-0 animate-shimmer" style={{
-              background: "linear-gradient(-45deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%)",
-              backgroundSize: "200% 100%",
-            }} />
+            <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(255,255,255,0)_0%,rgba(255,255,255,0.08)_30%,rgba(255,255,255,0)_100%)]" />
           </div>
 
           {/* bubbles */}
@@ -51,6 +45,22 @@ export default function ManaBar({ currentMana, className = "" }: ManaBarProps) {
                   bottom: `${manaPercent * (0.2 + i * 0.25)}%`,
                   animation: `bubble-${i} 2.5s ease-in-out infinite`,
                   animationDelay: `${i * 0.8}s`,
+                }}
+              />
+            ))}
+          </div>
+
+          {/* ripple lines */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            {[...Array(2)].map((_, i) => (
+              <div
+                key={`ripple-${i}`}
+                className="absolute left-0 right-0 h-[1px] animate-ripple"
+                style={{
+                  bottom: `${20 + i * 30}%`,
+                  animationDelay: `${i * 1.5}s`,
+                  background:
+                    "linear-gradient(90deg, transparent 0%, rgba(164,181,255,0.15) 50%, transparent 100%)",
                 }}
               />
             ))}
@@ -76,9 +86,9 @@ export default function ManaBar({ currentMana, className = "" }: ManaBarProps) {
       </div>
 
       <style jsx>{`
-        @keyframes shimmer {
-          0% { background-position-x: 200%; }
-          100% { background-position-x: -100%; }
+        @keyframes pulse-glow {
+          0%, 100% { opacity: 1; filter: brightness(1); }
+          50% { opacity: 0.92; filter: brightness(1.08); }
         }
 
         @keyframes bubble-0 {
@@ -94,8 +104,17 @@ export default function ManaBar({ currentMana, className = "" }: ManaBarProps) {
           50% { transform: translateY(-22px) scale(1.6); opacity: 0; }
         }
 
-        .animate-shimmer {
-          animation: shimmer 2.2s ease-in-out infinite;
+        @keyframes ripple {
+          0% { transform: scaleX(0.3); opacity: 0; }
+          30% { opacity: 0.6; }
+          100% { transform: scaleX(1.5); opacity: 0; }
+        }
+
+        .animate-pulse-glow {
+          animation: pulse-glow 3s ease-in-out infinite;
+        }
+        .animate-ripple {
+          animation: ripple 3s ease-out infinite;
         }
       `}</style>
     </div>
