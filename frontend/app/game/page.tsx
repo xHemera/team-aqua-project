@@ -18,15 +18,20 @@ import type { CharacterData } from "@/components/organisms/characters/types";
 import { CHARACTERS } from "@/public/gameResources/heroes";
 import Button from "@/components/atoms/Button";
 
-export default function Game()
-{
+export default function Game() {
   const router = useRouter();
   const [userPseudo, setUserPseudo] = useState("");
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [oppAvatar, setOppAvatar] = useState<string | null>(null);
-  const [playerCharacters, setPlayerCharacters] = useState<CharacterData[] | null>(null);
-  const [teamSelected, setTeamSelected] = useState<Array<typeof CHARACTERS[number] | null> | null>(null);
-  const [selectedHero, setSelectedHero] = useState<typeof CHARACTERS[number] | null>(null);
+  const [playerCharacters, setPlayerCharacters] = useState<
+    CharacterData[] | null
+  >(null);
+  const [teamSelected, setTeamSelected] = useState<Array<
+    (typeof CHARACTERS)[number] | null
+  > | null>(null);
+  const [selectedHero, setSelectedHero] = useState<
+    (typeof CHARACTERS)[number] | null
+  >(null);
   const [opponent, setOpponent] = useState("");
   const [team, setTeam] = useState<string[] | null>([]);
   const [oppTeam, setOppTeam] = useState<string[] | null>([]);
@@ -36,30 +41,26 @@ export default function Game()
   const [isYourTurn, setIsYourTurn] = useState(true);
   const [roomId, setRoomId] = useState(0);
 
-
   //fetch the current user pseudo
   useEffect(() => {
     const getUserData = async () => {
       const { data } = await authClient.getSession();
-      if (data && data.user.name)
-        setUserPseudo(data.user.name);
-      else
-      {
+      if (data && data.user.name) setUserPseudo(data.user.name);
+      else {
         // router.push("/not-connected");
-        return ;
+        return;
       }
       const [cres, ores] = await Promise.all([
-        fetch (`/api/user?pseudo=${data.user.name}`, {
+        fetch(`/api/user?pseudo=${data.user.name}`, {
           method: "GET",
         }),
-        fetch(`api/user/opponent?pseudo=${data.user.name}`, {
+        fetch(`/api/user/opponent?pseudo=${data.user.name}`, {
           method: "GET",
         }),
-      ])
-      if (!ores.ok)
-      {
+      ]);
+      if (!ores.ok) {
         // router.push("/home");
-        return ;
+        return;
       }
       const res = await cres.json();
       const team: Team = {
@@ -67,7 +68,7 @@ export default function Game()
         characters: res.team,
         levels: res.levels,
         skillsLevels: res.spellsLevels,
-      }
+      };
       setTeam(res.team);
       spells.initialData(team);
       const opp = await ores.json();
@@ -87,7 +88,7 @@ export default function Game()
         return;
       }
 
-      const profile = await profileResponse.json() as {
+      const profile = (await profileResponse.json()) as {
         image: string | null;
         avatar: { url: string | null } | null;
       };
@@ -101,16 +102,19 @@ export default function Game()
     if (!userPseudo) return;
 
     const loadPlayerCharacters = async () => {
-      const response = await fetch(`/api/characters?username=${encodeURIComponent(userPseudo)}`, {
-        method: "GET",
-        cache: "no-store",
-      });
+      const response = await fetch(
+        `/api/characters?username=${encodeURIComponent(userPseudo)}`,
+        {
+          method: "GET",
+          cache: "no-store",
+        },
+      );
 
       if (!response.ok) {
         return;
       }
 
-      const payload = await response.json() as {
+      const payload = (await response.json()) as {
         characters: CharacterData[];
       };
 
@@ -124,7 +128,9 @@ export default function Game()
   useEffect(() => {
     try {
       if (team && team.length === 3) {
-        const mapped = team.map((id) => (id ? CHARACTERS.find((h) => h.identity.name === id) ?? null : null));
+        const mapped = team.map((id) =>
+          id ? (CHARACTERS.find((h) => h.identity.name === id) ?? null) : null,
+        );
         setTeamSelected(mapped);
         return;
       }
@@ -144,34 +150,34 @@ export default function Game()
 
   useEffect(() => {
     //connect the socket
-    if (socket.connected) return;
-    socket.connect();
-		socket.emit("login", userPseudo);
+    if (!userPseudo) return;
 
-		socket.on("online_users", (users) => {
-			console.log("Users from Redis:", users);
-		});
+    if (!socket.connected) {
+      socket.connect();
+    }
 
-		return () => {
-			socket.off("online_users");
-		};
+    socket.emit("login", userPseudo);
+
+    socket.on("online_users", (users) => {
+      console.log("Users from Redis:", users);
+    });
+
+    return () => {
+      socket.off("online_users");
+    };
   }, [userPseudo]);
 
   useEffect(() => {
     if (!userPseudo) return;
     const handleBan = (banned: string) => {
-      if (banned === userPseudo)
-        handleLogout();
+      if (banned === userPseudo) handleLogout();
     };
-    const handleDisconnect = (users: {[x: string]: string;}) => {
-      if (!users[opponent])
-      {
+    const handleDisconnect = (users: { [x: string]: string }) => {
+      if (!users[opponent]) {
         setTimeout(() => {
           socket.once("online_users", (users) => {
-            if (users[opponent])
-              return ;
-            else
-            {
+            if (users[opponent]) return;
+            else {
               socket.off("ban", handleBan);
               socket.off("online_users", handleDisconnect);
               router.push("/home");
@@ -190,119 +196,155 @@ export default function Game()
       socket.off("online_users", handleDisconnect);
     };
   }, [userPseudo, opponent]);
-  
+
   const handleLogout = async () => {
-  const response = await fetch("/api/profile", {
+    const response = await fetch("/api/profile", {
       method: "PUT",
-  })
-      const user: unknown = await response.json();
-      if (!response.ok) {
+    });
+    const user: unknown = await response.json();
+    if (!response.ok) {
       const errorMessage =
-      typeof user === "object" && user !== null && "error" in user
-          ? String((user as { error: string }).error ?? "Impossible de charger l'utilisateur")
+        typeof user === "object" && user !== null && "error" in user
+          ? String(
+              (user as { error: string }).error ??
+                "Impossible de charger l'utilisateur",
+            )
           : "Impossible de charger l'utilisateur";
       throw new Error(errorMessage);
-      }
-      socket.emit("isdisconnecting");
-      socket.disconnect();
-      await authClient.signOut();
-      router.push("/");
+    }
+    socket.emit("isdisconnecting");
+    socket.disconnect();
+    await authClient.signOut();
+    router.push("/");
   };
 
   if (!teamSelected || !oppTeam) {
     return (
       <div className="flex w-full justify-center px-4">
-        <div className="rounded border border-[#3c3650] bg-[#0f0e13] p-4 text-[#cfc8e6]">Chargement...</div>
+        <div className="rounded border border-[#3c3650] bg-[#0f0e13] p-4 text-[#cfc8e6]">
+          Chargement...
+        </div>
       </div>
     );
   }
 
-  const firstHero = teamSelected[0] ?? CHARACTERS.find(h => h.identity.id === "archer");
+  const firstHero =
+    teamSelected[0] ?? CHARACTERS.find((h) => h.identity.id === "archer");
   if (!firstHero) {
     return (
       <div className="flex w-full justify-center px-4">
-        <div className="rounded border border-red-600 bg-[#0f0e13] p-4 text-red-200">Héros introuvable</div>
+        <div className="rounded border border-red-600 bg-[#0f0e13] p-4 text-red-200">
+          Héros introuvable
+        </div>
       </div>
     );
   }
 
-  const enemyTeam = [
-    CHARACTERS.find((character) => character.identity.id === "knight") ?? null,
-    CHARACTERS.find((character) => character.identity.id === "mage") ?? null,
-  ].filter((character): character is (typeof CHARACTERS)[number] => Boolean(character));
+  const enemyTeam = oppTeam
+    .map((id) => CHARACTERS.find((h) => h.identity.name === id) ?? null)
+    .filter((character): character is (typeof CHARACTERS)[number] =>
+      Boolean(character),
+    );
 
   const selectedHeroCard = selectedHero ?? firstHero;
-  const selectedCharacter = playerCharacters?.find((character) => character.name === selectedHeroCard.identity.name) ?? null;
+  const selectedCharacter =
+    playerCharacters?.find(
+      (character) => character.name === selectedHeroCard.identity.name,
+    ) ?? null;
 
   return (
-      <div className="game-screen relative flex min-h-screen w-full flex-col px-4 py-4 text-[16px] leading-7 text-[#f5e6c8]" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
-        <TurnQueue />
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 py-6">
-          <div className="w-full max-w-4xl -translate-y-20 rounded-3xl">
-            <div className="flex flex-col gap-4 sm:gap-5">
-              <div className="grid w-2/3 grid-cols-2 justify-items-center gap-2 sm:gap-3">
-                {enemyTeam.map((character) => (
-                  <div key={character.identity.id} className="w-full opacity-90">
-                    <EnemyFighter character={character} />
-                  </div>
-                ))}
-              </div>
+    <div
+      className="game-screen relative flex min-h-screen w-full flex-col px-4 py-4 text-[16px] leading-7 text-[#f5e6c8]"
+      style={{ fontFamily: "Inter, system-ui, sans-serif" }}
+    >
+      <TurnQueue />
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 py-6">
+        <div className="w-full max-w-4xl -translate-y-20 rounded-3xl">
+          <div className="flex flex-col gap-4 sm:gap-5">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              {enemyTeam.map((character) => (
+                <div key={character.identity.id} className="w-full opacity-90">
+                  <EnemyFighter character={character} />
+                </div>
+              ))}
+            </div>
 
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                {teamSelected.map((character, index) => (
-                  <div key={character?.identity.id ?? `own-slot-${index}`}>
-                    {character ? (
-                      <Fighter character={character} active={selectedHero?.identity.id === character.identity.id} />
-                    ) : (
-                      <div className="flex aspect-square items-center justify-center rounded-2xl border border-dashed border-gray-700 bg-[#0f0e13] text-sm text-gray-500">
-                        Vide
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              {teamSelected.map((character, index) => (
+                <div key={character?.identity.id ?? `own-slot-${index}`}>
+                  {character ? (
+                    <Fighter
+                      character={character}
+                      active={
+                        selectedHero?.identity.id === character.identity.id
+                      }
+                    />
+                  ) : (
+                    <div className="flex aspect-square items-center justify-center rounded-2xl border border-dashed border-gray-700 bg-[#0f0e13] text-sm text-gray-500">
+                      Vide
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </div>
-
-        <div className="flex items-start justify-end gap-4">
-          <ProfileInfo account={{ pseudo: opponent }} />
-        </div>
-
-        <div className="mt-auto" />
-
-        <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(11rem,15rem)] gap-3 sm:gap-4 md:grid-cols-[minmax(0,7fr)_minmax(240px,280px)] md:items-stretch">
-          <div className="min-w-0 flex items-end">
-            <SpellSelector hero={selectedHeroCard} character={selectedCharacter} className="w-full" />
-          </div>
-
-          <div className="flex flex-col items-end gap-3 md:h-full md:justify-between">
-            <div className="flex flex-col items-end gap-3">
-              <ManaBar currentMana={42} />
-            </div>
-
-            <Button variant="secondary" onClick={() => router.push("/home")} className="w-full md:w-auto">
-              Forfeit
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setIsYourTurn((currentTurn) => !currentTurn);
-                setIsInfoModalOpen(true);
-              }}
-              className="w-full md:w-auto"
-            >
-              Test
-            </Button>
-            <ProfileInfo account={{ pseudo: userPseudo, profilePhoto: userAvatar }} className="self-end" />
-          </div>
-        </div>
-
-        <InfoModal
-          open={isInfoModalOpen}
-          isYourTurn={isYourTurn}
-          onClose={() => setIsInfoModalOpen(false)}
-        />
       </div>
-  )
+
+      <div className="flex flex-col items-end gap-1">
+        <div className="flex items-start justify-end gap-4">
+          <ProfileInfo account={{ pseudo: opponent, profilePhoto: oppAvatar }} />
+        </div>
+        <p className="text-xs text-[#8b82a6]">
+          Session ID: {roomId > 0 ? roomId : "NaN"}
+        </p>
+      </div>
+
+      <div className="mt-auto" />
+
+      <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(11rem,15rem)] gap-3 sm:gap-4 md:grid-cols-[minmax(0,7fr)_minmax(240px,280px)] md:items-stretch">
+        <div className="min-w-0 flex items-end">
+          <SpellSelector
+            hero={selectedHeroCard}
+            character={selectedCharacter}
+            className="w-full"
+          />
+        </div>
+
+        <div className="flex flex-col items-end gap-3 md:h-full md:justify-between">
+          <div className="flex flex-col items-end gap-3">
+            <ManaBar currentMana={42} />
+          </div>
+
+          <Button
+            variant="secondary"
+            onClick={() => router.push("/home")}
+            className="w-full md:w-auto"
+          >
+            Forfeit
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setIsYourTurn((currentTurn) => !currentTurn);
+              setIsInfoModalOpen(true);
+            }}
+            className="w-full md:w-auto"
+          >
+            Test
+          </Button>
+          <ProfileInfo
+            account={{ pseudo: userPseudo, profilePhoto: userAvatar }}
+            className="self-end"
+          />
+        </div>
+      </div>
+
+      <InfoModal
+        open={isInfoModalOpen}
+        isYourTurn={isYourTurn}
+        onClose={() => setIsInfoModalOpen(false)}
+      />
+    </div>
+  );
 }
