@@ -2,6 +2,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import express from "express";
 import { createClient } from 'redis';
+import { initGame, processAction, getCurrentTurnCharacter } from "../engine/GameEngine.ts";
 import "./matchmaking.js";
 import "./matchmakingpong.js";
 
@@ -16,6 +17,9 @@ const redis = createClient({
 redis.on('error', (err) => console.log('Redis Client Error', err));
 
 await redis.connect();
+
+// Game engine store: roomId -> { gameState, players: [pseudo1, pseudo2], playerSockets: [socketId1, socketId2] }
+const gameRooms = new Map();
 
 //connection parameters and server creation
 const hostname = "0.0.0.0";
@@ -239,6 +243,39 @@ io.on("connection", (socket) => {
     io.emit("offline");
   });
 
+  // --- Game Engine Events ---
+
+  // "initiate" is emitted by the frontend game page with the player's team data
+  socket.on("initiate", async ({ team, roomId }) => {
+    if (!team?.owner || !roomId) {
+      console.error("Invalid initiate data:", { team, roomId });
+      return;
+    }
+
+    socket.join(`game:${roomId}`);
+
+    if (!gameRooms.has(roomId)) {
+      gameRooms.set(roomId, {
+        gameState: null,
+        players: [],
+        playerSockets: [socket.id],
+      });
+    } else {
+      const room = gameRooms.get(roomId);
+      if (!room.playerSockets.includes(socket.id)) {
+        room.playerSockets.push(socket.id);
+      }
+    }
+
+    console.log(`[GAME] ${team.owner} joined room ${roomId}`);
+  });
+
+  // Unified game action (spell cast or basic attack)
+  socket.on("gameAction", async (action) => {
+    console.log("[GAME] action received:", action);
+    // Will be wired to processAction() once GameState is created
+  });
+
   //delete the user's socket if he's disconnected
   socket.on("disconnect", async () => {
     const onlineUsers = await redis.hGetAll("online_users");
@@ -256,6 +293,8 @@ io.on("connection", (socket) => {
     io.emit("online_users", users);
   });
 });
+
+export { gameRooms };
 
 //errors check and set the listening port
 httpServer

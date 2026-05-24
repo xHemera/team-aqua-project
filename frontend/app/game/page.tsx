@@ -293,7 +293,9 @@ export default function Game() {
 
       <div className="flex flex-col items-end gap-1">
         <div className="flex items-start justify-end gap-4">
-          <ProfileInfo account={{ pseudo: opponent, profilePhoto: oppAvatar }} />
+          <ProfileInfo
+            account={{ pseudo: opponent, profilePhoto: oppAvatar }}
+          />
         </div>
         <p className="text-xs text-[#8b82a6]">
           Session ID: {roomId > 0 ? roomId : "NaN"}
