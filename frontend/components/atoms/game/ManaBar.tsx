@@ -34,7 +34,10 @@ export default function ManaBar({ currentMana, className = "" }: ManaBarProps) {
             <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(255,255,255,0)_0%,rgba(255,255,255,0.1)_30%,rgba(255,255,255,0)_100%)]" />
 
             {/* shimmer sweep */}
-            <div className="absolute inset-0 animate-shimmer bg-[linear-gradient(-45deg,transparent_30%,rgba(255,255,255,0.12)_50%,transparent_70%)]" />
+            <div className="absolute inset-0 animate-shimmer" style={{
+              background: "linear-gradient(-45deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%)",
+              backgroundSize: "200% 100%",
+            }} />
           </div>
 
           {/* bubbles */}
@@ -74,8 +77,8 @@ export default function ManaBar({ currentMana, className = "" }: ManaBarProps) {
 
       <style jsx>{`
         @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
+          0% { background-position-x: 200%; }
+          100% { background-position-x: -100%; }
         }
 
         @keyframes bubble-0 {
