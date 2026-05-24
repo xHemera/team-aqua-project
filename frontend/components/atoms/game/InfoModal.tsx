@@ -15,21 +15,21 @@ export default function InfoModal({ open, isYourTurn, onClose }: InfoModalProps)
     if (!open) {
       if (phase !== "hidden") {
         setPhase("exit");
-        const t = setTimeout(() => setPhase("hidden"), 400);
+        const t = setTimeout(() => setPhase("hidden"), 250);
         return () => clearTimeout(t);
       }
       return;
     }
 
     const enter = setTimeout(() => setPhase("enter"), 10);
-    const visible = setTimeout(() => setPhase("visible"), 500);
+    const visible = setTimeout(() => setPhase("visible"), 250);
     const exit = setTimeout(() => {
       setPhase("exit");
       setTimeout(() => {
         setPhase("hidden");
         onClose();
-      }, 400);
-    }, 1800);
+      }, 250);
+    }, 1500);
 
     return () => {
       clearTimeout(enter);
@@ -46,13 +46,13 @@ export default function InfoModal({ open, isYourTurn, onClose }: InfoModalProps)
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-[400ms] ${
+      className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-[250ms] ${
         isExiting ? "pointer-events-none" : ""
       }`}
     >
       {/* backdrop */}
       <div
-        className={`absolute inset-0 transition-all duration-[600ms] ${
+        className={`absolute inset-0 transition-all duration-[250ms] ${
           showContent && !isExiting
             ? "bg-black/60 backdrop-blur-[3px]"
             : "bg-black/0 backdrop-blur-0"
@@ -61,7 +61,7 @@ export default function InfoModal({ open, isYourTurn, onClose }: InfoModalProps)
 
       {/* card */}
       <div
-        className={`relative flex flex-col items-center transition-all duration-[500ms] ease-out ${
+        className={`relative flex flex-col items-center transition-all duration-[200ms] ease-out ${
           isEntering
             ? "scale-0 opacity-0"
             : isExiting
@@ -74,7 +74,7 @@ export default function InfoModal({ open, isYourTurn, onClose }: InfoModalProps)
 
         {/* decorative line top */}
         <div
-          className={`h-[1px] transition-all duration-[600ms] delay-100 ${
+          className={`h-[1px] transition-all duration-[250ms] delay-50 ${
             showContent && !isExiting ? "w-48 opacity-40" : "w-0 opacity-0"
           }`}
           style={{
@@ -84,7 +84,7 @@ export default function InfoModal({ open, isYourTurn, onClose }: InfoModalProps)
         />
 
         <h2
-          className={`px-8 py-4 text-center text-5xl font-black uppercase tracking-[0.2em] transition-all duration-[500ms] ${
+          className={`px-8 py-4 text-center text-5xl font-black uppercase tracking-[0.2em] transition-all duration-[200ms] ${
             isExiting ? "scale-[2]" : ""
           }`}
           style={{
@@ -98,7 +98,7 @@ export default function InfoModal({ open, isYourTurn, onClose }: InfoModalProps)
         </h2>
 
         <p
-          className={`text-sm font-medium uppercase tracking-[0.3em] transition-all duration-[500ms] delay-75 ${
+          className={`text-sm font-medium uppercase tracking-[0.3em] transition-all duration-[200ms] delay-50 ${
             showContent && !isExiting
               ? "translate-y-0 opacity-60"
               : "translate-y-2 opacity-0"
@@ -110,7 +110,7 @@ export default function InfoModal({ open, isYourTurn, onClose }: InfoModalProps)
 
         {/* decorative line bottom */}
         <div
-          className={`h-[1px] transition-all duration-[600ms] delay-100 ${
+          className={`h-[1px] transition-all duration-[250ms] delay-50 ${
             showContent && !isExiting ? "w-48 opacity-40" : "w-0 opacity-0"
           }`}
           style={{
