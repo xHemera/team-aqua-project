@@ -16,7 +16,7 @@ import InfoModal from "@/components/atoms/game/InfoModal";
 import type { CharacterData } from "@/components/organisms/characters/types";
 
 import { CHARACTERS } from "@/public/gameResources/heroes";
-import Button from "@/components/atoms/Button";
+
 
 export default function Game() {
   const router = useRouter();
@@ -318,23 +318,29 @@ export default function Game() {
             <ManaBar currentMana={42} />
           </div>
 
-          <Button
-            variant="secondary"
+          <button
+            type="button"
             onClick={() => router.push("/home")}
-            className="w-full md:w-auto"
+            className="group relative w-full overflow-hidden rounded-md border-2 border-[#2a1f14] bg-gradient-to-b from-[#14100a] to-[#0f0a06] px-4 py-2 font-serif text-sm font-semibold tracking-wide text-[#c9b896] transition-all duration-150 hover:border-[#c9a84c] hover:text-[#e8dcc8] hover:shadow-[0_0_14px_rgba(201,168,76,0.12)] md:w-auto"
           >
-            Forfeit
-          </Button>
-          <Button
-            variant="secondary"
+            <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+              <div className="absolute inset-0 bg-gradient-to-t from-[#c9a84c]/5 to-transparent" />
+            </div>
+            <span className="relative z-10">Forfeit</span>
+          </button>
+          <button
+            type="button"
             onClick={() => {
               setIsYourTurn((currentTurn) => !currentTurn);
               setIsInfoModalOpen(true);
             }}
-            className="w-full md:w-auto"
+            className="group relative w-full overflow-hidden rounded-md border-2 border-[#2a1f14] bg-gradient-to-b from-[#14100a] to-[#0f0a06] px-4 py-2 font-serif text-sm font-semibold tracking-wide text-[#c9b896] transition-all duration-150 hover:border-[#c9a84c] hover:text-[#e8dcc8] hover:shadow-[0_0_14px_rgba(201,168,76,0.12)] md:w-auto"
           >
-            Test
-          </Button>
+            <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+              <div className="absolute inset-0 bg-gradient-to-t from-[#c9a84c]/5 to-transparent" />
+            </div>
+            <span className="relative z-10">Test</span>
+          </button>
           <ProfileInfo
             account={{ pseudo: userPseudo, profilePhoto: userAvatar }}
             className="self-end"
