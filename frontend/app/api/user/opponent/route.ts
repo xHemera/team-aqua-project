@@ -46,6 +46,7 @@ export async function GET(req: Request)
             let team: string[] = [];
             for (const i of user.gameState.team)
             {
+                if (!i) continue;
                 const name = i.charAt(0).toUpperCase() + i.slice(1);
                 team.push(name);
             }

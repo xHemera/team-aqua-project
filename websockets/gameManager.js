@@ -1,8 +1,8 @@
-import { initGame, getCurrentTurnCharacter } from "../engine/GameEngine.ts";
-import { getHeroData } from "../engine/Instances/instance-factory.ts";
-import { buildSpellMap } from "../engine/Spells/SpellRegistry.ts";
-import { PlayerInstance } from "../engine/Instances/PlayerInstance.ts";
-import { CharacterInstance } from "../engine/Instances/CharacterInstance.ts";
+import { initGame, getCurrentTurnCharacter } from "./engine/GameEngine.ts";
+import { getHeroData } from "./engine/Instances/instance-factory.ts";
+import { buildSpellMap } from "./engine/Spells/SpellRegistry.ts";
+import { PlayerInstance } from "./engine/Instances/PlayerInstance.ts";
+import { CharacterInstance } from "./engine/Instances/CharacterInstance.ts";
 import { io, gameRooms } from "./server.js";
 
 function makeCharacterInstances(pseudo, playerId, characters, levels, skillsLevels) {

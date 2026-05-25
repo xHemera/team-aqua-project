@@ -2,7 +2,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import express from "express";
 import { createClient } from 'redis';
-import { initGame, processAction, getCurrentTurnCharacter } from "../engine/GameEngine.ts";
+import { initGame, processAction, getCurrentTurnCharacter } from "./engine/GameEngine.ts";
 import "./matchmaking.js";
 import "./matchmakingpong.js";
 import { createGameInstance, broadcastGameState } from "./gameManager.js";

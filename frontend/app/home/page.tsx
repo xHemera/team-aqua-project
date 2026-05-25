@@ -254,10 +254,17 @@ export default function Home() {
   };
 
   const handleStartPvp = async () => {
-    if (!userPseudo)
-    {
-      return ;
-    }
+    if (!userPseudo) return;
+
+    await fetch("/api/home", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userPseudo,
+        char: teamSlots.filter(Boolean),
+      }),
+    });
+
     setPvpOpen(true);
     const res = await fetch("/api/home", {
       method: "POST",
@@ -267,7 +274,7 @@ export default function Home() {
       body: JSON.stringify({userPseudo: userPseudo}),
     });
     if (!res.ok)
-      return ; //afficher un message lie a l'erreur
+      return ;
   };
 
   const handleStartPong = async () => {
