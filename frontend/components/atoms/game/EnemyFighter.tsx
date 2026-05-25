@@ -14,6 +14,8 @@ type EnemyFighterProps = {
   currentHp?: number;
   effects?: StatusEffect[];
   active?: boolean;
+  onClick?: () => void;
+  isTargetable?: boolean;
 };
 
 const effectStyles: Record<
@@ -47,15 +49,27 @@ export default function EnemyFighter({
   currentHp,
   effects,
   active = false,
+  onClick,
+  isTargetable,
 }: EnemyFighterProps) {
   const chibi = character.identity.assets.chibi;
   const maxHealth = character.baseStats.hp;
   const hp = currentHp ?? maxHealth;
   const healthPercent = (hp / maxHealth) * 100;
 
+  const targetRing = isTargetable
+    ? "ring-2 ring-[#c9a84c] ring-offset-2 ring-offset-[#0f0e13] cursor-pointer hover:ring-[#e8dcc8] hover:shadow-[0_0_20px_rgba(201,168,76,0.25)] pointer-events-auto"
+    : "";
+
   return (
     <>
-      <div className="flex w-full flex-col items-center gap-1">
+      <div
+        className={`flex w-full flex-col items-center gap-1 rounded-xl transition-all duration-200 ${targetRing} ${onClick ? "cursor-pointer" : ""}`}
+        onClick={onClick}
+        role={onClick ? "button" : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") onClick(); } : undefined}
+      >
         {/* health bar — dark medieval stone */}
         <div className="relative w-[88%] max-w-[11rem] pt-1">
           <div className="relative overflow-hidden rounded border border-[#2a1f14] bg-gradient-to-b from-[#14100a] to-[#0f0a06] shadow-[inset_0_0_8px_rgba(0,0,0,0.5)]">

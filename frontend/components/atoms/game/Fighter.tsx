@@ -13,8 +13,9 @@ type FighterProps = {
   character: (typeof CHARACTERS)[number];
   active?: boolean;
   currentHp?: number;
-  currentMp?: number;
   effects?: StatusEffect[];
+  onClick?: () => void;
+  isTargetable?: boolean;
 };
 
 const effectStyles: Record<StatusEffect["type"], { border: string; glow: string; label: string }> = {
@@ -24,7 +25,7 @@ const effectStyles: Record<StatusEffect["type"], { border: string; glow: string;
   cc:     { border: "border-[#5a6a8a]", glow: "shadow-[0_0_6px_rgba(90,106,138,0.3)]", label: "bg-[#5a6a8a]" },
 };
 
-export default function Fighter({ character, active = false, currentHp, currentMp, effects }: FighterProps) {
+export default function Fighter({ character, active = false, currentHp, effects, onClick, isTargetable }: FighterProps) {
   const chibi = character.identity.assets.chibi;
   const maxHealth = character.baseStats.hp;
   const hp = currentHp ?? maxHealth;
@@ -34,9 +35,19 @@ export default function Fighter({ character, active = false, currentHp, currentM
     ? "drop-shadow-[0_0_3px_rgba(96,211,148,0.9)]"
     : "drop-shadow-[0_10px_18px_rgba(0,0,0,0.45)]";
 
+  const targetRing = isTargetable
+    ? "ring-2 ring-[#c9a84c] ring-offset-2 ring-offset-[#0f0e13] cursor-pointer hover:ring-[#e8dcc8] hover:shadow-[0_0_20px_rgba(201,168,76,0.25)] pointer-events-auto"
+    : "";
+
   return (
     <>
-      <div className="flex w-full flex-col items-center gap-1">
+      <div
+        className={`flex w-full flex-col items-center gap-1 rounded-xl transition-all duration-200 ${targetRing} ${onClick ? "cursor-pointer" : ""}`}
+        onClick={onClick}
+        role={onClick ? "button" : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") onClick(); } : undefined}
+      >
         {/* chibi */}
         <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden">
           <Image

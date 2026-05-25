@@ -4,8 +4,7 @@ import { authClient } from "@/lib/auth-client";
 import { socket } from "@/socket";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
-import { Team } from "./spells";
-import { spells } from "./index";
+import { spells, type Team, type GameAction } from "./index";
 import SpellSelector from "@/components/molecules/game/SpellSelector";
 import ProfileInfo from "@/components/atoms/game/ProfileInfo";
 import ManaBar from "@/components/atoms/game/ManaBar";
@@ -88,6 +87,14 @@ export default function Game() {
   const prevTurnRef = useRef(0);
   const hasShownStartModal = useRef(false);
 
+  // Targeting state
+  const [targetingMode, setTargetingMode] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{
+    type: "basic" | "skill";
+    skillId?: string;
+  } | null>(null);
+  const [validTargetUids, setValidTargetUids] = useState<string[]>([]);
+
   const isYourTurn =
     playerId !== null && gameState !== null
       ? gameState.activePlayerOwner === playerId
@@ -100,6 +107,119 @@ export default function Game() {
     : [];
   const activeCharacterUid =
     gameState?.turnQueue[0]?.characterUid ?? null;
+
+  const activeHeroId = activeCharacterUid?.split("_").at(-2) ?? null;
+  const activeHeroDef = activeHeroId
+    ? CHARACTERS.find(h => h.identity.id === activeHeroId) ?? null
+    : null;
+
+  // Get targeting type for a given skill on the active character
+  function getSkillTargeting(skillId: string | undefined | null): string | null {
+    if (!skillId || !activeHeroDef) return null;
+    const skill = activeHeroDef.skills.find(s => s.id === skillId);
+    if (!skill || !("targeting" in skill)) return null;
+    return (skill as Record<string, unknown>).targeting as string;
+  }
+
+  // Determine valid target UIDs for the current pending action
+  function getTargetsForAction(
+    actionType: "basic" | "skill",
+    skillId?: string,
+  ): string[] {
+    const targeting = actionType === "basic" ? "single" : getSkillTargeting(skillId ?? null);
+    if (!targeting) return [];
+    if (targeting === "self") return activeCharacterUid ? [activeCharacterUid] : [];
+    if (targeting === "aoe" || targeting === "teamAoe") return [];
+    if (targeting === "teamSingle") return myCharacters.map(c => c.uid);
+    if (targeting === "single") return oppCharacters.map(c => c.uid);
+    return [];
+  }
+
+  // Handle spell/basic click from SpellSelector
+  function handleCastSpell(type: "basic" | "skill", skillId?: string) {
+    const targeting = type === "basic" ? "single" : getSkillTargeting(skillId);
+    if (!targeting || !activeCharacterUid) {
+      console.log(`[GameClient] handleCastSpell cancelled — no targeting or uid (type=${type} skillId=${skillId} targeting=${targeting} uid=${activeCharacterUid})`);
+      return;
+    }
+    console.log(`[GameClient] handleCastSpell — type=${type} skillId=${skillId ?? "none"} targeting=${targeting}`);
+
+    // For AOE/self/teamAoe — submit immediately without targeting
+    if (targeting === "aoe" || targeting === "self" || targeting === "teamAoe") {
+      const action: GameAction = {
+        type,
+        skillId: type === "skill" ? skillId : undefined,
+        userUid: activeCharacterUid,
+        targetUids: targeting === "self" ? [activeCharacterUid] : [],
+      };
+      spells.submitAction(action);
+      return;
+    }
+
+    // For single/teamSingle — enter targeting mode
+    const targets = getTargetsForAction(type, skillId);
+    if (targets.length === 0) return;
+    setPendingAction({ type, skillId });
+    setValidTargetUids(targets);
+    setTargetingMode(true);
+  }
+
+  // Handle clicking on a character (target or cancel)
+  function handleTargetSelect(targetUid: string | null) {
+    if (!targetingMode || !pendingAction || !activeCharacterUid) {
+      console.log(`[GameClient] handleTargetSelect cancelled — no targeting mode or uid`);
+      return;
+    }
+    if (targetUid === null) {
+      console.log(`[GameClient] handleTargetSelect — cancelled (Escape)`);
+      setTargetingMode(false);
+      setPendingAction(null);
+      setValidTargetUids([]);
+      return;
+    }
+    const action: GameAction = {
+      type: pendingAction.type,
+      skillId: pendingAction.skillId,
+      userUid: activeCharacterUid,
+      targetUids: [targetUid],
+    };
+    console.log(`[GameClient] handleTargetSelect — submitting action type=${action.type} target=${targetUid}`);
+    spells.submitAction(action);
+    setTargetingMode(false);
+    setPendingAction(null);
+    setValidTargetUids([]);
+  }
+
+  // Skip turn
+  function handleSkipTurn() {
+    if (!activeCharacterUid) {
+      console.log(`[GameClient] handleSkipTurn cancelled — no active character`);
+      return;
+    }
+    const action: GameAction = {
+      type: "skip",
+      userUid: activeCharacterUid,
+      targetUids: [],
+    };
+    console.log(`[GameClient] handleSkipTurn — uid=${activeCharacterUid}`);
+    spells.submitAction(action);
+  }
+
+  // Game over state
+  const isGameOver = gameState?.gamePhase === "end";
+  const isWinner = gameState?.winnerId === playerId;
+
+  // Cancel targeting on Escape
+  useEffect(() => {
+    if (!targetingMode) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        handleTargetSelect(null);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [targetingMode]);
 
   // Connect socket and attach listeners eagerly, then fetch user data
   useEffect(() => {
@@ -422,6 +542,9 @@ export default function Game() {
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
               {enemyTeam.map((character) => {
                 const charState = findCharByHeroId(oppCharacters, character.identity.id);
+                const isTargetable = targetingMode && validTargetUids.some(
+                  uid => uid === charState?.uid
+                );
                 return (
                   <div key={character.identity.id} className="w-full opacity-90">
                     <EnemyFighter
@@ -429,6 +552,8 @@ export default function Game() {
                       currentHp={charState?.currentHp}
                       effects={[]}
                       active={charState ? charState.uid === activeCharacterUid : false}
+                      onClick={isTargetable && charState ? () => handleTargetSelect(charState.uid) : undefined}
+                      isTargetable={isTargetable}
                     />
                   </div>
                 );
@@ -440,6 +565,9 @@ export default function Game() {
                 const charState = character
                   ? findCharByHeroId(myCharacters, character.identity.id)
                   : undefined;
+                const isTargetable = targetingMode && validTargetUids.some(
+                  uid => uid === charState?.uid
+                );
                 return (
                   <div key={character?.identity.id ?? `own-slot-${index}`}>
                     {character ? (
@@ -451,7 +579,8 @@ export default function Game() {
                             : selectedHero?.identity.id === character.identity.id
                         }
                         currentHp={charState?.currentHp}
-                        currentMp={charState?.currentMp}
+                        onClick={isTargetable && charState ? () => handleTargetSelect(charState.uid) : undefined}
+                        isTargetable={isTargetable}
                       />
                     ) : (
                       <div className="flex aspect-square items-center justify-center rounded-2xl border border-dashed border-gray-700 bg-[#0f0e13] text-sm text-gray-500">
@@ -508,12 +637,21 @@ export default function Game() {
 
         return isYourTurn ? (
           <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(11rem,15rem)] gap-3 sm:gap-4 md:grid-cols-[minmax(0,7fr)_minmax(240px,280px)] md:items-stretch">
-            <div className="min-w-0 flex items-end">
+            <div className="min-w-0 flex flex-col gap-2">
               <SpellSelector
                 hero={selectedHeroCard}
                 character={selectedCharacter}
+                activeMp={activeMp}
+                onCastSpell={handleCastSpell}
                 className="w-full"
               />
+              <button
+                type="button"
+                onClick={handleSkipTurn}
+                className="group relative w-full overflow-hidden rounded-md border border-[#2a1f14] bg-gradient-to-b from-[#14100a] to-[#0f0a06] px-3 py-1.5 font-serif text-xs tracking-wide text-[#6a5a4a] transition-all duration-150 hover:border-[#5a4a3a] hover:text-[#8a7a5a]"
+              >
+                Skip Turn
+              </button>
             </div>
             <div className="flex flex-col items-end gap-3 md:h-full md:justify-between">
               {manaBar}
@@ -532,8 +670,38 @@ export default function Game() {
         );
       })()}
 
+      {/* Game Over overlay */}
+      {isGameOver && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+          <div className="rounded-2xl border-2 border-[#c9a84c] bg-gradient-to-b from-[#1f1810] to-[#15100a] p-8 text-center shadow-[0_0_40px_rgba(201,168,76,0.15)]">
+            <h1 className="font-serif text-3xl font-bold tracking-wide text-[#e8dcc8]">
+              {isWinner ? "Victory!" : "Defeat"}
+            </h1>
+            <p className="mt-2 font-serif text-[#c9b896]">
+              {isWinner ? "Your team emerges victorious!" : "Your team has been defeated."}
+            </p>
+            <button
+              type="button"
+              onClick={() => router.push("/home")}
+              className="mt-6 rounded-md border-2 border-[#c9a84c] bg-gradient-to-b from-[#c9a84c] to-[#a8883c] px-6 py-2 font-serif font-semibold text-[#0a0806] transition-all duration-150 hover:shadow-[0_0_14px_rgba(201,168,76,0.3)]"
+            >
+              Return to Home
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Targeting mode banner */}
+      {targetingMode && (
+        <div className="fixed inset-x-0 top-0 z-40 flex items-center justify-center bg-gradient-to-b from-[#c9a84c]/20 to-transparent py-3">
+          <div className="rounded-lg border border-[#c9a84c]/40 bg-[#1f1810] px-6 py-2 font-serif text-sm text-[#e8dcc8] shadow-[0_0_20px_rgba(201,168,76,0.15)]">
+            Select a target — <button onClick={() => handleTargetSelect(null)} className="underline text-[#8a7a5a] hover:text-[#c9b896]">Cancel (Esc)</button>
+          </div>
+        </div>
+      )}
+
       <InfoModal
-        open={isInfoModalOpen}
+        open={isInfoModalOpen && !isGameOver}
         isYourTurn={isYourTurn}
         onClose={() => setIsInfoModalOpen(false)}
       />
