@@ -1,1 +1,1 @@
-export { CHARACTERS } from "../../../../websockets/engine/heroes/index";
+export { CHARACTERS } from "../../../shared-heroes/index";
