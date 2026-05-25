@@ -8,7 +8,7 @@ import * as readline from "readline";
 
 const teamA: Team = {
   owner:       "player0",
-  characters:  ["healer", "assassin", "archer"],
+  characters:  ["mage", "healer", "knight"],
   levels:      [5, 5, 5],
   skillLevels: [3, 3, 3, 3, 3, 3],
 };
