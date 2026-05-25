@@ -104,10 +104,16 @@ export default function Game() {
   // Connect socket and attach listeners eagerly, then fetch user data
   useEffect(() => {
     if (!socket.connected) {
+      console.log("[GameClient] Socket not connected, connecting...");
       socket.connect();
+    } else {
+      console.log("[GameClient] Socket already connected, id:", socket.id);
     }
 
     socket.on("gameStateUpdate", (state: GameStatePayload) => {
+      console.log(
+        `[GameClient] gameStateUpdate — turn=${state.turn} phase=${state.gamePhase} activePlayer=${state.activePlayerOwner} myPlayerId=${state.playerId} isYourTurn=${state.activePlayerOwner === state.playerId}`
+      );
       setPlayerId(state.playerId);
       setGameState(state);
     });
@@ -115,10 +121,7 @@ export default function Game() {
     const getUserData = async () => {
       const { data } = await authClient.getSession();
       if (data && data.user.name) setUserPseudo(data.user.name);
-      else {
-        // router.push("/not-connected");
-        return;
-      }
+      else return;
       const [cres, ores] = await Promise.all([
         fetch(`/api/user?pseudo=${data.user.name}`, {
           method: "GET",
@@ -127,10 +130,7 @@ export default function Game() {
           method: "GET",
         }),
       ]);
-      if (!ores.ok) {
-        // router.push("/home");
-        return;
-      }
+      if (!ores.ok) return;
       const res = await cres.json();
       const team: Team = {
         owner: data.user.name,
@@ -140,6 +140,7 @@ export default function Game() {
       };
       setTeam(res.team);
       const opp = await ores.json();
+      console.log(`[GameClient] Sending initiate — room=${opp.roomId} team=${team.characters} opponent=${opp.name}`);
       spells.initialData(team, opp.roomId);
       setOpponent(opp.name);
       setOppTeam(opp.team);
@@ -226,21 +227,16 @@ export default function Game() {
     const heroId = activeCharacterUid.split("_").at(-2);
     if (!heroId) return;
     const hero = CHARACTERS.find((h) => h.identity.id === heroId);
-    if (hero) setSelectedHero(hero);
+    if (hero) {
+      console.log(`[GameClient] Active character changed to ${hero.identity.name} (turn=${gameState.turn})`);
+      setSelectedHero(hero);
+    }
   }, [gameState?.turn]);
 
   useEffect(() => {
     if (!userPseudo) return;
 
     socket.emit("login", userPseudo);
-
-    socket.on("online_users", (users) => {
-      console.log("Users from Redis:", users);
-    });
-
-    return () => {
-      socket.off("online_users");
-    };
   }, [userPseudo]);
 
   useEffect(() => {
@@ -280,12 +276,14 @@ export default function Game() {
     if (!hasShownStartModal.current) {
       hasShownStartModal.current = true;
       prevTurnRef.current = gameState.turn;
+      console.log(`[GameClient] Game started — turn=${gameState.turn} activePlayer=${gameState.activePlayerOwner}`);
       setIsInfoModalOpen(true);
       return;
     }
 
     if (gameState.turn !== prevTurnRef.current) {
       prevTurnRef.current = gameState.turn;
+      console.log(`[GameClient] Turn changed — turn=${gameState.turn} activePlayer=${gameState.activePlayerOwner}`);
       setIsInfoModalOpen(true);
     }
   }, [gameState, playerId]);
@@ -438,31 +436,31 @@ export default function Game() {
             </div>
 
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              {teamSelected.map((character, index) => (
-                <div key={character?.identity.id ?? `own-slot-${index}`}>
-                  {character ? (
-                    (() => {
-                      const charState = findCharByHeroId(myCharacters, character.identity.id);
-                      return (
-                        <Fighter
-                          character={character}
-                          active={
-                            charState
-                              ? charState.uid === activeCharacterUid
-                              : selectedHero?.identity.id === character.identity.id
-                          }
-                          currentHp={charState?.currentHp}
-                          currentMp={charState?.currentMp}
-                        />
-                      );
-                    })()
-                  ) : (
-                    <div className="flex aspect-square items-center justify-center rounded-2xl border border-dashed border-gray-700 bg-[#0f0e13] text-sm text-gray-500">
-                      Vide
-                    </div>
-                  )}
-                </div>
-              ))}
+              {teamSelected.map((character, index) => {
+                const charState = character
+                  ? findCharByHeroId(myCharacters, character.identity.id)
+                  : undefined;
+                return (
+                  <div key={character?.identity.id ?? `own-slot-${index}`}>
+                    {character ? (
+                      <Fighter
+                        character={character}
+                        active={
+                          charState
+                            ? charState.uid === activeCharacterUid
+                            : selectedHero?.identity.id === character.identity.id
+                        }
+                        currentHp={charState?.currentHp}
+                        currentMp={charState?.currentMp}
+                      />
+                    ) : (
+                      <div className="flex aspect-square items-center justify-center rounded-2xl border border-dashed border-gray-700 bg-[#0f0e13] text-sm text-gray-500">
+                        Vide
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -481,21 +479,8 @@ export default function Game() {
 
       <div className="mt-auto" />
 
-      {isYourTurn ? (
-        <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(11rem,15rem)] gap-3 sm:gap-4 md:grid-cols-[minmax(0,7fr)_minmax(240px,280px)] md:items-stretch">
-          <div className="min-w-0 flex items-end">
-            <SpellSelector
-              hero={selectedHeroCard}
-              character={selectedCharacter}
-              className="w-full"
-            />
-          </div>
-
-          <div className="flex flex-col items-end gap-3 md:h-full md:justify-between">
-          <div className="flex flex-col items-end gap-3">
-            <ManaBar currentMana={activeMp} />
-          </div>
-
+      {(() => {
+        const forfeitBtn = (
           <button
             type="button"
             onClick={() => router.push("/home")}
@@ -506,35 +491,46 @@ export default function Game() {
             </div>
             <span className="relative z-10">Forfeit</span>
           </button>
+        );
+
+        const manaBar = (
+          <div className="flex flex-col items-end gap-3">
+            <ManaBar currentMana={activeMp} />
+          </div>
+        );
+
+        const userInfo = (
           <ProfileInfo
             account={{ pseudo: userPseudo, profilePhoto: userAvatar }}
             className="self-end"
           />
-        </div>
-      </div>
-      ) : (
-        <div className="flex w-full justify-end">
-          <div className="flex flex-col items-end gap-3">
-            <div className="flex flex-col items-end gap-3">
-              <ManaBar currentMana={activeMp} />
+        );
+
+        return isYourTurn ? (
+          <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(11rem,15rem)] gap-3 sm:gap-4 md:grid-cols-[minmax(0,7fr)_minmax(240px,280px)] md:items-stretch">
+            <div className="min-w-0 flex items-end">
+              <SpellSelector
+                hero={selectedHeroCard}
+                character={selectedCharacter}
+                className="w-full"
+              />
             </div>
-            <button
-              type="button"
-              onClick={() => router.push("/home")}
-              className="group relative w-full overflow-hidden rounded-md border-2 border-[#2a1f14] bg-gradient-to-b from-[#14100a] to-[#0f0a06] px-4 py-2 font-serif text-sm font-semibold tracking-wide text-[#c9b896] transition-all duration-150 hover:border-[#c9a84c] hover:text-[#e8dcc8] hover:shadow-[0_0_14px_rgba(201,168,76,0.12)] md:w-auto"
-            >
-              <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-                <div className="absolute inset-0 bg-gradient-to-t from-[#c9a84c]/5 to-transparent" />
-              </div>
-              <span className="relative z-10">Forfeit</span>
-            </button>
-            <ProfileInfo
-              account={{ pseudo: userPseudo, profilePhoto: userAvatar }}
-              className="self-end"
-            />
+            <div className="flex flex-col items-end gap-3 md:h-full md:justify-between">
+              {manaBar}
+              {forfeitBtn}
+              {userInfo}
+            </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="flex w-full justify-end">
+            <div className="flex flex-col items-end gap-3">
+              {manaBar}
+              {forfeitBtn}
+              {userInfo}
+            </div>
+          </div>
+        );
+      })()}
 
       <InfoModal
         open={isInfoModalOpen}

@@ -20,7 +20,7 @@ redis.on('error', (err) => console.log('Redis Client Error', err));
 
 await redis.connect();
 
-// Game engine store: roomId -> { gameState, players: [pseudo1, pseudo2], playerSockets: [socketId1, socketId2] }
+// Game engine store: roomId -> { gameState, players: [pseudo1, pseudo2], playerConns: [socket1, socket2] }
 const gameRooms = new Map();
 
 //connection parameters and server creation
@@ -250,27 +250,29 @@ io.on("connection", (socket) => {
   // "initiate" is emitted by the frontend game page with the player's team data
   socket.on("initiate", async ({ team, roomId }) => {
     if (!team?.owner || !roomId) {
-      console.error("Invalid initiate data:", { team, roomId });
+      console.error("[GameServer] Invalid initiate data:", { team, roomId });
       return;
     }
 
     socket.join(`game:${roomId}`);
+    const currentPlayerCount = gameRooms.has(roomId) ? gameRooms.get(roomId).players.length : 0;
+    console.log(`[GameServer] initiate received — player=${team.owner} room=${roomId} team=${JSON.stringify(team.characters)} playersBefore=${currentPlayerCount}`);
 
     if (!gameRooms.has(roomId)) {
       gameRooms.set(roomId, {
         gameState: null,
         players: [],
-        playerSockets: [],
         playerConns: [],
         teamData: {},
       });
     }
 
     const room = gameRooms.get(roomId);
-    if (!room.playerSockets.includes(socket.id)) {
-      room.playerSockets.push(socket.id);
+    if (!room.playerConns.some(s => s.id === socket.id)) {
       room.playerConns.push(socket);
+      console.log(`[GameServer]   → socket ${socket.id} added to room ${roomId} (${room.playerConns.length}/2)`);
     }
+
     if (!room.players.includes(team.owner)) {
       room.players.push(team.owner);
     }
@@ -282,12 +284,11 @@ io.on("connection", (socket) => {
       skillsLevels: team.skillsLevels,
     };
 
-    console.log(`[GAME] ${team.owner} initiated in room ${roomId}`);
-
     // When both players have initiated, create the GameState
     if (room.players.length === 2 && !room.gameState) {
       const [p1, p2] = room.players;
-      console.log(`[GAME] Both players ready, creating game in room ${roomId}`);
+      console.log(`[GameServer] Both players ready — creating game in room ${roomId}`);
+      console.log(`[GameServer]   players=${p1} (P0), ${p2} (P1)`);
 
       room.gameState = createGameInstance(
         roomId,
@@ -295,14 +296,14 @@ io.on("connection", (socket) => {
         room.teamData[p2],
       );
 
+      console.log(`[GameServer] GameState created — turn=${room.gameState.turn} phase=${room.gameState.gamePhase} turnQueueLength=${room.gameState.turnQueue.length}`);
       broadcastGameState(roomId);
-      console.log(`[GAME] Room ${roomId} game started, players: ${room.players}`);
     }
   });
 
   // Unified game action (spell cast or basic attack)
   socket.on("gameAction", async (action) => {
-    console.log("[GAME] action received:", action);
+    console.log("[GameServer] gameAction received:", JSON.stringify(action));
     // Will be wired to processAction() once GameState is created
   });
 

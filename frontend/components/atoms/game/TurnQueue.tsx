@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect, useRef } from "react";
 import { CHARACTERS } from "@/public/gameResources/heroes";
 
 type TurnQueueEntry = {
@@ -24,10 +25,24 @@ export default function TurnQueue({ turnQueue, isYourTurn, userPseudo }: TurnQue
   });
 
   const hasData = visibleTurns.length > 0;
+  const activeEntry = visibleTurns[0];
 
   const turnLabel = hasData
     ? isYourTurn ? "Your Turn" : "Opponent Turn"
     : "Waiting...";
+
+  const activeUidRef = useRef(activeEntry?.characterUid);
+  useEffect(() => {
+    if (!hasData) return;
+    const uid = activeEntry?.characterUid;
+    if (uid && uid !== activeUidRef.current) {
+      activeUidRef.current = uid;
+      const name = activeEntry?.character?.identity.name ?? "?";
+      console.log(
+        `[GameClient] TurnQueue active=${name} owner=P${activeEntry?.playerOwner} ${isYourTurn ? "(you)" : "(opp)"}`
+      );
+    }
+  });
 
   const labelColor = hasData
     ? isYourTurn ? "text-[#f5e6c8]" : "text-[#e8586a]"

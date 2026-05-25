@@ -110,11 +110,7 @@ export default function EnemyFighter({
         </p>
 
         {/* chibi */}
-        <div
-          className={`relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-2xl transition-all duration-200 ${
-            active ? "" : ""
-          }`}
-        >
+        <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-2xl">
           <Image
             src={chibi}
             alt={`Chibi de ${character.identity.name}`}
