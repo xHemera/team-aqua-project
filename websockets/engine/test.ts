@@ -2,21 +2,22 @@ console.log("START");
 
 import { GameLoop } from "./GameState/GameLoop";
 import { initGameState, Team } from "./GameState/initGameState";
+import { archer } from "./heroes/archer";
 import { getValidTargets } from "./Utils/resolveTargets";
 import * as readline from "readline";
 
 const teamA: Team = {
   owner:       "player0",
-  characters:  ["healer", "assassin"],
-  levels:      [5, 5],
+  characters:  ["healer", "assassin", "archer"],
+  levels:      [5, 5, 5],
   skillLevels: [3, 3, 3, 3, 3, 3],
 };
 
 const teamB: Team = {
   owner:       "player1",
-  characters:  ["mage"],
-  levels:      [5],
-  skillLevels: [3, 3, 3],
+  characters:  ["mage", "healer", "knight"],
+  levels:      [5, 5, 5],
+  skillLevels: [3, 3, 3, 3, 3, 3],
 };
 
 const loop = new GameLoop(initGameState(teamA, teamB));
