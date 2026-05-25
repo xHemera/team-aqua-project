@@ -3,49 +3,85 @@
 import Image from "next/image";
 import { CHARACTERS } from "@/public/gameResources/heroes";
 
-type TurnQueueItem = {
-  id: string;
+type TurnQueueEntry = {
+  characterUid: string;
+  playerOwner: number;
+  charge: number;
 };
 
-const TURN_ORDER: TurnQueueItem[] = [
-  { id: "archer" },
-  { id: "mage" },
-  { id: "knight" },
-  { id: "assassin" },
-];
+type TurnQueueProps = {
+  turnQueue: TurnQueueEntry[];
+  isYourTurn: boolean;
+  userPseudo: string;
+};
 
-export default function TurnQueue() {
-  const visibleTurns = TURN_ORDER
-    .map((turn) => {
-      const character = CHARACTERS.find((entry) => entry.identity.id === turn.id);
+export default function TurnQueue({ turnQueue, isYourTurn, userPseudo }: TurnQueueProps) {
+  const visibleTurns = turnQueue.slice(0, 6).map((entry, index) => {
+    const heroId = entry.characterUid.split("_").at(-2)!;
+    const character = CHARACTERS.find((h) => h.identity.id === heroId);
+    const isOwn = entry.characterUid.startsWith(userPseudo + "_");
+    return { ...entry, character, isOwn, index };
+  });
 
-      return character ? { ...turn, character } : null;
-    })
-    .filter((turn): turn is TurnQueueItem & { character: (typeof CHARACTERS)[number] } => Boolean(turn));
+  const hasData = visibleTurns.length > 0;
+
+  const turnLabel = hasData
+    ? isYourTurn ? "Your Turn" : "Opponent Turn"
+    : "Waiting...";
+
+  const labelColor = hasData
+    ? isYourTurn ? "text-[#f5e6c8]" : "text-[#e8586a]"
+    : "text-[#8b82a6]";
 
   return (
     <div className="fixed left-4 top-4 z-30">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#d8c89e]">
-        Queue :
+      <p className={`mb-3 text-xs font-semibold uppercase tracking-[0.2em] ${labelColor}`}>
+        {turnLabel}
       </p>
 
       <div className="flex flex-col gap-2">
-        {visibleTurns.map((turn, index) => {
-          const isFirst = index === 0;
+        {visibleTurns.map((entry) => {
+          if (!entry.character) return null;
+
+          const isActive = entry.index === 0;
 
           return (
-            <div key={turn.id} className="relative h-12 w-12 overflow-hidden rounded-full">
-              <Image
-                src={turn.character.identity.assets.portrait}
-                alt={`${turn.character.identity.name}`}
-                fill
-                className="object-cover"
-                sizes="44px"
-                unoptimized
-              />
+            <div
+              key={entry.characterUid}
+              className="flex items-center gap-2"
+            >
+              <div
+                className={`relative h-12 w-12 shrink-0 overflow-hidden rounded-full transition-all duration-200 ${
+                  isActive
+                    ? "ring-2 ring-[#c9a84c] ring-offset-2 ring-offset-[#0a0806] shadow-[0_0_10px_rgba(201,168,76,0.4)]"
+                    : "opacity-50"
+                }`}
+              >
+                <Image
+                  src={entry.character.identity.assets.portrait}
+                  alt={entry.character.identity.name}
+                  fill
+                  className="object-cover"
+                  sizes="44px"
+                  unoptimized
+                />
+                {isActive && (
+                  <div className="absolute inset-0 rounded-full border-2 border-[#c9a84c]/40" />
+                )}
+              </div>
+              <span
+                className={`text-[10px] font-semibold uppercase tracking-wider ${
+                  entry.isOwn ? "text-[#7aaa6a]" : "text-[#8a5a5a]"
+                }`}
+              >
+                {isActive ? "ACTIVE" : `#${entry.index + 1}`}
+              </span>
             </div>
           );
         })}
+        {!hasData && (
+          <p className="text-xs text-[#5a5470]">Awaiting game start...</p>
+        )}
       </div>
     </div>
   );

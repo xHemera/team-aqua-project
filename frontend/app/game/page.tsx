@@ -3,7 +3,7 @@
 import { authClient } from "@/lib/auth-client";
 import { socket } from "@/socket";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Team } from "./spells";
 import { spells } from "./index";
 import SpellSelector from "@/components/molecules/game/SpellSelector";
@@ -16,6 +16,52 @@ import InfoModal from "@/components/atoms/game/InfoModal";
 import type { CharacterData } from "@/components/organisms/characters/types";
 
 import { CHARACTERS } from "@/public/gameResources/heroes";
+
+type PlayerState = {
+  id: number;
+  characters: CharacterState[];
+};
+
+type CharacterState = {
+  uid: string;
+  currentHp: number;
+  currentMp: number;
+  maxHp: number;
+  maxMp: number;
+  owner: number;
+  stunned: number;
+  invisible: number;
+  shieldHp: number;
+  overHp: number;
+  invul: number;
+  taunted: number;
+  poison: { value: number; turn: number }[];
+  lastStandUsable: boolean;
+  lastStandUsed: boolean;
+};
+
+type TurnQueueEntry = {
+  characterUid: string;
+  playerOwner: number;
+  charge: number;
+};
+
+type GameStatePayload = {
+  turn: number;
+  gamePhase: string;
+  winnerId: number | null;
+  activePlayerOwner: number;
+  playerId: number;
+  turnQueue: TurnQueueEntry[];
+  players: PlayerState[];
+};
+
+function getPlayerChars(
+  players: PlayerState[],
+  playerIdx: number,
+): CharacterState[] {
+  return players[playerIdx]?.characters ?? [];
+}
 
 export default function Game() {
   const router = useRouter();
@@ -34,14 +80,38 @@ export default function Game() {
   const [opponent, setOpponent] = useState("");
   const [team, setTeam] = useState<string[] | null>([]);
   const [oppTeam, setOppTeam] = useState<string[] | null>([]);
-  const [oppGaveUp, setOppGaveUp] = useState(false);
-  const [oppSock, setOppSock] = useState("");
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
-  const [isYourTurn, setIsYourTurn] = useState(true);
   const [roomId, setRoomId] = useState(0);
 
-  //fetch the current user pseudo
+  const [playerId, setPlayerId] = useState<number | null>(null);
+  const [gameState, setGameState] = useState<GameStatePayload | null>(null);
+  const prevTurnRef = useRef(0);
+  const hasShownStartModal = useRef(false);
+
+  const isYourTurn =
+    playerId !== null && gameState !== null
+      ? gameState.activePlayerOwner === playerId
+      : false;
+  const myCharacters = playerId !== null && gameState
+    ? getPlayerChars(gameState.players, playerId)
+    : [];
+  const oppCharacters = playerId !== null && gameState
+    ? getPlayerChars(gameState.players, 1 - playerId)
+    : [];
+  const activeCharacterUid =
+    gameState?.turnQueue[0]?.characterUid ?? null;
+
+  // Connect socket and attach listeners eagerly, then fetch user data
   useEffect(() => {
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    socket.on("gameStateUpdate", (state: GameStatePayload) => {
+      setPlayerId(state.playerId);
+      setGameState(state);
+    });
+
     const getUserData = async () => {
       const { data } = await authClient.getSession();
       if (data && data.user.name) setUserPseudo(data.user.name);
@@ -95,6 +165,10 @@ export default function Game() {
     };
 
     void loadProfileAvatar();
+
+    return () => {
+      socket.off("gameStateUpdate");
+    };
   }, []);
 
   useEffect(() => {
@@ -140,20 +214,23 @@ export default function Game() {
     setTeamSelected(CHARACTERS.slice(0, 3).map((c) => c ?? null));
   }, [team]);
 
-  // Initialize selected hero when team loads
+  // Auto-select the active character and initialize selected hero
   useEffect(() => {
-    if (teamSelected && teamSelected[0]) {
+    if (teamSelected && teamSelected[0] && !gameState) {
       setSelectedHero(teamSelected[0]);
     }
-  }, [teamSelected]);
+  }, [teamSelected, gameState]);
 
   useEffect(() => {
-    //connect the socket
-    if (!userPseudo) return;
+    if (!gameState || !activeCharacterUid) return;
+    const heroId = activeCharacterUid.split("_").at(-2);
+    if (!heroId) return;
+    const hero = CHARACTERS.find((h) => h.identity.id === heroId);
+    if (hero) setSelectedHero(hero);
+  }, [gameState?.turn]);
 
-    if (!socket.connected) {
-      socket.connect();
-    }
+  useEffect(() => {
+    if (!userPseudo) return;
 
     socket.emit("login", userPseudo);
 
@@ -195,6 +272,23 @@ export default function Game() {
       socket.off("online_users", handleDisconnect);
     };
   }, [userPseudo, opponent]);
+
+  // Show InfoModal when game starts or turn changes
+  useEffect(() => {
+    if (!gameState || playerId === null) return;
+
+    if (!hasShownStartModal.current) {
+      hasShownStartModal.current = true;
+      prevTurnRef.current = gameState.turn;
+      setIsInfoModalOpen(true);
+      return;
+    }
+
+    if (gameState.turn !== prevTurnRef.current) {
+      prevTurnRef.current = gameState.turn;
+      setIsInfoModalOpen(true);
+    }
+  }, [gameState, playerId]);
 
   const handleLogout = async () => {
     const response = await fetch("/api/profile", {
@@ -250,6 +344,16 @@ export default function Game() {
     playerCharacters?.find(
       (character) => character.name === selectedHeroCard.identity.name,
     ) ?? null;
+
+  // Find a character by hero ID within a list
+  const findCharByHeroId = (chars: CharacterState[], heroId: string) =>
+    chars.find(c => c.uid.split("_").at(-2) === heroId);
+
+  // Compute active character's current mana for the ManaBar
+  const activeMp =
+    gameState && activeCharacterUid
+      ? [...myCharacters, ...oppCharacters].find(c => c.uid === activeCharacterUid)?.currentMp ?? 0
+      : 0;
 
   return (
     <div
@@ -309,28 +413,49 @@ export default function Game() {
       {/* vs divider glow */}
       <div className="pointer-events-none fixed left-1/2 top-1/2 -z-10 h-px w-[35vw] -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-transparent via-[#c9a84c]/15 to-transparent" />
 
-      <TurnQueue />
+      <TurnQueue
+        turnQueue={gameState?.turnQueue ?? []}
+        isYourTurn={isYourTurn}
+        userPseudo={userPseudo}
+      />
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 py-6">
         <div className="w-full max-w-4xl -translate-y-20 rounded-3xl">
           <div className="flex flex-col gap-4 sm:gap-5">
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              {enemyTeam.map((character) => (
-                <div key={character.identity.id} className="w-full opacity-90">
-                  <EnemyFighter character={character} />
-                </div>
-              ))}
+              {enemyTeam.map((character) => {
+                const charState = findCharByHeroId(oppCharacters, character.identity.id);
+                return (
+                  <div key={character.identity.id} className="w-full opacity-90">
+                    <EnemyFighter
+                      character={character}
+                      currentHp={charState?.currentHp}
+                      effects={[]}
+                      active={charState ? charState.uid === activeCharacterUid : false}
+                    />
+                  </div>
+                );
+              })}
             </div>
 
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
               {teamSelected.map((character, index) => (
                 <div key={character?.identity.id ?? `own-slot-${index}`}>
                   {character ? (
-                    <Fighter
-                      character={character}
-                      active={
-                        selectedHero?.identity.id === character.identity.id
-                      }
-                    />
+                    (() => {
+                      const charState = findCharByHeroId(myCharacters, character.identity.id);
+                      return (
+                        <Fighter
+                          character={character}
+                          active={
+                            charState
+                              ? charState.uid === activeCharacterUid
+                              : selectedHero?.identity.id === character.identity.id
+                          }
+                          currentHp={charState?.currentHp}
+                          currentMp={charState?.currentMp}
+                        />
+                      );
+                    })()
                   ) : (
                     <div className="flex aspect-square items-center justify-center rounded-2xl border border-dashed border-gray-700 bg-[#0f0e13] text-sm text-gray-500">
                       Vide
@@ -356,18 +481,19 @@ export default function Game() {
 
       <div className="mt-auto" />
 
-      <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(11rem,15rem)] gap-3 sm:gap-4 md:grid-cols-[minmax(0,7fr)_minmax(240px,280px)] md:items-stretch">
-        <div className="min-w-0 flex items-end">
-          <SpellSelector
-            hero={selectedHeroCard}
-            character={selectedCharacter}
-            className="w-full"
-          />
-        </div>
+      {isYourTurn ? (
+        <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(11rem,15rem)] gap-3 sm:gap-4 md:grid-cols-[minmax(0,7fr)_minmax(240px,280px)] md:items-stretch">
+          <div className="min-w-0 flex items-end">
+            <SpellSelector
+              hero={selectedHeroCard}
+              character={selectedCharacter}
+              className="w-full"
+            />
+          </div>
 
-        <div className="flex flex-col items-end gap-3 md:h-full md:justify-between">
+          <div className="flex flex-col items-end gap-3 md:h-full md:justify-between">
           <div className="flex flex-col items-end gap-3">
-            <ManaBar currentMana={42} />
+            <ManaBar currentMana={activeMp} />
           </div>
 
           <button
@@ -380,25 +506,35 @@ export default function Game() {
             </div>
             <span className="relative z-10">Forfeit</span>
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setIsYourTurn((currentTurn) => !currentTurn);
-              setIsInfoModalOpen(true);
-            }}
-            className="group relative w-full overflow-hidden rounded-md border-2 border-[#2a1f14] bg-gradient-to-b from-[#14100a] to-[#0f0a06] px-4 py-2 font-serif text-sm font-semibold tracking-wide text-[#c9b896] transition-all duration-150 hover:border-[#c9a84c] hover:text-[#e8dcc8] hover:shadow-[0_0_14px_rgba(201,168,76,0.12)] md:w-auto"
-          >
-            <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-              <div className="absolute inset-0 bg-gradient-to-t from-[#c9a84c]/5 to-transparent" />
-            </div>
-            <span className="relative z-10">Test</span>
-          </button>
           <ProfileInfo
             account={{ pseudo: userPseudo, profilePhoto: userAvatar }}
             className="self-end"
           />
         </div>
       </div>
+      ) : (
+        <div className="flex w-full justify-end">
+          <div className="flex flex-col items-end gap-3">
+            <div className="flex flex-col items-end gap-3">
+              <ManaBar currentMana={activeMp} />
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push("/home")}
+              className="group relative w-full overflow-hidden rounded-md border-2 border-[#2a1f14] bg-gradient-to-b from-[#14100a] to-[#0f0a06] px-4 py-2 font-serif text-sm font-semibold tracking-wide text-[#c9b896] transition-all duration-150 hover:border-[#c9a84c] hover:text-[#e8dcc8] hover:shadow-[0_0_14px_rgba(201,168,76,0.12)] md:w-auto"
+            >
+              <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                <div className="absolute inset-0 bg-gradient-to-t from-[#c9a84c]/5 to-transparent" />
+              </div>
+              <span className="relative z-10">Forfeit</span>
+            </button>
+            <ProfileInfo
+              account={{ pseudo: userPseudo, profilePhoto: userAvatar }}
+              className="self-end"
+            />
+          </div>
+        </div>
+      )}
 
       <InfoModal
         open={isInfoModalOpen}

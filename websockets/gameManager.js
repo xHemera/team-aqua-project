@@ -90,5 +90,8 @@ export function broadcastGameState(roomId) {
     })),
   };
 
-  io.to(`game:${roomId}`).emit("gameStateUpdate", payload);
+  // Emit gameStateUpdate to each player individually with their playerId
+  room.playerConns?.forEach((sock, i) => {
+    sock?.emit("gameStateUpdate", { ...payload, playerId: i });
+  });
 }

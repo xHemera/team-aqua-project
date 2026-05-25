@@ -261,6 +261,7 @@ io.on("connection", (socket) => {
         gameState: null,
         players: [],
         playerSockets: [],
+        playerConns: [],
         teamData: {},
       });
     }
@@ -268,6 +269,7 @@ io.on("connection", (socket) => {
     const room = gameRooms.get(roomId);
     if (!room.playerSockets.includes(socket.id)) {
       room.playerSockets.push(socket.id);
+      room.playerConns.push(socket);
     }
     if (!room.players.includes(team.owner)) {
       room.players.push(team.owner);
@@ -294,8 +296,7 @@ io.on("connection", (socket) => {
       );
 
       broadcastGameState(roomId);
-      io.to(`game:${roomId}`).emit("gameReady", { roomId });
-      console.log(`[GAME] Room ${roomId} game started`);
+      console.log(`[GAME] Room ${roomId} game started, players: ${room.players}`);
     }
   });
 

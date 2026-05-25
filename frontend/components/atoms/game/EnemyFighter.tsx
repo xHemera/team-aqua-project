@@ -13,16 +13,41 @@ type EnemyFighterProps = {
   character: (typeof CHARACTERS)[number];
   currentHp?: number;
   effects?: StatusEffect[];
+  active?: boolean;
 };
 
-const effectStyles: Record<StatusEffect["type"], { border: string; glow: string; label: string }> = {
-  buff:   { border: "border-[#c9a84c]", glow: "shadow-[0_0_6px_rgba(201,168,76,0.3)]", label: "bg-[#c9a84c]" },
-  debuff: { border: "border-[#8f3a5a]", glow: "shadow-[0_0_6px_rgba(143,58,90,0.3)]", label: "bg-[#8f3a5a]" },
-  dot:    { border: "border-[#4a8a4a]", glow: "shadow-[0_0_6px_rgba(74,138,74,0.3)]", label: "bg-[#4a8a4a]" },
-  cc:     { border: "border-[#5a6a8a]", glow: "shadow-[0_0_6px_rgba(90,106,138,0.3)]", label: "bg-[#5a6a8a]" },
+const effectStyles: Record<
+  StatusEffect["type"],
+  { border: string; glow: string; label: string }
+> = {
+  buff: {
+    border: "border-[#c9a84c]",
+    glow: "shadow-[0_0_6px_rgba(201,168,76,0.3)]",
+    label: "bg-[#c9a84c]",
+  },
+  debuff: {
+    border: "border-[#8f3a5a]",
+    glow: "shadow-[0_0_6px_rgba(143,58,90,0.3)]",
+    label: "bg-[#8f3a5a]",
+  },
+  dot: {
+    border: "border-[#4a8a4a]",
+    glow: "shadow-[0_0_6px_rgba(74,138,74,0.3)]",
+    label: "bg-[#4a8a4a]",
+  },
+  cc: {
+    border: "border-[#5a6a8a]",
+    glow: "shadow-[0_0_6px_rgba(90,106,138,0.3)]",
+    label: "bg-[#5a6a8a]",
+  },
 };
 
-export default function EnemyFighter({ character, currentHp, effects }: EnemyFighterProps) {
+export default function EnemyFighter({
+  character,
+  currentHp,
+  effects,
+  active = false,
+}: EnemyFighterProps) {
   const chibi = character.identity.assets.chibi;
   const maxHealth = character.baseStats.hp;
   const hp = currentHp ?? maxHealth;
@@ -66,7 +91,11 @@ export default function EnemyFighter({ character, currentHp, effects }: EnemyFig
                 <div
                   key={i}
                   className={`group relative flex h-[22px] w-[22px] items-center justify-center rounded-[3px] border ${s.border} ${s.glow} bg-[#14100a]`}
-                  title={effect.turns ? `${effect.label} (${effect.turns} turns)` : effect.label}
+                  title={
+                    effect.turns
+                      ? `${effect.label} (${effect.turns} turns)`
+                      : effect.label
+                  }
                 >
                   <span className={`h-2 w-2 rotate-45 ${s.label}`} />
                 </div>
@@ -81,17 +110,42 @@ export default function EnemyFighter({ character, currentHp, effects }: EnemyFig
         </p>
 
         {/* chibi */}
-        <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden">
+        <div
+          className={`relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-2xl transition-all duration-200 ${
+            active ? "" : ""
+          }`}
+        >
           <Image
             src={chibi}
             alt={`Chibi de ${character.identity.name}`}
             fill
-            className="object-contain p-3 drop-shadow-[0_10px_18px_rgba(0,0,0,0.45)]"
+            className={`object-contain p-3 transition-all duration-200 ${
+              active
+                ? "drop-shadow-[0_0_6px_rgba(232,88,106,0.9)]"
+                : "drop-shadow-[0_10px_18px_rgba(0,0,0,0.45)]"
+            }`}
+            style={
+              active
+                ? { animation: "enemyFloat 1s ease-in-out infinite" }
+                : undefined
+            }
             sizes="(max-width: 768px) 160px, 240px"
             unoptimized
           />
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes enemyFloat {
+          0%,
+          100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-4px);
+          }
+        }
+      `}</style>
     </>
   );
 }

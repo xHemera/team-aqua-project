@@ -13,6 +13,7 @@ type FighterProps = {
   character: (typeof CHARACTERS)[number];
   active?: boolean;
   currentHp?: number;
+  currentMp?: number;
   effects?: StatusEffect[];
 };
 
@@ -23,7 +24,7 @@ const effectStyles: Record<StatusEffect["type"], { border: string; glow: string;
   cc:     { border: "border-[#5a6a8a]", glow: "shadow-[0_0_6px_rgba(90,106,138,0.3)]", label: "bg-[#5a6a8a]" },
 };
 
-export default function Fighter({ character, active = false, currentHp, effects }: FighterProps) {
+export default function Fighter({ character, active = false, currentHp, currentMp, effects }: FighterProps) {
   const chibi = character.identity.assets.chibi;
   const maxHealth = character.baseStats.hp;
   const hp = currentHp ?? maxHealth;
