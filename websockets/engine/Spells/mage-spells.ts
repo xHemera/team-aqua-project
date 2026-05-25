@@ -39,12 +39,12 @@ export class ArcaneMissiles extends Spell{
 		const raw = idUser.character.stats.magicalDamage * multiplier;
 
 		for (let i = 0; i < missileCount; i++) {
-        const livingTargets = idTargets.filter(t => t.currentHp > 0);
+        const livingTargets = idTargets.filter(t => t.currentHp > 0 && t.invisible === 0);
         if (livingTargets.length === 0) break;
 
         const target = livingTargets[Math.floor(Math.random() * livingTargets.length)];
         const damage = resolveMagDamage(raw, idUser, target);
-		applyDamage(idTargets[0], damage);
+		applyDamage(target, damage);
     }
 	}
 }
