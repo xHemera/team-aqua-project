@@ -1,4 +1,4 @@
-export type ActionType = "basic" | "skill";
+export type ActionType = "basic" | "skill" | "skip";
 
 export type GameAction = {
 	type:		ActionType;

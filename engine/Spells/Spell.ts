@@ -1,6 +1,6 @@
 import { CharacterInstance } from "../Instances/CharacterInstance";
 
-export type SpellTargeting = "single" | "aoe" | "self" | "teamAoe";
+export type SpellTargeting = "single" | "aoe" | "self" | "teamAoe" | "teamSingle";
 
 export abstract class Spell {
 	id:			string;

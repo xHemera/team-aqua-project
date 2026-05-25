@@ -7,7 +7,7 @@ export class HealingLight extends Spell {
 		this.id			= "s1";
 		this.name		= "Healing light";
 		this.mpCost		= 10;
-		this.targeting	= "single";
+		this.targeting	= "teamSingle";
 	}
 
 	applyEffect(idUser: CharacterInstance, idTargets: CharacterInstance[]): void {

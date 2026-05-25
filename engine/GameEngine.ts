@@ -21,7 +21,6 @@ function tickAllMods(character: CharacterInstance): void {
 
 	if (character.stunned   > 0) character.stunned   -= 1;
 	if (character.invisible > 0) character.invisible -= 1;
-	if (character.invul     > 0) character.invul     -= 1;
 	if (character.taunted   > 0) character.taunted   -= 1;
 }
 
@@ -83,15 +82,13 @@ function resolveSkill(skillId: string, user: CharacterInstance, targets: Charact
 	spell.applyEffect(user, targets);
 }
 
-export function initGame(state: GameState): GameState {
-	const turnQueue = initTurnQueue(state);
-	return { ...state, gamePhase: "battle", turnQueue };
-}
-
 export function processAction(state: GameState, action: GameAction): GameState {
 	const user = findCharacter(state, action.userUid);
 
 	if (!user) return state;
+
+	if (user.invul     > 0) user.invul     -= 1;
+
 	if (user.stunned > 0) {
 		tickAllMods(user);
 		return advanceTurn(state);
@@ -104,6 +101,11 @@ export function processAction(state: GameState, action: GameAction): GameState {
 		resolveBasicAttack(user, targets);
 	} else if (action.type === "skill" && action.skillId) {
 		resolveSkill(action.skillId, user, targets);
+	} else if (action.type === "skip") {
+		user.currentMp = Math.min(
+		user.character.stats.mp,
+		user.currentMp + (user.character.stats.mp / 10)
+	);
 	}
 
 	state.players

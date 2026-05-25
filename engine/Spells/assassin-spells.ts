@@ -55,11 +55,10 @@ export class PhantomStep extends Spell {
         this.targeting = "self";
     }
 
-	applyEffect(idUser: CharacterInstance, idTargets: CharacterInstance[]): void {
-        const skillLevel = idUser.character.skills.find(s => s.id === this.id)?.level ?? 1;
-		const [duration, nextAttackBonus] = this.scaling[skillLevel -1];
-
-        idUser.invisible       = 1 + Math.floor(skillLevel / 3);
-        idUser.nextAttackBonus = skillLevel * 15;
-    }
+applyEffect(idUser: CharacterInstance, idTargets: CharacterInstance[]): void {
+  const skillLevel = idUser.character.skills.find(s => s.id === this.id)?.level ?? 1;
+  const [duration, nextAttackBonus] = this.scaling[skillLevel - 1];
+  idUser.invisible       = Math.max(idUser.invisible, duration);
+  idUser.nextAttackBonus = nextAttackBonus;
+}
 }
