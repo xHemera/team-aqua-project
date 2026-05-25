@@ -1,4 +1,5 @@
-import { initGame, getCurrentTurnCharacter } from "./engine/GameEngine.ts";
+import { getCurrentTurnCharacter } from "./engine/GameEngine.ts";
+import { initGame } from "./engine/GameState/initGameState.ts";
 import { getHeroData } from "./engine/Instances/instance-factory.ts";
 import { buildSpellMap } from "./engine/Spells/SpellRegistry.ts";
 import { PlayerInstance } from "./engine/Instances/PlayerInstance.ts";
