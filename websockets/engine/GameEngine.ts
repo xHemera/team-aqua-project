@@ -5,6 +5,7 @@ import { applyDamage, resolvePhyDamage } from "./Utils/resolveDamage";
 import { GameAction } from "./Utils/GameAction";
 import { checkLastStand } from "./Utils/lastStand";
 import { findCharacter, resolveTargets } from "./Utils/resolveTargets";
+import { stat } from "fs";
 
 function tickAllMods(character: CharacterInstance): void {
 	const tick = (mods: ModEntry[]) =>
@@ -22,6 +23,7 @@ function tickAllMods(character: CharacterInstance): void {
 	if (character.stunned   > 0) character.stunned   -= 1;
 	if (character.invisible > 0) character.invisible -= 1;
 	if (character.taunted   > 0) character.taunted   -= 1;
+	if (character.invul     > 0) character.invul     -= 1;
 }
 
 function tickPoison(state: GameState): GameState {
@@ -83,38 +85,38 @@ function resolveSkill(skillId: string, user: CharacterInstance, targets: Charact
 }
 
 export function processAction(state: GameState, action: GameAction): GameState {
-	const user = findCharacter(state, action.userUid);
+	const character = findCharacter(state, action.userUid);
 
-	if (!user) return state;
+	if (!character) return state;
 
-	if (user.invul     > 0) user.invul     -= 1;
-
-	if (user.stunned > 0) {
-		tickAllMods(user);
+	if (character.stunned > 0) {
+		tickAllMods(character);
 		return advanceTurn(state);
 	}
+	tickAllMods(character);
 
-	const targets = resolveTargets(state, user, action);
-	if (targets.length === 0) return state;
+	let	newState =tickPoison(state);
+		newState = removeDeadCharacters(newState);
+		newState = checkWinner(newState);
+
+	const targets = resolveTargets(newState, character, action);
+	if (targets.length === 0) return newState;
 
 	if (action.type === "basic") {
-		resolveBasicAttack(user, targets);
+		resolveBasicAttack(character, targets);
 	} else if (action.type === "skill" && action.skillId) {
-		resolveSkill(action.skillId, user, targets);
+		resolveSkill(action.skillId, character, targets);
 	} else if (action.type === "skip") {
-		user.currentMp = Math.min(
-		user.character.stats.mp,
-		user.currentMp + (user.character.stats.mp / 10)
+		character.currentMp = Math.min(
+		character.character.stats.mp,
+		character.currentMp + (character.character.stats.mp / 10)
 	);
 	}
 
-	state.players
+	newState.players
 		.flatMap(p => p.characters)
 		.forEach(c => checkLastStand(c));
 
-	tickAllMods(user);
-
-	let newState = tickPoison(state);
 		newState = removeDeadCharacters(newState);
 		newState = checkWinner(newState);
 
