@@ -246,14 +246,16 @@ export default function LoginPage() {
               }}
               variant="secondary"
             >
+              {/* J'ai enleve le disable sur loading
+              car on ne pouvait pas retenter de connexion en
+              cas d'echec*/}
               {isRegisterMode ? "Sign in" : "Sign up"}
             </Button>
 
             <Button
               type="submit"
-              disabled={loading}
             >
-              {loading ? "..." : isRegisterMode ? "Create account" : "Sign in"}
+              {isRegisterMode ? "Create account" : "Sign in"}
             </Button>
           </div>
           {message && (
