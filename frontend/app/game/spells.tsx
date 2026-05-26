@@ -16,7 +16,7 @@ export type GameAction = {
     targetUids: string[];
 }
 
-async function initialData(team: Team, roomId: number)
+function initialData(team: Team, roomId: number)
 {
     socket.emit("initiate", {
         team: team,
@@ -24,12 +24,12 @@ async function initialData(team: Team, roomId: number)
     });
 }
 
-async function submitAction(action: GameAction)
+function submitAction(action: GameAction)
 {
     socket.emit("gameAction", action);
 }
 
-async function forfeit()
+function forfeit()
 {
     socket.emit("forfeit");
 }
