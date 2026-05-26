@@ -69,7 +69,7 @@ export default function Game() {
   const [teamSelected, setTeamSelected] = useState<Array<(typeof CHARACTERS)[number] | null> | null>(null);
 
   useEffect(() => {
-    if (team && team.length === 3) {
+    if (team) {
       const mapped = team.map((id) =>
         id ? (HERO_MAP.byName.get(id) ?? null) : null,
       );
