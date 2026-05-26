@@ -72,7 +72,9 @@ function resolveBasicAttack(user: CharacterInstance, targets: CharacterInstance[
 	targets.forEach(target => {
 		const raw    = user.character.stats.physicalDamage;
 		const damage = resolvePhyDamage(raw, user, target);
+		console.log(`[GameEngine] resolveBasicAttack — user=${user.character.name}(${user.uid}) raw=${raw} target=${target.character.name}(${target.uid}) hpBefore=${target.currentHp} damage=${damage}`);
 		applyDamage(target, damage);
+		console.log(`[GameEngine] resolveBasicAttack — after apply: ${target.uid} hp=${target.currentHp} shield=${target.shieldHp} invul=${target.invul}`);
 	});
 
 	user.currentMp = Math.min(
@@ -92,30 +94,45 @@ function resolveSkill(skillId: string, user: CharacterInstance, targets: Charact
 }
 
 export function processAction(state: GameState, action: GameAction): GameState {
-	const user = findCharacter(state, action.userUid);
+	console.log(`[GameEngine] processAction START — actionType=${action.type} userUid=${action.userUid} targetUids=${JSON.stringify(action.targetUids)} turn=${state.turn} phase=${state.gamePhase}`);
 
-	if (!user) return state;
+	const user = findCharacter(state, action.userUid);
+	if (!user) {
+		console.log(`[GameEngine] processAction — user NOT FOUND for uid=${action.userUid}`);
+		return state;
+	}
+	console.log(`[GameEngine] processAction — user found: ${user.character.name}(${user.uid}) owner=${user.owner} hp=${user.currentHp} mp=${user.currentMp} stunned=${user.stunned} invul=${user.invul}`);
 
 	if (user.invul     > 0) user.invul     -= 1;
 
 	if (user.stunned > 0) {
+		console.log(`[GameEngine] processAction — user stunned, skipping turn`);
 		tickAllMods(user);
-		return advanceTurn(state);
+		const newState = advanceTurn(state);
+		console.log(`[GameEngine] processAction END (stunned skip) — turn now ${newState.turn} active=${newState.turnQueue[0]?.characterUid}`);
+		return newState;
 	}
 
 	const targets = resolveTargets(state, user, action);
-	if (targets.length === 0) return state;
+	console.log(`[GameEngine] processAction — targets resolved: ${targets.map(t => `${t.character.name}(${t.uid})`).join(", ") || "none"}`);
+	if (targets.length === 0) {
+		console.log(`[GameEngine] processAction — no valid targets, returning state unchanged`);
+		return state;
+	}
 
 	if (action.type === "basic") {
 		resolveBasicAttack(user, targets);
 	} else if (action.type === "skill" && action.skillId) {
 		resolveSkill(action.skillId, user, targets);
 	} else if (action.type === "skip") {
+		console.log(`[GameEngine] processAction — skip turn`);
 		user.currentMp = Math.min(
 		user.character.stats.mp,
 		user.currentMp + (user.character.stats.mp / 10)
 	);
 	}
+
+	console.log(`[GameEngine] processAction — after action: user hp=${user.currentHp} target hp=${targets.map(t => `${t.character.name}=${t.currentHp}`).join(", ")}`);
 
 	state.players
 		.flatMap(p => p.characters)
@@ -125,11 +142,17 @@ export function processAction(state: GameState, action: GameAction): GameState {
 
 	let newState = tickPoison(state);
 		newState = removeDeadCharacters(newState);
+		console.log(`[GameEngine] processAction — after removeDead: players chars=${newState.players.map(p => `P${p.id}:${p.characters.length}`).join(", ")} turnQueue=${newState.turnQueue.length}`);
 		newState = checkWinner(newState);
+		console.log(`[GameEngine] processAction — after checkWinner: phase=${newState.gamePhase} winnerId=${newState.winnerId}`);
 
-	if (newState.gamePhase === "end") return newState;
+	if (newState.gamePhase === "end") {
+		console.log(`[GameEngine] processAction END (game over) — turn=${newState.turn} winnerId=${newState.winnerId}`);
+		return newState;
+	}
 
 	newState = advanceTurn(newState);
+	console.log(`[GameEngine] processAction END — turn now ${newState.turn} active=${newState.turnQueue[0]?.characterUid} queue=${newState.turnQueue.map(e => `${e.characterUid}@${Math.round(e.charge)}`).join(" > ")}`);
 	return newState;
 }
 
