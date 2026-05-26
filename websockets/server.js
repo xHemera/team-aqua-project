@@ -235,6 +235,19 @@ io.on("connection", (socket) => {
     io.emit("unban", banned);
   });
 
+  socket.on("pong_info", async (data) => {
+    const receiverSock = await redis.hGet(
+      "online_users",
+      data.opponent
+    );
+
+    if (receiverSock) {
+      io.to(receiverSock).emit("pong", {
+        y: data.y,
+      });
+    }
+  });
+
   //tells everyone that they are connected
   socket.on("isconnecting", () => {
     io.emit("online");
@@ -249,7 +262,7 @@ io.on("connection", (socket) => {
 
   // "initiate" is emitted by the frontend game page with the player's team data
   socket.on("initiate", async ({ team, roomId }) => {
-    if (!team?.owner || !roomId) {
+    if (!team || !team.owner || !roomId) {
       console.error("[GameServer] Invalid initiate data:", { team, roomId });
       return;
     }

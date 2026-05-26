@@ -3,21 +3,22 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { socket } from "@/socket";
 
 export default function PongPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
+  const [userPseudo, setUserPseudo] = useState("");
   // board
   const boardWidth = 1500;
   const boardHeight = 900;
   const router = useRouter();
   const [winner, setWinner] = useState<null | "left" | "right">(null);
-  const [userPseudo, setUserPseudo] = useState<string | null>(null);
   const [isCollectingXp, setIsCollectingXp] = useState(false);
   const [xpCollected, setXpCollected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const xp = useRef(0);
-  const angle = (Math.random() * Math.PI / 3) - Math.PI / 6; 
+  const angle = (Math.random() * Math.PI / 3) - Math.PI / 6;
+  const [opponent, setOpponent] = useState("");
 
   // Joueurs 1 ref
   const player1 = useRef({
@@ -47,9 +48,70 @@ export default function PongPage() {
     started: false,
   });
 
-
   // Touches
   const keys = useRef<{ [key: string]: boolean }>({});
+
+   useEffect(() => {
+    const getUserData = async () => {
+      const { data } = await authClient.getSession();
+      if (data && data.user.name)
+        setUserPseudo(data.user.name);
+      else
+      {
+        router.push("/not-connected");
+        return;
+      }
+
+      const res = await fetch(`/api/pong?pseudo=${data.user.name}`, { method: "GET" });
+      const odata = await res.json();
+      setOpponent(odata.name);
+    };
+    getUserData();
+  }, []);
+
+  //connect the socket
+  useEffect(() => {
+    if (socket.connected) return;
+    socket.connect();
+		socket.emit("login", userPseudo);
+
+		socket.on("online_users", (users) => {
+			console.log("Users from Redis:", users);
+		});
+
+		return () => {
+			socket.off("online_users");
+		};
+  }, [userPseudo]);
+
+  useEffect(() => {
+    if (!userPseudo) return;
+    socket.on("ban", (banned) => {
+      if (banned === userPseudo)
+        handleLogout();
+    });
+    socket.on("pong", (data) => {
+      player2.current.y = data.y;
+    });
+  }, [userPseudo])
+
+  const handleLogout = async () => {
+    const response = await fetch("/api/profile", {
+        method: "PUT",
+      })
+      const user: unknown = await response.json();
+      if (!response.ok) {
+        const errorMessage =
+        typeof user === "object" && user !== null && "error" in user
+          ? String((user as { error: string }).error ?? "Impossible de charger l'utilisateur")
+          : "Impossible de charger l'utilisateur";
+        throw new Error(errorMessage);
+      }
+    socket.emit("isdisconnecting");
+    socket.disconnect();
+    await authClient.signOut();
+    router.push("/");
+  };
 
   // Charger le username
   useEffect(() => {
@@ -132,9 +194,18 @@ export default function PongPage() {
       // Mouvement joueur 1
       if (keys.current["w"] && p1.y > 0) {
         p1.y -= p1.speed;
+        socket.emit("pong_info", {
+          opponent,
+          y: p1.y,
+        });
       }
+
       if (keys.current["s"] && p1.y + p1.height < boardHeight) {
         p1.y += p1.speed;
+        socket.emit("pong_info", {
+          opponent,
+          y: p1.y,
+        });
       }
 
       // Mouvement joueur 2
@@ -280,6 +351,7 @@ export default function PongPage() {
 
 return (
   <div className="min-h-screen bg-black flex items-center justify-center relative">
+    <>{opponent}</>
     <canvas
       ref={canvasRef}
       width={boardWidth}
