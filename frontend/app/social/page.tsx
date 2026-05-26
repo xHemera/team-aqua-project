@@ -54,7 +54,6 @@ export default function SocialPage() {
   const [unread, setUnread] = useState(false);
   const [customUserAvatar, setCustomUserAvatar] = useState<string | null>(null);
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
-  const [click, setClick] = useState(true);
   const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
   const [messageOffset, setMessageOffset] = useState(0);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);

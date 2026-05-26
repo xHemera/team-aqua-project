@@ -31,7 +31,7 @@ export function useGameData() {
         const { data } = await authClient.getSession();
         console.log("[GameData] Step 2: session result:", data?.user?.name ?? "null");
         if (cancelled) return;
-        if (!data?.user?.name) throw new Error("Session non trouvée");
+        if (!data || !data.user.name) throw new Error("Session non trouvée");
         setUserPseudo(data.user.name);
         console.log("[GameData] Step 3: pseudo set, fetching team+opponent...");
 
