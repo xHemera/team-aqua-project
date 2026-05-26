@@ -2,8 +2,11 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import express from "express";
 import { createClient } from 'redis';
+import { processAction, getCurrentTurnCharacter } from "./engine/GameEngine.ts";
+import { initGame } from "./engine/GameState/initGameState.ts";
 import "./matchmaking.js";
 import "./matchmakingpong.js";
+import { createGameInstance, broadcastGameState } from "./gameManager.js";
 
 //redis settings
 const redis = createClient({
@@ -16,6 +19,9 @@ const redis = createClient({
 redis.on('error', (err) => console.log('Redis Client Error', err));
 
 await redis.connect();
+
+// Game engine store: roomId -> { gameState, players: [pseudo1, pseudo2], playerConns: [socket1, socket2] }
+const gameRooms = new Map();
 
 //connection parameters and server creation
 const hostname = "0.0.0.0";
@@ -239,6 +245,115 @@ io.on("connection", (socket) => {
     io.emit("offline");
   });
 
+  // --- Game Engine Events ---
+
+  // "initiate" is emitted by the frontend game page with the player's team data
+  socket.on("initiate", async ({ team, roomId }) => {
+    if (!team?.owner || !roomId) {
+      console.error("[GameServer] Invalid initiate data:", { team, roomId });
+      return;
+    }
+
+    socket.join(`game:${roomId}`);
+    const currentPlayerCount = gameRooms.has(roomId) ? gameRooms.get(roomId).players.length : 0;
+    console.log(`[GameServer] initiate received — player=${team.owner} room=${roomId} team=${JSON.stringify(team.characters)} playersBefore=${currentPlayerCount}`);
+
+    if (!gameRooms.has(roomId)) {
+      gameRooms.set(roomId, {
+        gameState: null,
+        players: [],
+        playerConns: [],
+        teamData: {},
+      });
+    }
+
+    const room = gameRooms.get(roomId);
+    if (!room.playerConns.some(s => s.id === socket.id)) {
+      room.playerConns.push(socket);
+      console.log(`[GameServer]   → socket ${socket.id} added to room ${roomId} (${room.playerConns.length}/2)`);
+    }
+
+    if (!room.players.includes(team.owner)) {
+      room.players.push(team.owner);
+    }
+
+    room.teamData[team.owner] = {
+      pseudo: team.owner,
+      characters: team.characters,
+      levels: team.levels,
+      skillsLevels: team.skillsLevels,
+    };
+
+    // When both players have initiated, create the GameState
+    if (room.players.length === 2 && !room.gameState) {
+      const [p1, p2] = room.players;
+      console.log(`[GameServer] Both players ready — creating game in room ${roomId}`);
+      console.log(`[GameServer]   players=${p1} (P0), ${p2} (P1)`);
+
+      room.gameState = createGameInstance(
+        roomId,
+        room.teamData[p1],
+        room.teamData[p2],
+      );
+
+      console.log(`[GameServer] GameState created — turn=${room.gameState.turn} phase=${room.gameState.gamePhase} turnQueueLength=${room.gameState.turnQueue.length}`);
+      broadcastGameState(roomId);
+    }
+  });
+
+  // Forfeit — player surrenders
+  socket.on("forfeit", async () => {
+    console.log("[GameServer] forfeit received — socket", socket.id);
+
+    for (const [roomId, room] of gameRooms) {
+      if (room.playerConns?.some(s => s.id === socket.id)) {
+        if (!room.gameState) {
+          console.log(`[GameServer] forfeit skipped — no gameState in room ${roomId}`);
+          return;
+        }
+        // Determine the forfeiting player's ID
+        const forfeiterIdx = room.playerConns.findIndex(s => s.id === socket.id);
+        const winnerIdx = forfeiterIdx === 0 ? 1 : 0;
+        const forfeiter = room.players[forfeiterIdx] ?? "unknown";
+        const winner = room.players[winnerIdx] ?? "unknown";
+
+        console.log(`[GameServer] forfeit — room=${roomId} ${forfeiter} surrenders, ${winner} wins`);
+
+        room.gameState.gamePhase = "end";
+        room.gameState.winnerId = winnerIdx;
+        broadcastGameState(roomId);
+        return;
+      }
+    }
+    console.log("[GameServer] forfeit — no room found for socket", socket.id);
+  });
+
+  // Unified game action (spell cast or basic attack)
+  socket.on("gameAction", async (action) => {
+    console.log("[GameServer] gameAction received:", JSON.stringify(action));
+
+    // Find which room this socket belongs to
+    for (const [roomId, room] of gameRooms) {
+      if (room.playerConns?.some(s => s.id === socket.id)) {
+        if (!room.gameState) {
+          console.log(`[GameServer] gameAction skipped — no gameState in room ${roomId}`);
+          return;
+        }
+        console.log(`[GameServer] gameAction processing — room=${roomId} turn=${room.gameState.turn} phase=${room.gameState.gamePhase}`);
+        try {
+          const newState = processAction(room.gameState, action);
+          room.gameState = newState;
+          console.log(`[GameServer] gameAction done — turn=${newState.turn} phase=${newState.gamePhase} queueLen=${newState.turnQueue.length}`);
+          broadcastGameState(roomId);
+        } catch (err) {
+          console.error(`[GameServer] gameAction error — room=${roomId}`, err);
+        }
+        return;
+      }
+    }
+    console.log("[GameServer] gameAction — no room found for socket", socket.id);
+  });
+
   //delete the user's socket if he's disconnected
   socket.on("disconnect", async () => {
     const onlineUsers = await redis.hGetAll("online_users");
@@ -256,6 +371,8 @@ io.on("connection", (socket) => {
     io.emit("online_users", users);
   });
 });
+
+export { gameRooms };
 
 //errors check and set the listening port
 httpServer

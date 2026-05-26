@@ -12,6 +12,7 @@ import { TeamBuilder } from "@/components/organisms/home/TeamBuilder";
 import { CHARACTERS } from "@/public/gameResources/heroes";
 import SidebarShell from "@/components/SidebarShell";
 import {socket} from "../../socket"
+import { handleLogout } from "@/lib/logout";
 import NotificationToast from "@/components/organisms/home/NotificationToast";
 
 const PvpMatchmakingModal = dynamic(() => import("@/components/organisms/home/PvpMatchmakingModal"), { ssr: false });
@@ -197,26 +198,12 @@ export default function Home() {
 
     socket.on("ban", (banned) => {
       if (banned === userPseudo)
-        handleLogout();
+        handleLogoutLocal();
     });
   }, [userPseudo])
 
-  const handleLogout = async () => {
-    const response = await fetch("/api/profile", {
-        method: "PUT",
-      })
-      const user: unknown = await response.json();
-      if (!response.ok) {
-        const errorMessage =
-        typeof user === "object" && user !== null && "error" in user
-          ? String((user as { error: string }).error ?? "Impossible de charger l'utilisateur")
-          : "Impossible de charger l'utilisateur";
-        throw new Error(errorMessage);
-      }
-    socket.emit("isdisconnecting");
-    socket.disconnect();
-    await authClient.signOut();
-    router.push("/");
+  const handleLogoutLocal = () => {
+    handleLogout(router).catch(() => router.push("/"));
   };
 
   
@@ -254,10 +241,17 @@ export default function Home() {
   };
 
   const handleStartPvp = async () => {
-    if (!userPseudo)
-    {
-      return ;
-    }
+    if (!userPseudo) return;
+
+    await fetch("/api/home", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userPseudo,
+        char: teamSlots.filter(Boolean),
+      }),
+    });
+
     setPvpOpen(true);
     const res = await fetch("/api/home", {
       method: "POST",
@@ -265,9 +259,9 @@ export default function Home() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({userPseudo: userPseudo}),
-    })
+    });
     if (!res.ok)
-      return ; //afficher un message lie a l'erreur
+      return ;
   };
 
   const handleStartPong = async () => {

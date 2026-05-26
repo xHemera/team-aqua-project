@@ -9,86 +9,115 @@ type InfoModalProps = {
 };
 
 export default function InfoModal({ open, isYourTurn, onClose }: InfoModalProps) {
-  const [shouldRender, setShouldRender] = useState(open);
-  const [isVisible, setIsVisible] = useState(open);
-  const [dismissedEarly, setDismissedEarly] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      setDismissedEarly(false);
-      setShouldRender(true);
-      const animationFrame = window.requestAnimationFrame(() => {
-        setIsVisible(true);
-      });
-      const timeoutId = window.setTimeout(() => {
-        onClose();
-      }, 1600);
-
-      return () => {
-        window.cancelAnimationFrame(animationFrame);
-        window.clearTimeout(timeoutId);
-      };
-    }
-
-    setIsVisible(false);
-    const timeoutId = window.setTimeout(() => {
-      setShouldRender(false);
-    }, 260);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [open, onClose]);
-
-  const handleBackdropClick = () => {
-    if (dismissedEarly) {
-      return;
-    }
-
-    setDismissedEarly(true);
-    onClose();
-  };
+  const [phase, setPhase] = useState<"hidden" | "enter" | "visible" | "exit">("hidden");
 
   useEffect(() => {
     if (!open) {
+      if (phase !== "hidden") {
+        setPhase("exit");
+        const t = setTimeout(() => setPhase("hidden"), 150);
+        return () => clearTimeout(t);
+      }
       return;
     }
 
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+    const enter = setTimeout(() => setPhase("enter"), 10);
+    const visible = setTimeout(() => setPhase("visible"), 80);
+    const exit = setTimeout(() => {
+      setPhase("exit");
+      setTimeout(() => {
+        setPhase("hidden");
         onClose();
-      }
-    };
-
-    window.addEventListener("keydown", handleEscape);
+      }, 150);
+    }, 1200);
 
     return () => {
-      window.removeEventListener("keydown", handleEscape);
+      clearTimeout(enter);
+      clearTimeout(visible);
+      clearTimeout(exit);
     };
   }, [open, onClose]);
 
-  if (!shouldRender) {
-    return null;
-  }
+  if (phase === "hidden") return null;
+
+  const isEntering = phase === "enter";
+  const isExiting = phase === "exit";
+  const showContent = phase === "enter" || phase === "visible" || phase === "exit";
 
   return (
     <div
-      onClick={handleBackdropClick}
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/10 backdrop-blur-[2px] transition-opacity duration-300 ${
-        isVisible ? "opacity-100" : "opacity-0"
+      className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-[150ms] ${
+        isExiting ? "pointer-events-none" : ""
       }`}
     >
+      {/* backdrop */}
       <div
-        role="status"
-        aria-live="polite"
-        aria-label="Turn information"
-        className={`w-full bg-[linear-gradient(180deg,rgba(26,22,34,0.96)_0%,rgba(18,15,23,0.96)_100%)] px-6 py-5 text-center shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-none transition-[opacity,transform] duration-300 ease-out transform-gpu ${
-          isVisible ? "translate-y-0 scale-100 opacity-100" : "translate-y-0 scale-[0.995] opacity-0"
+        className={`absolute inset-0 transition-all duration-[150ms] ${
+          showContent && !isExiting
+            ? "bg-black/60 backdrop-blur-[3px]"
+            : "bg-black/0 backdrop-blur-0"
+        }`}
+      />
+
+      {/* card */}
+      <div
+        className={`relative flex flex-col items-center transition-all duration-[100ms] ease-out ${
+          isEntering
+            ? "scale-0 opacity-0"
+            : isExiting
+              ? "scale-[1.8] opacity-0"
+              : "scale-100 opacity-100"
         }`}
       >
-        <h2 className="text-3xl font-black uppercase tracking-[0.16em] text-[#f5e6c8]">
-          {isYourTurn ? "Your Turn" : "Opponents Turn"}
+        {/* glow */}
+        <div className="absolute -inset-16 rounded-full bg-[#f5e6c8] opacity-[0.04] blur-[60px]" />
+
+        {/* decorative line top */}
+        <div
+          className={`h-[1px] transition-all duration-[150ms] delay-75 ${
+            showContent && !isExiting ? "w-48 opacity-40" : "w-0 opacity-0"
+          }`}
+          style={{
+            background:
+              "linear-gradient(90deg, transparent 0%, #f5e6c8 20%, #f5e6c8 80%, transparent 100%)",
+          }}
+        />
+
+        <h2
+          className={`px-8 py-4 text-center text-5xl font-black uppercase tracking-[0.2em] transition-all duration-[100ms] ${
+            isExiting ? "scale-[2]" : ""
+          }`}
+          style={{
+            color: isYourTurn ? "#f5e6c8" : "#e8586a",
+            textShadow: isYourTurn
+              ? "0 0 40px rgba(245,230,200,0.15), 0 0 80px rgba(245,230,200,0.08)"
+              : "0 0 40px rgba(232,88,106,0.2), 0 0 80px rgba(232,88,106,0.1)",
+          }}
+        >
+          {isYourTurn ? "YOUR TURN" : "OPPONENT"}
         </h2>
+
+        <p
+          className={`text-sm font-medium uppercase tracking-[0.3em] transition-all duration-[100ms] delay-75 ${
+            showContent && !isExiting
+              ? "translate-y-0 opacity-60"
+              : "translate-y-2 opacity-0"
+          }`}
+          style={{ color: isYourTurn ? "#f5e6c8" : "#e8586a" }}
+        >
+          {isYourTurn ? "Choose your action" : "Waiting..."}
+        </p>
+
+        {/* decorative line bottom */}
+        <div
+          className={`h-[1px] transition-all duration-[150ms] delay-75 ${
+            showContent && !isExiting ? "w-48 opacity-40" : "w-0 opacity-0"
+          }`}
+          style={{
+            background:
+              "linear-gradient(90deg, transparent 0%, #f5e6c8 20%, #f5e6c8 80%, transparent 100%)",
+          }}
+        />
       </div>
     </div>
   );

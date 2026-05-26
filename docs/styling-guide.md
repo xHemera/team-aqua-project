@@ -1,169 +1,52 @@
-# Styling Guide
+# Styling — Tailwind CSS v4
 
-## 📖 Table of Contents
+On vise un thème JRPG sombre / fantasy médiévale. Inspirations : Final Fantasy, Dragon Quest, Persona, MMORPG mobiles.
 
-- [Back to Main README](../README.md)
-- [Overview](#overview)
-- [Setup](#setup)
-- [Core Concepts](#core-concepts)
-- [Best Practices](#best-practices)
+## Palette utilisée dans le code
 
-**Other Docs**: [Overview](frontend-overview.md) • [Components](components-guide.md) • [Hooks](hooks-guide.md) • [Auth](authentication-guide.md)
+| Usage | Classe | Hex |
+|-------|--------|-----|
+| Fond principal | `bg-[#0f0e13]` | Noir profond |
+| Texte clair | `text-[#f5e6c8]` | Beige |
+| Texte secondaire | `text-[#cfc8e6]` | Lavande |
+| Texte grisé | `text-[#8b82a6]` | Gris-violet |
+| Bordures | `border-[#3c3650]` | Violet foncé |
+| Bordures hover | `border-[#5b5480]` | Violet moyen |
+| Fond carte | `bg-[#242033]` | Violet très foncé |
 
----
-
-## Overview
-
-Kyogre uses **Tailwind CSS v4** for utility-first styling with responsive design, dark mode support, and consistent design tokens.
-
-**Features**:
-- Utility-first approach: compose styles with small reusable classes
-- No CSS files needed for simple components
-- Automatic dark mode with `dark:` prefix
-- Built-in responsive design system
-- Tree-shaken unused styles in production
-
-## Philosophy
-We try to aim to look like a modern JRPG game with a dark medivial fantasy accent, we take inspiration from games like Final Fantasy, Dragon Quest, Persona and diverse Mobile MMORPGs. We want to create something that looks modern and clean but also has a bit of personality and charm, with a color palette that evokes a sense of adventure and mystery. We want to use typography, colors, and visual elements that fit the theme and create an immersive experience for players.
-
-## Setup
-
-### Configuration
-
-**Location**: `postcss.config.mjs`
-
-```mjs
-import tailwindcss from 'tailwindcss';
-import autoprefixer from 'autoprefixer';
-
-export default {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-};
-```
-
-### Global Styles
-
-**Location**: `app/globals.css`
-
-```css
-@import 'tailwindcss';
-
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  @apply antialiased;
-  font-family: system-ui, -apple-system, sans-serif;
-}
-```
-
-## Core Concepts
-
-### Utility Classes
-
-Combine utility classes instead of custom CSS:
+## Patterns récurrents
 
 ```tsx
-// ❌ Bad: Custom CSS file
-<div className="card">Card</div>
-<style>.card { ... }</style>
+// Carte de base
+<div className="rounded border border-[#3c3650] bg-[#0f0e13] p-4 text-[#cfc8e6]">
 
-// ✅ Good: Tailwind utilities
-<div className="bg-white rounded-lg p-4 shadow">Card</div>
+// Grille de combat
+<div className="grid grid-cols-3 gap-2 sm:gap-3">
+
+// Input / recherche
+<input className="w-full rounded border border-[#3c3650] bg-[#0f0e13] px-4 py-2 text-[#f5e6c8] placeholder-[#8b82a6]" />
+
+// Badge / tag
+<span className="rounded bg-[#242033] px-2 py-1 text-xs text-[#cfc8e6]">
+
+// Bouton secondaire
+<Button variant="secondary" className="w-full md:w-auto">
 ```
 
-### Responsive Design
+## Atomic Design
 
-Use responsive prefixes (`sm:`, `md:`, `lg:`, `xl:`):
+Les classes Tailwind sont écrites directement dans les composants. Pas de fichiers CSS séparés.
 
-```tsx
-<div className="w-full md:w-1/2 lg:w-1/3">
-  Responsive width
-</div>
+Responsive : `sm:`, `md:`, `lg:`.
 
-<button className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700">
-  Click me
-</button>
-```
-
-### Common Utilities
-
-**Layout**:
-- Flexbox: `flex`, `flex-col`, `justify-center`, `items-start`
-- Grid: `grid`, `grid-cols-3`, `gap-4`
-- Spacing: `p-4` (padding), `m-2` (margin), `gap-6`
-
-**Colors**:
-- Text: `text-blue-500`, `text-gray-700`
-- Background: `bg-white`, `bg-slate-100`
-- Border: `border-blue-200`, `border-2`
-- Dark mode: `dark:bg-slate-800`, `dark:text-white`
-
-**Sizing**:
-- Width/Height: `w-full`, `h-12`, `w-1/2`, `w-screen`
-- Size: `text-sm`, `text-lg`, `font-bold`
-
-## Best Practices
-
-✅ Use utility classes for simple styling
-✅ Combine classes: `className="flex items-center justify-between p-4"`
-✅ Use responsive prefixes: `className="w-full md:w-1/2"`
-✅ Leverage dark mode: `className="bg-white dark:bg-slate-900"`
-✅ Use space scale: `p-4`, `m-2`, `gap-6` (use base units)
-✅ Extract complex styles to CSS modules or components
-
-❌ Mix inline styles with Tailwind
-❌ Create custom CSS for utility-like styles
-❌ Use too many arbitrary values: `px-[42px]` (use base units)
-❌ Skip responsive design
-
-### Component Styling Example
+## Composant exemple (Card)
 
 ```tsx
-// components/Card.tsx
-export function Card({ title, children }: Props) {
+export function Card({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-slate-700">
-      <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-        {title}
-      </h2>
-      <div className="text-gray-700 dark:text-gray-300">
-        {children}
-      </div>
+    <div className="rounded border border-[#3c3650] bg-[#0f0e13] p-4 text-[#cfc8e6]">
+      {children}
     </div>
   );
 }
 ```
-
-### Common Patterns
-
-**Button Styling**:
-```tsx
-<button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
-  Submit
-</button>
-```
-
-**Input Styling**:
-```tsx
-<input className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-```
-
-**Card Layout**:
-```tsx
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-  {items.map(item => (
-    <div key={item.id} className="bg-white rounded-lg shadow-md p-6">
-      {item.content}
-    </div>
-  ))}
-</div>
-```
-
----
-
-See [Components Guide](components-guide.md) for styled component examples.

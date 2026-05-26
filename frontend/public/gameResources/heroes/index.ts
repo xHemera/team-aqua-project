@@ -1,13 +1,14 @@
-import { archer } from "./archer/hero";
-import { assassin } from "./assassin/hero";
-import { healer } from "./healer/hero";
-import { knight } from "./knight/hero";
-import { mage } from "./mage/hero";
+import { CHARACTERS } from "../../../shared-heroes/index";
 
-export const CHARACTERS = [
-    archer,
-    assassin,
-    healer,
-    knight,
-    mage 
-];
+function buildHeroMaps() {
+  const byId = new Map<string, (typeof CHARACTERS)[number]>();
+  const byName = new Map<string, (typeof CHARACTERS)[number]>();
+  for (const hero of CHARACTERS) {
+    byId.set(hero.identity.id, hero);
+    byName.set(hero.identity.name, hero);
+  }
+  return { byId, byName };
+}
+
+export const HERO_MAP = buildHeroMaps();
+export { CHARACTERS };

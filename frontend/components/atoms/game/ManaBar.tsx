@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import type { CSSProperties } from "react";
 
 type ManaBarProps = {
   currentMana: number;
@@ -11,97 +10,111 @@ type ManaBarProps = {
 const MANA_MAX = 100;
 const manaIcon = "/gameResources/items/mana.webp";
 
-const lerp = (start: number, end: number, ratio: number) => {
-  return start + (end - start) * ratio;
-};
-
 export default function ManaBar({ currentMana, className = "" }: ManaBarProps) {
   const manaPercent = Math.max(0, Math.min(100, (currentMana / MANA_MAX) * 100));
   const clampedMana = Math.round(Math.max(0, Math.min(MANA_MAX, currentMana)));
 
-  const manaHue =
-    manaPercent >= 50
-      ? lerp(52, 210, (manaPercent - 50) / 50)
-      : manaPercent >= 20
-        ? lerp(4, 52, (manaPercent - 20) / 30)
-        : lerp(0, 4, manaPercent / 20);
-
-  const valueColor = `hsl(${manaHue} 88% 78%)`;
-  const trackBorderColor = `hsla(${manaHue} 82% 62% / 0.85)`;
-  const fillColor = `hsl(${manaHue} 92% 56%)`;
-  const glowColor = `hsla(${manaHue} 95% 74% / 0.28)`;
-
-  const trackStyle: CSSProperties = {
-    borderColor: trackBorderColor,
-  };
-
-  const fillStyle: CSSProperties = {
-    height: `${manaPercent}%`,
-    backgroundColor: fillColor,
-    boxShadow: `inset 0 0 10px ${glowColor}`,
-  };
-
   return (
-    <div className={`inline-flex flex-col items-center gap-2 ${className}`}>
-      <span className="text-sm font-semibold sm:text-base" style={{ color: valueColor }}>
-        {clampedMana}
-      </span>
+    <div className={`inline-flex flex-col items-center ${className}`}>
+      <div className="relative flex flex-col items-center">
+        {/* frame */}
+        <div className="relative flex h-48 w-7 items-end overflow-hidden rounded-full border-2 border-[#2a2d42] bg-[#0c0d14] shadow-[inset_0_0_12px_rgba(0,0,0,0.6),0_0_8px_rgba(107,111,158,0.15)]">
+          {/* liquid fill */}
+          <div
+            className="absolute bottom-0 w-full animate-pulse-glow transition-all duration-300 ease-out"
+            style={{
+              height: `${manaPercent}%`,
+              background:
+                "linear-gradient(to top, #4a5fd4 0%, #6b80f0 50%, #a4b5ff 100%)",
+              boxShadow:
+                "inset 0 0 10px rgba(164,181,255,0.25), 0 0 14px rgba(91,110,232,0.2)",
+            }}
+          >
+            {/* shine overlay */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(255,255,255,0)_0%,rgba(255,255,255,0.08)_30%,rgba(255,255,255,0)_100%)]" />
+          </div>
 
-      <div className="flex flex-col items-center gap-2">
-        <div
-          className="relative flex h-52 w-5 items-end overflow-hidden rounded-md border bg-[#0e1726]"
-          style={trackStyle}
-          role="progressbar"
-          aria-label="Mana"
-          aria-valuemin={0}
-          aria-valuemax={MANA_MAX}
-          aria-valuenow={clampedMana}
-        >
-          <div className="w-full mana-stripes" style={fillStyle} />
+          {/* bubbles */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            {[...Array(3)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute h-[2px] w-[2px] rounded-full bg-[#c8d4ff] opacity-50"
+                style={{
+                  left: `${30 + i * 20}%`,
+                  bottom: `${manaPercent * (0.2 + i * 0.25)}%`,
+                  animation: `bubble-${i} 2.5s ease-in-out infinite`,
+                  animationDelay: `${i * 0.8}s`,
+                }}
+              />
+            ))}
+          </div>
+
+          {/* ripple lines */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            {[...Array(2)].map((_, i) => (
+              <div
+                key={`ripple-${i}`}
+                className="absolute left-0 right-0 h-[1px] animate-ripple"
+                style={{
+                  bottom: `${20 + i * 30}%`,
+                  animationDelay: `${i * 1.5}s`,
+                  background:
+                    "linear-gradient(90deg, transparent 0%, rgba(164,181,255,0.15) 50%, transparent 100%)",
+                }}
+              />
+            ))}
+          </div>
+
+          {/* value */}
+          <span
+            className="absolute inset-0 z-10 flex items-center justify-center text-[10px] font-bold text-white"
+            style={{
+              textShadow: "0 0 6px rgba(164,181,255,0.6), 0 0 12px rgba(91,110,232,0.3)",
+              writingMode: "vertical-rl",
+              textOrientation: "mixed",
+            }}
+          >
+            {clampedMana}
+          </span>
         </div>
 
-        <Image src={manaIcon} alt="Mana" width={22} height={22} className="h-8 w-8" unoptimized />
+        {/* mana icon */}
+        <div className="mt-1.5">
+          <Image src={manaIcon} alt="Mana" width={18} height={18} className="opacity-70" unoptimized />
+        </div>
       </div>
 
       <style jsx>{`
-        .mana-stripes {
-          position: relative;
-          overflow: hidden;
-          transition: height 220ms ease-out, background-color 220ms linear, box-shadow 220ms linear;
+        @keyframes pulse-glow {
+          0%, 100% { opacity: 1; filter: brightness(1); }
+          50% { opacity: 0.92; filter: brightness(1.08); }
         }
 
-        .mana-stripes::before {
-          content: "";
-          position: absolute;
-          inset: -60% -30%;
-          background-image: repeating-linear-gradient(
-            -45deg,
-            rgba(255, 255, 255, 0.16) 0,
-            rgba(255, 255, 255, 0.16) 3px,
-            rgba(255, 255, 255, 0) 3px,
-            rgba(255, 255, 255, 0) 10px
-          );
-          background-size: 16px 16px;
-          animation: mana-stripes-move 2.4s linear infinite;
-          will-change: transform;
-          pointer-events: none;
+        @keyframes bubble-0 {
+          0%, 100% { transform: translateY(0) scale(1); opacity: 0.5; }
+          50% { transform: translateY(-18px) scale(1.5); opacity: 0; }
+        }
+        @keyframes bubble-1 {
+          0%, 100% { transform: translateY(0) scale(1); opacity: 0.4; }
+          50% { transform: translateY(-14px) scale(1.3); opacity: 0; }
+        }
+        @keyframes bubble-2 {
+          0%, 100% { transform: translateY(0) scale(1); opacity: 0.45; }
+          50% { transform: translateY(-22px) scale(1.6); opacity: 0; }
         }
 
-        .mana-stripes::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(to top, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.2));
-          pointer-events: none;
+        @keyframes ripple {
+          0% { transform: scaleX(0.3); opacity: 0; }
+          30% { opacity: 0.6; }
+          100% { transform: scaleX(1.5); opacity: 0; }
         }
 
-        @keyframes mana-stripes-move {
-          from {
-            transform: translateY(0);
-          }
-          to {
-            transform: translateY(16px);
-          }
+        .animate-pulse-glow {
+          animation: pulse-glow 3s ease-in-out infinite;
+        }
+        .animate-ripple {
+          animation: ripple 3s ease-out infinite;
         }
       `}</style>
     </div>

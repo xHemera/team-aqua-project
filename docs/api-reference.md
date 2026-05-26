@@ -1,543 +1,136 @@
 # API Reference
 
-## 📖 Table of Contents
+Toutes les routes sont dans `frontend/app/api/`. Rate limiting Redis sur la plupart.
 
-- [Back to Main README](../README.md)
-- [Overview](#overview)
-- [Authentication](#authentication)
-- [Users API](#users-api)
-- [Characters API](#characters-api)
-- [Social API](#social-api)
-- [Profile API](#profile-api)
-- [Admin API](#admin-api)
-- [Utilities API](#utilities-api)
+## Auth — Better Auth
 
-**Other Docs**: [Overview](frontend-overview.md) • [Database](database-guide.md) • [WebSocket](websocket-guide.md)
+Tout passe par Better Auth. Pas de routes manuelles.
 
----
-
-## Overview
-
-All API endpoints are located in `frontend/app/api/` and follow REST conventions. The frontend uses `fetch()` for API calls from client and server components.
-
-**Base URL**: `http://localhost:3000/api`
-
-**Rate Limiting**: Most endpoints implement rate limiting via Redis to prevent abuse.
-
-## Authentication
-
-### `GET /api/auth/[...all]`
-
-**Purpose**: Better Auth routes handler (login, register, session, etc.)
-
-**Location**: `frontend/app/api/auth/[...all]/route.ts`
-
-**Handled by**: Better Auth library - all auth operations go through this endpoint
-
-**Usage**:
-```typescript
-// Client-side: Use authClient from lib/auth-client.ts
+```ts
 import { authClient } from '@/lib/auth-client';
 
-// Sign up
-await authClient.signUp.email({
-  email: 'user@example.com',
-  password: 'password123',
-  name: 'username',
-});
-
-// Sign in
-await authClient.signIn.email({
-  email: 'user@example.com',
-  password: 'password123',
-});
-
-// Get session
-const { data } = await authClient.getSession();
+authClient.signUp.email({ email, password, name });
+authClient.signIn.email({ email, password });
+authClient.signOut();
+const { data: session } = await authClient.getSession();
 ```
 
-## Users API
+Côté serveur :
+```ts
+const session = await auth.api.getSession({ headers: await headers() });
+```
 
-### `GET /api/users`
+## User
 
-**Purpose**: Retrieve list of all users
+### `GET /api/user?pseudo=xxx`
 
-**Rate Limit**: 20 requests per minute per IP
+Retourne la team du joueur + niveaux :
 
-**Query Parameters**: None
-
-**Response**:
 ```json
-[
-  {
-    "id": "cuid",
-    "name": "username",
-    "image": "avatar-url",
-    "badges": ["badge1", "badge2"],
-    "avatar": {
-      "url": "avatar-custom-url"
-    }
-  }
-]
+{ "team": ["Archer", "Knight", "Mage"], "levels": [1, 1, 1], "spellsLevels": [1, 1, 1, 1, 1, 1, 1, 1, 1] }
 ```
 
-**Usage**:
-```typescript
-const response = await fetch('/api/users');
-const users = await response.json();
-```
+### `GET /api/user/opponent?pseudo=xxx`
 
-### `GET /api/user`
+Lit Redis `inGamePlayers`, retourne l'adversaire :
 
-**Purpose**: Get current authenticated user info
-
-**Response**:
 ```json
-{
-  "id": "user-id",
-  "name": "username",
-  "email": "email@example.com",
-  "badges": [],
-  "avatarId": "avatar-id",
-  "image": "profile-icon-url"
-}
+{ "name": "Adversaire", "team": ["Archer", "Mage", "Assassin"], "avatar": null, "roomId": 42 }
 ```
 
-### `POST /api/users`
+## Characters
 
-**Purpose**: Create or update user profile
+### `GET /api/characters?username=xxx`
 
-**Body**:
+Retourne tous les persos avec stats level-scalées :
+
 ```json
-{
-  "name": "newusername",
-  "image": "icon-url"
-}
-```
-
-## Characters API
-
-### `GET /api/characters`
-
-**Purpose**: Retrieve user's character roster with stats
-
-**Response**:
-```json
-{
-  "characters": [
-    {
-      "id": "char-id",
-      "name": "Char Name",
-      "hp": 100,
-      "level": 5,
-      "spells": [
-        {
-          "id": "spell-id",
-          "name": "Spell Name",
-          "type": "fire",
-          "mpCost": 10,
-          "effect": 15,
-          "level": 1
-        }
-      ]
-    }
-  ],
-  "resources": {
-    "gold": 1000,
-    "rubis": 50,
-    "xp": 250
-  },
-  "maxSkillLevel": 10
-}
-```
-
-**Usage**:
-```typescript
-const response = await fetch('/api/characters', { cache: 'no-store' });
-const data = await response.json();
+{ "characters": [{ "id": "...", "name": "Archer", "level": 1, "hp": 1240, "stats": { "physicalDamage": 165, ... }, "skills": [...] }], "maxSkillLevel": 10 }
 ```
 
 ### `POST /api/characters`
 
-**Purpose**: Upgrade character spells or stats
+Crée un GameState avec les 5 héros level 1.
 
-**Body**:
-```json
-{
-  "characterId": "char-id",
-  "spellId": "spell-id",
-  "action": "upgrade" | "downgrade"
-}
-```
+### `PUT /api/characters`
 
-## Social API
+Level up d'un sort : `{ characterId, spellId, action: "increment" }`
 
-### `GET /api/social/inbox`
+### `PATCH /api/characters`
 
-**Purpose**: Get user's message conversations
+Ajoute XP à un sort (coûte des rubis) : `{ characterId, spellId, action: "increment" }`
 
-**Query Parameters**:
-- `username`: string (required)
+## Social — REST
 
-**Response**:
-```json
-[
-  {
-    "id": "inbox-id",
-    "lastMessage": "Last message text",
-    "lastSentUserId": "user-id",
-    "createdAt": "2026-05-12T10:00:00Z",
-    "inboxUser": [
-      {
-        "userId": "other-user-id",
-        "user": {
-          "name": "otheruser",
-          "image": "avatar-url"
-        },
-        "unreadMessages": 2
-      }
-    ]
-  }
-]
-```
+Toutes dans `frontend/app/api/social/`.
 
-**Usage**:
-```typescript
-const response = await fetch(`/api/social/inbox?username=${userPseudo}`);
-const inboxes = await response.json();
-```
+| Route | Méthode | Description |
+|-------|---------|-------------|
+| `/api/social/users` | GET | Liste d'utilisateurs |
+| `/api/social/user` | GET | Cherche un user par name |
+| `/api/social/inbox` | GET | Récupère les conversations |
+| `/api/social/msg` | GET/POST | Messages paginés |
+| `/api/social/friend` | GET/PATCH/DELETE | Gestion des amis |
+| `/api/social/block` | POST | Bloquer un user |
+| `/api/social/contact` | GET | Liste de contacts |
+| `/api/social/invite` | GET | Invitations |
+| `/api/social/unread` | GET | Messages non lus |
+| `/api/social/upload` | POST | Upload fichier |
+| `/api/social/attachment` | GET | Récupérer une pièce jointe |
 
-### `GET /api/social/msg`
-
-**Purpose**: Get messages from a conversation
-
-**Query Parameters**:
-- `inboxId`: string (required)
-- `start`: number (optional, for pagination)
-
-**Response**:
-```json
-{
-  "messages": [
-    {
-      "id": "msg-id",
-      "userId": "sender-id",
-      "message": "Message text",
-      "createdAt": "2026-05-12T10:00:00Z",
-      "attachments": []
-    }
-  ]
-}
-```
-
-### `POST /api/social/msg`
-
-**Purpose**: Send a message
-
-**Body**:
-```json
-{
-  "inboxId": "inbox-id",
-  "message": "Message text",
-  "attachments": []
-}
-```
-
-### `GET /api/social/friend`
-
-**Purpose**: Get user's friend list
-
-**Query Parameters**:
-- `username`: string (required)
-
-**Response**:
-```json
-[
-  {
-    "friendId": "friend-user-id",
-    "userId": "user-id",
-    "requestSent": false,
-    "createdAt": "2026-05-12T10:00:00Z"
-  }
-]
-```
-
-### `POST /api/social/friend`
-
-**Purpose**: Send/accept friend request
-
-**Body**:
-```json
-{
-  "friendName": "username",
-  "action": "request" | "accept" | "remove"
-}
-```
-
-### `POST /api/social/contact`
-
-**Purpose**: Create new contact/conversation
-
-**Body**:
-```json
-{
-  "targetUsername": "username"
-}
-```
-
-### `POST /api/social/block`
-
-**Purpose**: Block/unblock a user
-
-**Body**:
-```json
-{
-  "targetUsername": "username",
-  "action": "block" | "unblock"
-}
-```
-
-### `GET /api/social/block`
-
-**Purpose**: Get list of blocked users
-
-**Response**:
-```json
-{
-  "blockedUsers": ["user1", "user2"]
-}
-```
-
-### `POST /api/social/report`
-
-**Purpose**: Report a conversation
-
-**Body**:
-```json
-{
-  "inboxId": "inbox-id",
-  "reason": "harassment | spam | other"
-}
-```
-
-## Profile API
+## Profile
 
 ### `GET /api/profile`
 
-**Purpose**: Get user's profile with match history
-
-**Query Parameters**:
-- `username`: string (required)
-
-**Response**:
-```json
-{
-  "id": "user-id",
-  "name": "username",
-  "badges": ["badge1"],
-  "avatarId": "avatar-id",
-  "matchHistory": [
-    {
-      "id": "match-id",
-      "result": "win" | "loss",
-      "opponent": "opponent-name",
-      "createdAt": "2026-05-12T10:00:00Z"
-    }
-  ]
-}
-```
-
-### `POST /api/profile`
-
-**Purpose**: Update user profile (background, banner, etc.)
-
-**Body**:
-```json
-{
-  "profileBackground": "color-or-url",
-  "profileBanner": "banner-url",
-  "avatarId": "avatar-id"
-}
-```
-
-### `POST /api/profile/banner`
-
-**Purpose**: Upload profile banner image
-
-**Body**: FormData with file
-
-## Admin API
-
-### `GET /api/admin/users`
-
-**Purpose**: Get all users for admin panel
-
-**Requires**: Admin role
-
-**Query Parameters**:
-- `page`: number (optional)
-- `search`: string (optional)
-
-**Response**:
-```json
-[
-  {
-    "id": "user-id",
-    "name": "username",
-    "email": "email@example.com",
-    "badges": [],
-    "banned": false,
-    "online": false,
-    "createdAt": "2026-05-12T10:00:00Z"
-  }
-]
-```
-
-### `POST /api/admin/users`
-
-**Purpose**: Ban/unban user or change role
-
-**Body**:
-```json
-{
-  "userId": "user-id",
-  "action": "ban" | "unban" | "setRole",
-  "role": "user" | "admin"
-}
-```
-
-### `GET /api/admin/reports`
-
-**Purpose**: Get reported conversations
-
-**Response**:
-```json
-[
-  {
-    "id": "report-id",
-    "inboxId": "inbox-id",
-    "reportedUser": "username",
-    "reporter": "reporter-username",
-    "reason": "harassment",
-    "createdAt": "2026-05-12T10:00:00Z"
-  }
-]
-```
-
-### `POST /api/admin/reports`
-
-**Purpose**: Handle report (dismiss, ban user, etc.)
-
-**Body**:
-```json
-{
-  "reportId": "report-id",
-  "action": "dismiss" | "banUser" | "deleteConversation"
-}
-```
-
-## Utilities API
-
-### `GET /api/avatars`
-
-**Purpose**: Get all available avatars with color accents
-
-**Response**:
-```json
-[
-  {
-    "id": "avatar-id",
-    "name": "Avatar Name",
-    "type": "hero" | "custom",
-    "url": "image-url",
-    "accent": "#FF0000",
-    "accentHover": "#FF3333"
-  }
-]
-```
-
-### `POST /api/upload`
-
-**Purpose**: Upload file (image, attachment, etc.)
-
-**Body**: FormData with file
-
-**Response**:
-```json
-{
-  "url": "uploaded-file-url",
-  "name": "filename",
-  "type": "mime-type",
-  "sizeLabel": "size"
-}
-```
-
-### `GET /api/home`
-
-**Purpose**: Get home page data (resources, expeditions, etc.)
-
-**Response**:
-```json
-{
-  "resources": {
-    "gold": 1000,
-    "rubis": 50
-  },
-  "activeExpeditions": [
-    {
-      "characterId": "char-id",
-      "endsAt": 1234567890,
-      "xp": 100,
-      "gold": 50
-    }
-  ]
-}
-```
-
-## Error Handling
-
-All endpoints return standard error responses:
+Retourne le profil du user connecté :
 
 ```json
-{
-  "error": "Error message",
-  "status": 400 | 401 | 403 | 404 | 429 | 500
-}
+{ "image": null, "avatar": { "url": null }, "profileBackground": null, "profileBanner": null }
 ```
 
-**Common Status Codes**:
-- `400`: Bad request (missing params, invalid data)
-- `401`: Unauthorized (need to login)
-- `403`: Forbidden (no permission)
-- `404`: Not found
-- `429`: Too many requests (rate limited)
-- `500`: Server error
+### `PUT /api/profile`
 
-## Rate Limiting
+Déconnexion (signale le offline).
 
-Most endpoints implement rate limiting:
-- Default: 20 requests per minute per IP
-- Redis is used for tracking requests
-- Headers returned: `X-RateLimit-Limit`, `X-RateLimit-Remaining`
+### `POST /api/profile/resources`
 
-If rate limited (429), wait before retrying.
+Click-to-earn rubis (gain 12-35 random).
 
-## Authentication in API Routes
+## Admin
 
-Use `Better Auth` session verification in API routes:
+| Route | Description |
+|-------|-------------|
+| `GET /api/admin/users` | Liste des users |
+| `GET /api/admin/userByName?name=xxx` | Cherche un user |
+| `POST /api/admin/role` | Ajoute/retire le badge ADMIN |
+| `POST /api/admin/ban` | Ban/unban |
 
-```typescript
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+## Home
 
-export async function GET(req: Request) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  
-  if (!session?.user) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+### `GET /api/home?currentUser=xxx`
 
-  const userId = session.user.id;
-  // ... rest of logic
-}
+Retourne l'équipe :
+
+```json
+{ "team": ["Archer", "Knight", "Mage"] }
 ```
+
+### `POST /api/home`
+
+Rejoint la file PvP : `{ userPseudo: "xxx" }` → Redis `players_queue`
+
+### `PUT /api/home`
+
+Sauvegarde l'équipe : `{ userPseudo, char: ["Archer", ...] }`
+
+### `DELETE /api/home?userPseudo=xxx`
+
+Quitte la file PvP.
+
+## Error handling
+
+```json
+{ "error": "message", "status": 429 }
+```
+
+Codes : 400 (bad request), 401 (non auth), 403 (forbidden), 404, 429 (rate limit), 500.

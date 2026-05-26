@@ -1,6 +1,7 @@
 {
   "packageManager": "bun@1.2.5",
   "devDependencies": {
+    "@types/node": "^25.9.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "ts-node": "^10.9.2",

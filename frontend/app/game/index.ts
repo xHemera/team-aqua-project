@@ -1,1 +1,1 @@
-export * as spells from './spells'
+export { spells, type Team, type GameAction, type ActionType } from './spells'

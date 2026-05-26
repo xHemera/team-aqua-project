@@ -1,306 +1,281 @@
 "use client";
 
-import { authClient } from "@/lib/auth-client";
-import { socket } from "@/socket";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { Team } from "./spells";
-import { spells } from "./index";
-import SpellSelector from "@/components/molecules/game/SpellSelector";
+import { useEffect, useState, useMemo } from "react";
+import { CHARACTERS, HERO_MAP } from "@/public/gameResources/heroes";
+import { useGameData } from "./useGameData";
+import { useGameSocket } from "./useGameSocket";
+import { useTurnInfo } from "./useTurnInfo";
+import { useTargeting } from "./useTargeting";
 import ProfileInfo from "@/components/atoms/game/ProfileInfo";
-import ManaBar from "@/components/atoms/game/ManaBar";
 import Fighter from "@/components/atoms/game/Fighter";
-import EnemyFighter from "@/components/atoms/game/EnemyFighter";
 import TurnQueue from "@/components/atoms/game/TurnQueue";
 import InfoModal from "@/components/atoms/game/InfoModal";
-import type { CharacterData } from "@/components/organisms/characters/types";
+import GameLoadingScreen from "@/components/atoms/game/GameLoadingScreen";
+import GameArenaBackground from "@/components/backgrounds/GameArenaBackground";
+import BottomBar from "@/components/backgrounds/BottomBar";
+import type { CharacterState } from "./types";
 
-import { CHARACTERS } from "@/public/gameResources/heroes";
-import Button from "@/components/atoms/Button";
+function findCharByHeroId(chars: CharacterState[] | undefined, heroId: string) {
+  return chars?.find(c => c.uid.split("_").at(-2) === heroId) ?? null;
+}
 
-export default function Game()
-{
+export default function Game() {
   const router = useRouter();
-  const [userPseudo, setUserPseudo] = useState("");
-  const [userAvatar, setUserAvatar] = useState<string | null>(null);
-  const [oppAvatar, setOppAvatar] = useState<string | null>(null);
-  const [playerCharacters, setPlayerCharacters] = useState<CharacterData[] | null>(null);
-  const [teamSelected, setTeamSelected] = useState<Array<typeof CHARACTERS[number] | null> | null>(null);
-  const [selectedHero, setSelectedHero] = useState<typeof CHARACTERS[number] | null>(null);
-  const [opponent, setOpponent] = useState("");
-  const [team, setTeam] = useState<string[] | null>([]);
-  const [oppTeam, setOppTeam] = useState<string[] | null>([]);
-  const [oppGaveUp, setOppGaveUp] = useState(false);
-  const [oppSock, setOppSock] = useState("");
-  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
-  const [isYourTurn, setIsYourTurn] = useState(true);
+  const {
+    userPseudo,
+    userAvatar,
+    oppAvatar,
+    playerCharacters,
+    team,
+    oppTeam,
+    opponent,
+    roomId,
+    loadingPhase: dataPhase,
+  } = useGameData();
 
+  const { gameState, playerId } = useGameSocket(userPseudo, opponent);
 
-  //fetch the current user pseudo
-  useEffect(() => {
-    const getUserData = async () => {
-      const { data } = await authClient.getSession();
-      if (data && data.user.name)
-        setUserPseudo(data.user.name);
-      else
-      {
-        // router.push("/not-connected");
-        return ;
-      }
-      const [cres, ores] = await Promise.all([
-        fetch (`/api/user?pseudo=${data.user.name}`, {
-          method: "GET",
-        }),
-        fetch(`api/user/opponent?pseudo=${data.user.name}`, {
-          method: "GET",
-        }),
-      ])
-      if (!ores.ok)
-      {
-        // router.push("/home");
-        return ;
-      }
-      const res = await cres.json();
-      const team: Team = {
-        owner: data.user.name,
-        characters: res.team,
-        levels: res.levels,
-        skillsLevels: res.spellsLevels,
-      }
-      setTeam(res.team);
-      spells.initialData(team);
-      const opp = await ores.json();
-      setOpponent(opp.name);
-      setOppTeam(opp.team);
-      setOppAvatar(opp.avatar);
-    };
-    getUserData();
+  const {
+    isYourTurn,
+    myCharacters,
+    oppCharacters,
+    activeCharacterUid,
+    activeHeroId,
+    activeMp,
+    isInfoModalOpen,
+    setIsInfoModalOpen,
+    isGameOver,
+    isWinner,
+  } = useTurnInfo(gameState, playerId);
 
-    const loadProfileAvatar = async () => {
-      const profileResponse = await fetch("/api/profile/", {
-        method: "GET",
-        cache: "no-store",
-      });
-      if (!profileResponse.ok) {
-        return;
-      }
+  // Active hero definition
+  const activeHeroDef = useMemo(() => {
+    if (activeHeroId) return HERO_MAP.byId.get(activeHeroId) ?? null;
+    return null;
+  }, [activeHeroId]);
 
-      const profile = await profileResponse.json() as {
-        image: string | null;
-        avatar: { url: string | null } | null;
-      };
-      setUserAvatar(profile.image ?? profile.avatar?.url ?? null);
-    };
+  const {
+    targetingMode,
+    validTargetUids,
+    confirmForfeit,
+    setConfirmForfeit,
+    handleCastSpell,
+    handleTargetSelect,
+    handleSkipTurn,
+  } = useTargeting(activeCharacterUid, myCharacters, oppCharacters, activeHeroDef);
 
-    void loadProfileAvatar();
-  }, []);
+  // Team selection mapping — string[] → hero definitions
+  const [teamSelected, setTeamSelected] = useState<Array<(typeof CHARACTERS)[number] | null> | null>(null);
 
   useEffect(() => {
-    if (!userPseudo) return;
-
-    const loadPlayerCharacters = async () => {
-      const response = await fetch(`/api/characters?username=${encodeURIComponent(userPseudo)}`, {
-        method: "GET",
-        cache: "no-store",
-      });
-
-      if (!response.ok) {
-        return;
-      }
-
-      const payload = await response.json() as {
-        characters: CharacterData[];
-      };
-
-      setPlayerCharacters(payload.characters);
-    };
-
-    void loadPlayerCharacters();
-  }, [userPseudo]);
-
-  // Load selected team from Home (localStorage key: "home-team-slots")
-  useEffect(() => {
-    try {
-      if (team && team.length === 3) {
-        const mapped = team.map((id) => (id ? CHARACTERS.find((h) => h.identity.name === id) ?? null : null));
-        setTeamSelected(mapped);
-        return;
-      }
-    } catch (e) {
-      // ignore malformed
+    if (team && team.length === 3) {
+      const mapped = team.map((id) =>
+        id ? (HERO_MAP.byName.get(id) ?? null) : null,
+      );
+      setTeamSelected(mapped);
+      return;
     }
-    // fallback: first three characters
-    setTeamSelected(CHARACTERS.slice(0, 3).map((c) => c ?? null));
+    // fallback: first three characters (original behavior)
+    setTeamSelected(CHARACTERS.slice(0, 3));
   }, [team]);
 
-  // Initialize selected hero when team loads
+  // Selected hero for spells — active character, or first team member
+  const selectedHero = useMemo(() => {
+    if (gameState && activeHeroDef) return activeHeroDef;
+    if (teamSelected?.[0]) return teamSelected[0];
+    return null;
+  }, [gameState, activeHeroDef, teamSelected]);
+
+  // Auto-redirect to home after game over
   useEffect(() => {
-    if (teamSelected && teamSelected[0]) {
-      setSelectedHero(teamSelected[0]);
-    }
-  }, [teamSelected]);
+    if (!isGameOver) return;
+    const timer = setTimeout(() => router.push("/home"), 5000);
+    return () => clearTimeout(timer);
+  }, [isGameOver, router]);
 
-  useEffect(() => {
-    //connect the socket
-    if (socket.connected) return;
-    socket.connect();
-		socket.emit("login", userPseudo);
-
-		socket.on("online_users", (users) => {
-			console.log("Users from Redis:", users);
-		});
-
-		return () => {
-			socket.off("online_users");
-		};
-  }, [userPseudo]);
-
-  useEffect(() => {
-    if (!userPseudo) return;
-    const handleBan = (banned: string) => {
-      if (banned === userPseudo)
-        handleLogout();
-    };
-    const handleDisconnect = (users: {[x: string]: string;}) => {
-      if (!users[opponent])
-      {
-        setTimeout(() => {
-          socket.once("online_users", (users) => {
-            if (users[opponent])
-              return ;
-            else
-            {
-              socket.off("ban", handleBan);
-              socket.off("online_users", handleDisconnect);
-              router.push("/home");
-            }
-          });
-        }, 3000);
-      }
-    };
-
-    socket.removeAllListeners("online_users");
-    socket.on("ban", handleBan);
-    socket.once("online_users", handleDisconnect);
-
-    return () => {
-      socket.off("ban", handleBan);
-      socket.off("online_users", handleDisconnect);
-    };
-  }, [userPseudo, opponent]);
-  
-  const handleLogout = async () => {
-  const response = await fetch("/api/profile", {
-      method: "PUT",
-  })
-      const user: unknown = await response.json();
-      if (!response.ok) {
-      const errorMessage =
-      typeof user === "object" && user !== null && "error" in user
-          ? String((user as { error: string }).error ?? "Impossible de charger l'utilisateur")
-          : "Impossible de charger l'utilisateur";
-      throw new Error(errorMessage);
-      }
-      socket.emit("isdisconnecting");
-      socket.disconnect();
-      await authClient.signOut();
-      router.push("/");
-  };
-
-  if (!teamSelected) {
+  // Loading states
+  console.log("[GamePage] render check — dataPhase:", dataPhase, "teamSelected:", !!teamSelected, "oppTeam:", oppTeam, "gameState:", !!gameState);
+  if (dataPhase === "error") {
+    return <GameLoadingScreen phase="error" />;
+  }
+  if (dataPhase !== "loaded") {
+    return <GameLoadingScreen phase={dataPhase} />;
+  }
+  if (!teamSelected || !oppTeam) {
+    console.log("[GamePage] blocked — teamSelected or oppTeam missing. teamSelected:", teamSelected, "oppTeam:", oppTeam);
     return (
       <div className="flex w-full justify-center px-4">
-        <div className="rounded border border-[#3c3650] bg-[#0f0e13] p-4 text-[#cfc8e6]">Chargement...</div>
+        <div className="rounded border border-[#3c3650] bg-[#0f0e13] p-4 text-[#cfc8e6]">
+          Chargement...
+        </div>
       </div>
     );
   }
+  if (!gameState) {
+    return <GameLoadingScreen phase="waiting" />;
+  }
 
-  const firstHero = teamSelected[0] ?? CHARACTERS.find(h => h.identity.id === "archer");
+  // --- Render helpers ---
+  const firstHero = teamSelected[0] ?? HERO_MAP.byId.get("archer");
   if (!firstHero) {
     return (
       <div className="flex w-full justify-center px-4">
-        <div className="rounded border border-red-600 bg-[#0f0e13] p-4 text-red-200">Héros introuvable</div>
+        <div className="rounded border border-red-600 bg-[#0f0e13] p-4 text-red-200">
+          Héros introuvable
+        </div>
       </div>
     );
   }
 
-  const enemyTeam = [
-    CHARACTERS.find((character) => character.identity.id === "knight") ?? null,
-    CHARACTERS.find((character) => character.identity.id === "mage") ?? null,
-  ].filter((character): character is (typeof CHARACTERS)[number] => Boolean(character));
+  const enemyTeam = oppTeam
+    .map((id) => HERO_MAP.byName.get(id) ?? null)
+    .filter((c): c is (typeof CHARACTERS)[number] => Boolean(c));
 
   const selectedHeroCard = selectedHero ?? firstHero;
-  const selectedCharacter = playerCharacters?.find((character) => character.name === selectedHeroCard.identity.name) ?? null;
+  const selectedCharacter =
+    playerCharacters?.find((c) => c.name === selectedHeroCard.identity.name) ?? null;
+
+  // --- Targeting helpers for render ---
+  const isTarget = (uid: string | undefined, _chars: CharacterState[]) =>
+    targetingMode && !!uid && validTargetUids.has(uid);
 
   return (
-      <div className="game-screen relative flex min-h-screen w-full flex-col px-4 py-4 text-[16px] leading-7 text-[#f5e6c8]" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
-        <TurnQueue />
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 py-6">
-          <div className="w-full max-w-4xl -translate-y-20 rounded-3xl">
-            <div className="flex flex-col gap-4 sm:gap-5">
-              <div className="grid w-2/3 grid-cols-2 justify-items-center gap-2 sm:gap-3">
-                {enemyTeam.map((character) => (
-                  <div key={character.identity.id} className="w-full opacity-90">
-                    <EnemyFighter character={character} />
-                  </div>
-                ))}
-              </div>
+    <div
+      className="relative flex min-h-screen w-full flex-col overflow-hidden px-4 py-4 text-[16px] leading-7 text-[#f5e6c8]"
+      style={{ fontFamily: "Inter, system-ui, sans-serif" }}
+    >
+      <GameArenaBackground />
 
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                {teamSelected.map((character, index) => (
+      <TurnQueue
+        turnQueue={gameState?.turnQueue ?? []}
+        isYourTurn={isYourTurn}
+        userPseudo={userPseudo}
+      />
+
+      {/* Arena */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 py-6">
+        <div className="w-full max-w-4xl -translate-y-20 rounded-3xl">
+          <div className="flex flex-col gap-4 sm:gap-5">
+            {/* Enemy team */}
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              {enemyTeam.map((character) => {
+                const charState = findCharByHeroId(oppCharacters, character.identity.id);
+                const dead = !charState;
+                return (
+                  <div key={character.identity.id} className={`w-full transition-opacity duration-300 ${dead ? "opacity-30 pointer-events-none" : "opacity-90"}`}>
+                    <Fighter
+                      variant="enemy"
+                      character={character}
+                      currentHp={charState ? charState.currentHp : 0}
+                      effects={[]}
+                      active={charState ? charState.uid === activeCharacterUid : false}
+                      onClick={isTarget(charState?.uid, oppCharacters) && charState ? () => handleTargetSelect(charState.uid) : undefined}
+                      isTargetable={isTarget(charState?.uid, oppCharacters)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Player team */}
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              {teamSelected.map((character, index) => {
+                const charState = character
+                  ? findCharByHeroId(myCharacters, character.identity.id)
+                  : undefined;
+                const dead = !charState;
+                return (
                   <div key={character?.identity.id ?? `own-slot-${index}`}>
                     {character ? (
-                      <Fighter character={character} active={selectedHero?.identity.id === character.identity.id} />
+                      <div className={`transition-opacity duration-300 ${dead ? "opacity-30 pointer-events-none" : ""}`}>
+                        <Fighter
+                          character={character}
+                          active={
+                            charState
+                              ? charState.uid === activeCharacterUid
+                              : selectedHero?.identity.id === character.identity.id
+                          }
+                          currentHp={charState ? charState.currentHp : 0}
+                          onClick={isTarget(charState?.uid, myCharacters) && charState ? () => handleTargetSelect(charState.uid) : undefined}
+                          isTargetable={isTarget(charState?.uid, myCharacters)}
+                        />
+                      </div>
                     ) : (
                       <div className="flex aspect-square items-center justify-center rounded-2xl border border-dashed border-gray-700 bg-[#0f0e13] text-sm text-gray-500">
                         Vide
                       </div>
                     )}
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
           </div>
         </div>
-
-        <div className="flex items-start justify-end gap-4">
-          <ProfileInfo account={{ pseudo: opponent }} />
-        </div>
-
-        <div className="mt-auto" />
-
-        <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(11rem,15rem)] gap-3 sm:gap-4 md:grid-cols-[minmax(0,7fr)_minmax(240px,280px)] md:items-stretch">
-          <div className="min-w-0 flex items-end">
-            <SpellSelector hero={selectedHeroCard} character={selectedCharacter} className="w-full" />
-          </div>
-
-          <div className="flex flex-col items-end gap-3 md:h-full md:justify-between">
-            <div className="flex flex-col items-end gap-3">
-              <ManaBar currentMana={42} />
-            </div>
-
-            <Button variant="secondary" onClick={() => router.push("/home")} className="w-full md:w-auto">
-              Forfeit
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setIsYourTurn((currentTurn) => !currentTurn);
-                setIsInfoModalOpen(true);
-              }}
-              className="w-full md:w-auto"
-            >
-              Test
-            </Button>
-            <ProfileInfo account={{ pseudo: userPseudo, profilePhoto: userAvatar }} className="self-end" />
-          </div>
-        </div>
-
-        <InfoModal
-          open={isInfoModalOpen}
-          isYourTurn={isYourTurn}
-          onClose={() => setIsInfoModalOpen(false)}
-        />
       </div>
-  )
+
+      {/* Opponent info */}
+      <div className="flex flex-col items-end gap-1">
+        <div className="flex items-start justify-end gap-4">
+          <ProfileInfo account={{ pseudo: opponent, profilePhoto: oppAvatar }} />
+        </div>
+        <p className="text-xs text-[#8b82a6]">
+          Session ID: {roomId || "—"}
+        </p>
+      </div>
+
+      <div className="mt-auto" />
+
+      <BottomBar
+        isYourTurn={isYourTurn}
+        activeMp={activeMp}
+        confirmForfeit={confirmForfeit}
+        setConfirmForfeit={setConfirmForfeit}
+        selectedHeroCard={selectedHeroCard}
+        selectedCharacter={selectedCharacter}
+        handleCastSpell={handleCastSpell}
+        handleSkipTurn={handleSkipTurn}
+        userPseudo={userPseudo}
+        userAvatar={userAvatar}
+      />
+
+      {/* Game Over overlay */}
+      {isGameOver && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+          <div className="rounded-2xl border-2 border-[#c9a84c] bg-gradient-to-b from-[#1f1810] to-[#15100a] p-8 text-center shadow-[0_0_40px_rgba(201,168,76,0.15)]">
+            <h1 className="font-serif text-3xl font-bold tracking-wide text-[#e8dcc8]">
+              {isWinner ? "Victory!" : "Defeat"}
+            </h1>
+            <p className="mt-2 font-serif text-[#c9b896]">
+              {isWinner ? "Your team emerges victorious!" : "Your team has been defeated."}
+            </p>
+            <button
+              type="button"
+              onClick={() => router.push("/home")}
+              className="mt-6 rounded-md border-2 border-[#c9a84c] bg-gradient-to-b from-[#c9a84c] to-[#a8883c] px-6 py-2 font-serif font-semibold text-[#0a0806] transition-all duration-150 hover:shadow-[0_0_14px_rgba(201,168,76,0.3)]"
+            >
+              Return to Home
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Targeting mode banner */}
+      {targetingMode && (
+        <div className="fixed inset-x-0 top-0 z-40 flex items-center justify-center bg-gradient-to-b from-[#c9a84c]/20 to-transparent py-3">
+          <div className="rounded-lg border border-[#c9a84c]/40 bg-[#1f1810] px-6 py-2 font-serif text-sm text-[#e8dcc8] shadow-[0_0_20px_rgba(201,168,76,0.15)]">
+            Select a target — <button onClick={() => handleTargetSelect(null)} className="underline text-[#8a7a5a] hover:text-[#c9b896]">Cancel (Esc)</button>
+          </div>
+        </div>
+      )}
+
+      <InfoModal
+        open={isInfoModalOpen && !isGameOver}
+        isYourTurn={isYourTurn}
+        onClose={() => setIsInfoModalOpen(false)}
+      />
+
+
+    </div>
+  );
 }
