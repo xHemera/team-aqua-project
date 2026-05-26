@@ -56,6 +56,7 @@ export const healer = {
     {
       id: "s1",
       type: "singleHeal",
+      targeting: "teamSingle",
       info: {
         name: "Healing Light",
         icon: spell1Icon,
@@ -83,6 +84,7 @@ export const healer = {
     {
       id: "s2",
       type: "aoeHealBuff",
+      targeting: "teamAoe",
       info: {
         name: "Sanctuary",
         icon: spell2Icon,
@@ -109,6 +111,7 @@ export const healer = {
     {
       id: "s3",
       type: "invulnerability",
+      targeting: "teamSingle",
       info: {
         name: "Divine Protection",
         icon: spell3Icon,

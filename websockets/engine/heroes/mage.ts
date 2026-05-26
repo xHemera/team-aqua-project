@@ -56,9 +56,8 @@ export const mage = {
   skills: [
     {
       id: "s1",
-
       type: "burnDamage",
-
+      targeting: "single",
       info: {
         name: "Fireball",
 
@@ -88,9 +87,8 @@ export const mage = {
 
     {
       id: "s2",
-
       type: "multiHitMagic",
-
+      targeting: "aoe",
       info: {
         name: "Arcane Missiles",
 
@@ -120,9 +118,8 @@ export const mage = {
 
     {
       id: "s3",
-
       type: "ultimateAoe",
-
+      targeting: "aoe",
       info: {
         name: "Meteor",
 

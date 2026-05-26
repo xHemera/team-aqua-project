@@ -56,9 +56,8 @@ export const knight = {
   skills: [
     {
       id: "s1",
-
       type: "stunDamage",
-
+      targeting: "single",
       info: {
         name: "Shield Bash",
 
@@ -88,9 +87,8 @@ export const knight = {
 
     {
       id: "s2",
-
       type: "tauntDefenseBuff",
-
+      targeting: "self",
       info: {
         name: "Iron Will",
 
@@ -120,9 +118,8 @@ export const knight = {
 
     {
       id: "s3",
-
       type: "emergencyShield",
-
+      targeting: "self",
       info: {
         name: "Last Stand",
 

@@ -86,9 +86,12 @@ export default function Game() {
   const [gameState, setGameState] = useState<GameStatePayload | null>(null);
   const prevTurnRef = useRef(0);
   const hasShownStartModal = useRef(false);
+  const initStartedRef = useRef(false);
+  const charsFetchedRef = useRef(false);
 
   // Targeting state
   const [targetingMode, setTargetingMode] = useState(false);
+  const [confirmForfeit, setConfirmForfeit] = useState(false);
   const [pendingAction, setPendingAction] = useState<{
     type: "basic" | "skill";
     skillId?: string;
@@ -138,6 +141,7 @@ export default function Game() {
   // Handle spell/basic click from SpellSelector
   function handleCastSpell(type: "basic" | "skill", skillId?: string) {
     const targeting = type === "basic" ? "single" : getSkillTargeting(skillId);
+    console.log(`[GameClient] handleCastSpell — activeCharacterUid=${activeCharacterUid} activeHeroDef=${activeHeroDef?.identity?.id ?? "null"} oppChars=${oppCharacters.length} myChars=${myCharacters.length}`);
     if (!targeting || !activeCharacterUid) {
       console.log(`[GameClient] handleCastSpell cancelled — no targeting or uid (type=${type} skillId=${skillId} targeting=${targeting} uid=${activeCharacterUid})`);
       return;
@@ -158,7 +162,10 @@ export default function Game() {
 
     // For single/teamSingle — enter targeting mode
     const targets = getTargetsForAction(type, skillId);
-    if (targets.length === 0) return;
+    if (targets.length === 0) {
+      console.log(`[GameClient] handleCastSpell — targets.length === 0 (type=${type} skillId=${skillId ?? "none"} targeting=${targeting})`);
+      return;
+    }
     setPendingAction({ type, skillId });
     setValidTargetUids(targets);
     setTargetingMode(true);
@@ -238,54 +245,65 @@ export default function Game() {
       setGameState(state);
     });
 
-    const getUserData = async () => {
-      const { data } = await authClient.getSession();
-      if (data && data.user.name) setUserPseudo(data.user.name);
-      else return;
-      const [cres, ores] = await Promise.all([
-        fetch(`/api/user?pseudo=${data.user.name}`, {
-          method: "GET",
-        }),
-        fetch(`/api/user/opponent?pseudo=${data.user.name}`, {
-          method: "GET",
-        }),
-      ]);
-      if (!ores.ok) return;
-      const res = await cres.json();
-      const team: Team = {
-        owner: data.user.name,
-        characters: res.team,
-        levels: res.levels,
-        skillsLevels: res.spellsLevels,
+    if (!initStartedRef.current) {
+      initStartedRef.current = true;
+
+      const getUserData = async (retries = 10) => {
+        const { data } = await authClient.getSession();
+        if (data && data.user.name) setUserPseudo(data.user.name);
+        else return;
+        const [cres, ores] = await Promise.all([
+          fetch(`/api/user?pseudo=${data.user.name}`, {
+            method: "GET",
+          }),
+          fetch(`/api/user/opponent?pseudo=${data.user.name}`, {
+            method: "GET",
+          }),
+        ]);
+        if (!ores.ok) {
+          if (ores.status === 429 && retries > 0) {
+            console.log(`[GameClient] rate limited, retrying... (${retries} left)`);
+            await new Promise(r => setTimeout(r, 2000));
+            return getUserData(retries - 1);
+          }
+          return;
+        }
+        const res = await cres.json();
+        const team: Team = {
+          owner: data.user.name,
+          characters: res.team,
+          levels: res.levels,
+          skillsLevels: res.spellsLevels,
+        };
+        setTeam(res.team);
+        const opp = await ores.json();
+        console.log(`[GameClient] Sending initiate — room=${opp.roomId} team=${team.characters} opponent=${opp.name}`);
+        spells.initialData(team, opp.roomId);
+        setOpponent(opp.name);
+        setOppTeam(opp.team);
+        setOppAvatar(opp.avatar);
+        setRoomId(opp.roomId);
       };
-      setTeam(res.team);
-      const opp = await ores.json();
-      console.log(`[GameClient] Sending initiate — room=${opp.roomId} team=${team.characters} opponent=${opp.name}`);
-      spells.initialData(team, opp.roomId);
-      setOpponent(opp.name);
-      setOppTeam(opp.team);
-      setOppAvatar(opp.avatar);
-      setRoomId(opp.roomId);
-    };
-    getUserData();
+      getUserData();
 
-    const loadProfileAvatar = async () => {
-      const profileResponse = await fetch("/api/profile/", {
-        method: "GET",
-        cache: "no-store",
-      });
-      if (!profileResponse.ok) {
-        return;
-      }
+      const loadProfileAvatar = async () => {
+        const profileResponse = await fetch("/api/profile/", {
+          method: "GET",
+          cache: "no-store",
+        });
+        if (!profileResponse.ok) {
+          return;
+        }
 
-      const profile = (await profileResponse.json()) as {
-        image: string | null;
-        avatar: { url: string | null } | null;
+        const profile = (await profileResponse.json()) as {
+          image: string | null;
+          avatar: { url: string | null } | null;
+        };
+        setUserAvatar(profile.image ?? profile.avatar?.url ?? null);
       };
-      setUserAvatar(profile.image ?? profile.avatar?.url ?? null);
-    };
 
-    void loadProfileAvatar();
+      void loadProfileAvatar();
+    }
 
     return () => {
       socket.off("gameStateUpdate");
@@ -293,7 +311,8 @@ export default function Game() {
   }, []);
 
   useEffect(() => {
-    if (!userPseudo) return;
+    if (!userPseudo || charsFetchedRef.current) return;
+    charsFetchedRef.current = true;
 
     const loadPlayerCharacters = async () => {
       const response = await fetch(
@@ -407,6 +426,13 @@ export default function Game() {
       setIsInfoModalOpen(true);
     }
   }, [gameState, playerId]);
+
+  // Auto-redirect to home after game over
+  useEffect(() => {
+    if (!isGameOver) return;
+    const timer = setTimeout(() => router.push("/home"), 5000);
+    return () => clearTimeout(timer);
+  }, [isGameOver]);
 
   const handleLogout = async () => {
     const response = await fetch("/api/profile", {
@@ -542,14 +568,15 @@ export default function Game() {
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
               {enemyTeam.map((character) => {
                 const charState = findCharByHeroId(oppCharacters, character.identity.id);
-                const isTargetable = targetingMode && validTargetUids.some(
-                  uid => uid === charState?.uid
+                const dead = !charState;
+                const isTargetable = targetingMode && !!charState && validTargetUids.some(
+                  uid => uid === charState.uid
                 );
                 return (
-                  <div key={character.identity.id} className="w-full opacity-90">
+                  <div key={character.identity.id} className={`w-full transition-opacity duration-300 ${dead ? "opacity-30 pointer-events-none" : "opacity-90"}`}>
                     <EnemyFighter
                       character={character}
-                      currentHp={charState?.currentHp}
+                      currentHp={charState ? charState.currentHp : 0}
                       effects={[]}
                       active={charState ? charState.uid === activeCharacterUid : false}
                       onClick={isTargetable && charState ? () => handleTargetSelect(charState.uid) : undefined}
@@ -565,23 +592,26 @@ export default function Game() {
                 const charState = character
                   ? findCharByHeroId(myCharacters, character.identity.id)
                   : undefined;
-                const isTargetable = targetingMode && validTargetUids.some(
-                  uid => uid === charState?.uid
+                const dead = !charState;
+                const isTargetable = targetingMode && !!charState && validTargetUids.some(
+                  uid => uid === charState.uid
                 );
                 return (
                   <div key={character?.identity.id ?? `own-slot-${index}`}>
                     {character ? (
-                      <Fighter
-                        character={character}
-                        active={
-                          charState
-                            ? charState.uid === activeCharacterUid
-                            : selectedHero?.identity.id === character.identity.id
-                        }
-                        currentHp={charState?.currentHp}
-                        onClick={isTargetable && charState ? () => handleTargetSelect(charState.uid) : undefined}
-                        isTargetable={isTargetable}
-                      />
+                      <div className={`transition-opacity duration-300 ${dead ? "opacity-30 pointer-events-none" : ""}`}>
+                        <Fighter
+                          character={character}
+                          active={
+                            charState
+                              ? charState.uid === activeCharacterUid
+                              : selectedHero?.identity.id === character.identity.id
+                          }
+                          currentHp={charState ? charState.currentHp : 0}
+                          onClick={isTargetable && charState ? () => handleTargetSelect(charState.uid) : undefined}
+                          isTargetable={isTargetable}
+                        />
+                      </div>
                     ) : (
                       <div className="flex aspect-square items-center justify-center rounded-2xl border border-dashed border-gray-700 bg-[#0f0e13] text-sm text-gray-500">
                         Vide
@@ -609,10 +639,27 @@ export default function Game() {
       <div className="mt-auto" />
 
       {(() => {
-        const forfeitBtn = (
+        const forfeitBtn = confirmForfeit ? (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => { spells.forfeit(); setConfirmForfeit(false); router.push("/home"); }}
+              className="group relative w-full overflow-hidden rounded-md border-2 border-red-700 bg-gradient-to-b from-[#2a0a0a] to-[#1a0505] px-4 py-2 font-serif text-sm font-semibold tracking-wide text-red-300 transition-all duration-150 hover:border-red-500 hover:text-red-100 hover:shadow-[0_0_14px_rgba(200,0,0,0.2)] md:w-auto"
+            >
+              <span className="relative z-10">Confirm forfeit?</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmForfeit(false)}
+              className="group relative w-full overflow-hidden rounded-md border-2 border-[#3a3a3a] bg-gradient-to-b from-[#141414] to-[#0a0a0a] px-4 py-2 font-serif text-sm font-semibold tracking-wide text-[#8a8a8a] transition-all duration-150 hover:border-[#6a6a6a] hover:text-[#b0b0b0] md:w-auto"
+            >
+              <span className="relative z-10">Cancel</span>
+            </button>
+          </div>
+        ) : (
           <button
             type="button"
-            onClick={() => router.push("/home")}
+            onClick={() => setConfirmForfeit(true)}
             className="group relative w-full overflow-hidden rounded-md border-2 border-[#2a1f14] bg-gradient-to-b from-[#14100a] to-[#0f0a06] px-4 py-2 font-serif text-sm font-semibold tracking-wide text-[#c9b896] transition-all duration-150 hover:border-[#c9a84c] hover:text-[#e8dcc8] hover:shadow-[0_0_14px_rgba(201,168,76,0.12)] md:w-auto"
           >
             <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">

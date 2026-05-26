@@ -27,6 +27,9 @@ function tickAllMods(character: CharacterInstance): void {
 function tickPoison(state: GameState): GameState {
 	state.players.flatMap(p => p.characters).forEach(character => {
 		const totalDamage   = character.poison.reduce((acc, { value }) => acc + value, 0);
+		if (totalDamage > 0) {
+			console.log(`[GameEngine] tickPoison — ${character.uid} takes ${totalDamage} poison damage (hp=${character.currentHp}→${Math.max(0, character.currentHp - totalDamage)})`);
+		}
 		applyDamage(character, totalDamage);
 		character.poison    = character.poison
 			.map(e => ({ ...e, turn: e.turn - 1 }))
@@ -36,10 +39,14 @@ function tickPoison(state: GameState): GameState {
 }
 
 function removeDeadCharacters(state: GameState): GameState {
-	const updatedPlayers = state.players.map(player => ({
-		...player,
-		characters: player.characters.filter(c => c.currentHp > 0),
-	}));
+	const updatedPlayers = state.players.map((player, pi) => {
+		const alive = player.characters.filter(c => c.currentHp > 0);
+		const dead = player.characters.filter(c => c.currentHp <= 0);
+		if (dead.length > 0) {
+			console.log(`[GameEngine] removeDeadCharacters — player ${pi}: ${dead.length} dead (${dead.map(c => `${c.uid} hp=${c.currentHp}`).join(", ")}), ${alive.length} alive`);
+		}
+		return { ...player, characters: alive };
+	});
 
 	const aliveUids    = new Set(updatedPlayers.flatMap(p => p.characters.map(c => c.uid)));
 	const updatedQueue = state.turnQueue.filter(e => aliveUids.has(e.characterUid));
@@ -48,10 +55,12 @@ function removeDeadCharacters(state: GameState): GameState {
 }
 
 function checkWinner(state: GameState): GameState {
+	const charCounts = state.players.map(p => `${p.id}:${p.characters.length}`);
 	const loser = state.players.find(p => p.characters.length === 0);
 	if (!loser) return state;
 
 	const winner = state.players.find(p => p !== loser);
+	console.log(`[GameEngine] checkWinner — game end! remaining chars=${charCounts.join(",")} winnerId=${state.players.indexOf(winner!)}`);
 	return {
 		...state,
 		gamePhase: "end",

@@ -301,10 +301,57 @@ io.on("connection", (socket) => {
     }
   });
 
+  // Forfeit — player surrenders
+  socket.on("forfeit", async () => {
+    console.log("[GameServer] forfeit received — socket", socket.id);
+
+    for (const [roomId, room] of gameRooms) {
+      if (room.playerConns?.some(s => s.id === socket.id)) {
+        if (!room.gameState) {
+          console.log(`[GameServer] forfeit skipped — no gameState in room ${roomId}`);
+          return;
+        }
+        // Determine the forfeiting player's ID
+        const forfeiterIdx = room.playerConns.findIndex(s => s.id === socket.id);
+        const winnerIdx = forfeiterIdx === 0 ? 1 : 0;
+        const forfeiter = room.players[forfeiterIdx] ?? "unknown";
+        const winner = room.players[winnerIdx] ?? "unknown";
+
+        console.log(`[GameServer] forfeit — room=${roomId} ${forfeiter} surrenders, ${winner} wins`);
+
+        room.gameState.gamePhase = "end";
+        room.gameState.winnerId = winnerIdx;
+        broadcastGameState(roomId);
+        return;
+      }
+    }
+    console.log("[GameServer] forfeit — no room found for socket", socket.id);
+  });
+
   // Unified game action (spell cast or basic attack)
   socket.on("gameAction", async (action) => {
     console.log("[GameServer] gameAction received:", JSON.stringify(action));
-    // Will be wired to processAction() once GameState is created
+
+    // Find which room this socket belongs to
+    for (const [roomId, room] of gameRooms) {
+      if (room.playerConns?.some(s => s.id === socket.id)) {
+        if (!room.gameState) {
+          console.log(`[GameServer] gameAction skipped — no gameState in room ${roomId}`);
+          return;
+        }
+        console.log(`[GameServer] gameAction processing — room=${roomId} turn=${room.gameState.turn} phase=${room.gameState.gamePhase}`);
+        try {
+          const newState = processAction(room.gameState, action);
+          room.gameState = newState;
+          console.log(`[GameServer] gameAction done — turn=${newState.turn} phase=${newState.gamePhase} queueLen=${newState.turnQueue.length}`);
+          broadcastGameState(roomId);
+        } catch (err) {
+          console.error(`[GameServer] gameAction error — room=${roomId}`, err);
+        }
+        return;
+      }
+    }
+    console.log("[GameServer] gameAction — no room found for socket", socket.id);
   });
 
   //delete the user's socket if he's disconnected

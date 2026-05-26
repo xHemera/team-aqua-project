@@ -29,4 +29,9 @@ async function submitAction(action: GameAction)
     socket.emit("gameAction", action);
 }
 
-export const spells = { initialData, submitAction };
+async function forfeit()
+{
+    socket.emit("forfeit");
+}
+
+export const spells = { initialData, submitAction, forfeit };

@@ -57,6 +57,7 @@ export const assassin = {
     {
       id: "s1",
       type: "executeDamage",
+      targeting: "single",
       info: {
         name: "Shadow Strike",
         icon: spell1Icon,
@@ -83,6 +84,7 @@ export const assassin = {
     {
       id: "s2",
       type: "poisonDamage",
+      targeting: "single",
       info: {
         name: "Venom Blade",
         icon: spell2Icon,
@@ -109,6 +111,7 @@ export const assassin = {
     {
       id: "s3",
       type: "stealthBuff",
+      targeting: "self",
       info: {
         name: "Phantom Step",
         icon: spell3Icon,

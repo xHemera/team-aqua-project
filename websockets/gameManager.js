@@ -72,8 +72,9 @@ export function broadcastGameState(roomId) {
   const currentOwner = turnCharacter?.owner ?? 0;
 
   const activeUid = state.turnQueue[0]?.characterUid ?? "none";
+  const charCounts = state.players.map(p => `P${p.id}:${p.characters.length}`).join(" ");
   console.log(
-    `[GameServer] broadcastGameState room=${roomId} turn=${state.turn} phase=${state.gamePhase} activePlayer=${currentOwner} activeChar=${activeUid}`
+    `[GameServer] broadcastGameState room=${roomId} turn=${state.turn} phase=${state.gamePhase} activePlayer=${currentOwner} activeChar=${activeUid} chars=[${charCounts}]`
   );
 
   const payload = {

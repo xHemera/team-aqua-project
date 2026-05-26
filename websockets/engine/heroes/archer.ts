@@ -58,6 +58,7 @@ export const archer = {
     {
       id: "s1",
       type: "damage",
+      targeting: "single",
       info: {
         name: "Piercing Shot",
         icon: spell1Icon,
@@ -84,6 +85,7 @@ export const archer = {
     {
       id: "s2",
       type: "aoeDamage",
+      targeting: "aoe",
       info: {
         name: "Rain of Arrows",
         icon: spell2Icon,
@@ -110,6 +112,7 @@ export const archer = {
     {
       id: "s3",
       type: "buff",
+      targeting: "self",
       info: {
         name: "Precision Focus",
         icon: spell3Icon,
