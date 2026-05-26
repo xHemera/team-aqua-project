@@ -50,9 +50,10 @@ io.on("connection", (socket) => {
       return;
     }
 
+    console.log("[Pong Server] User login:", { user, socketId: socket.id });
     await redis.hSet("online_users", user, socket.id);
     const users = await redis.hGetAll("online_users");
-    console.log("Client connected: ", users);
+    console.log("[Pong Server] Online users after login:", users);
     io.emit("online_users", users);
   });
 
@@ -235,19 +236,6 @@ io.on("connection", (socket) => {
     io.emit("unban", banned);
   });
 
-  socket.on("pong_info", async (data) => {
-    const receiverSock = await redis.hGet(
-      "online_users",
-      data.opponent
-    );
-
-    if (receiverSock) {
-      io.to(receiverSock).emit("pong", {
-        y: data.y,
-      });
-    }
-  });
-
   //tells everyone that they are connected
   socket.on("isconnecting", () => {
     io.emit("online");
@@ -365,6 +353,66 @@ io.on("connection", (socket) => {
       }
     }
     console.log("[GameServer] gameAction — no room found for socket", socket.id);
+  });
+
+  // Pong info relay - relayer les mouvements des joueurs de pong
+  socket.on("pong_info", async ({ opponent, y }) => {
+    console.log("[Pong Server] Received pong_info event:", { opponent, y, senderSocketId: socket.id });
+    
+    if (!opponent || y === undefined) {
+      console.log("[Pong Server] Invalid pong_info data, ignoring");
+      return;
+    }
+    
+    const opponentSock = await redis.hGet("online_users", opponent);
+    console.log("[Pong Server] Looking up opponent:", { opponent, foundSocketId: opponentSock });
+    
+    if (opponentSock) {
+      console.log("[Pong Server] Sending pong event to opponent socket:", opponentSock);
+      io.to(opponentSock).emit("pong", { y });
+    } else {
+      console.log("[Pong Server] Opponent socket not found in online_users");
+    }
+  });
+
+  // Ball launch relay - synchronize ball launch between players
+  socket.on("ballLaunch", async ({ opponent, speedX, speedY }) => {
+    console.log("[Pong Server] Received ballLaunch event:", { opponent, speedX, speedY, senderSocketId: socket.id });
+    
+    if (!opponent || speedX === undefined || speedY === undefined) {
+      console.log("[Pong Server] Invalid ballLaunch data, ignoring");
+      return;
+    }
+    
+    const opponentSock = await redis.hGet("online_users", opponent);
+    console.log("[Pong Server] Looking up opponent for ballLaunch:", { opponent, foundSocketId: opponentSock });
+    
+    if (opponentSock) {
+      console.log("[Pong Server] Sending ballLaunch event to opponent socket:", opponentSock);
+      io.to(opponentSock).emit("ballLaunch", { speedX, speedY });
+    } else {
+      console.log("[Pong Server] Opponent socket not found for ballLaunch");
+    }
+  });
+
+  // Match end relay - sync game end between players
+  socket.on("matchEnd", async ({ opponent, winner }) => {
+    console.log("[Pong Server] Received matchEnd event:", { opponent, winner, senderSocketId: socket.id });
+    
+    if (!opponent || !winner) {
+      console.log("[Pong Server] Invalid matchEnd data, ignoring");
+      return;
+    }
+    
+    const opponentSock = await redis.hGet("online_users", opponent);
+    console.log("[Pong Server] Looking up opponent for matchEnd:", { opponent, foundSocketId: opponentSock });
+    
+    if (opponentSock) {
+      console.log("[Pong Server] Sending matchEnd event to opponent socket:", opponentSock);
+      io.to(opponentSock).emit("matchEnd", { winner });
+    } else {
+      console.log("[Pong Server] Opponent socket not found for matchEnd");
+    }
   });
 
   //delete the user's socket if he's disconnected
