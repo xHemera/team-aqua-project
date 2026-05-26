@@ -125,8 +125,6 @@ export default function PongPage() {
       const p1 = player1.current;
       const p2 = player2.current;
       const b = ball.current;
-      const ballX = boardWidth / 2;
-      const ballY = boardHeight / 2;
 
       if (winner)
         return;
