@@ -53,6 +53,7 @@ export default function PongPage() {
 
   // Touches
   const keys = useRef<{ [key: string]: boolean }>({});
+  const matchEndedRef = useRef(false);
 
    useEffect(() => {
     const getUserData = async () => {
@@ -166,11 +167,21 @@ export default function PongPage() {
         ball.current.started = false;
       }
     };
+
+    const handleForceDisconnect = (data: { reason: string }) => {
+      console.log("[Pong] Received forceDisconnect event:", data);
+      setError("L'adversaire s'est déconnecté. Retour à l'accueil...");
+      setTimeout(() => {
+        socket.disconnect();
+        router.push("home");
+      }, 2000);
+    };
     
     socket.on("ban", handleBan);
     socket.on("pong", handlePongUpdate);
     socket.on("ballLaunch", handleBallLaunch);
     socket.on("matchEnd", handleMatchEnd);
+    socket.on("forceDisconnect", handleForceDisconnect);
     
     console.log("[Pong] Socket listeners registered, socket connected:", socket.connected);
     
@@ -180,6 +191,7 @@ export default function PongPage() {
       socket.off("pong", handlePongUpdate);
       socket.off("ballLaunch", handleBallLaunch);
       socket.off("matchEnd", handleMatchEnd);
+      socket.off("forceDisconnect", handleForceDisconnect);
     };
   }, [userPseudo, opponent])
 
@@ -188,6 +200,7 @@ export default function PongPage() {
     if (!opponent) return;
     
     console.log("[Pong] Opponent found, starting countdown");
+    matchEndedRef.current = false; // Reset match ended flag for new match
     countdownRef.current = 3;
     setCountdown(3);
     
@@ -302,7 +315,8 @@ export default function PongPage() {
       const p2 = player2.current;
       const b = ball.current;
 
-      if (winner)
+      // Stop processing if match has ended
+      if (matchEndedRef.current)
         return;
 
       // Mouvement joueur 1
@@ -329,7 +343,7 @@ export default function PongPage() {
       }
 
       // Auto-launch ball after countdown (Player 1 initiates)
-      if (countdownRef.current === 0 && !b.started) {
+      if (countdownRef.current === 0 && !b.started && !winner) {
         if (isPlayer1.current) {
           // Player 1 generates random direction and sends to opponent
           const randomAngle = (Math.random() * Math.PI / 3) - Math.PI / 6; // -30° to +30°
@@ -406,9 +420,17 @@ export default function PongPage() {
 
       // Sortie gauche -> joueur droit gagne
       if (b.x < 0) {
-        setWinner("right");
+        // Stop the ball completely on both sides
+        b.speedX = 0;
+        b.speedY = 0;
         b.started = false;
-        if (socket.connected && opponent) {
+        
+        // Show winner modal
+        setWinner("right");
+        
+        // Send matchEnd event to opponent (only once)
+        if (!matchEndedRef.current && socket.connected && opponent) {
+          matchEndedRef.current = true;
           console.log("[Pong] Sending matchEnd to opponent: right wins");
           socket.emit("matchEnd", { opponent, winner: "right" });
         }
@@ -416,9 +438,17 @@ export default function PongPage() {
 
       // Sortie droite -> joueur gauche gagne
       if (b.x > boardWidth) {
-        setWinner("left");
+        // Stop the ball completely on both sides
+        b.speedX = 0;
+        b.speedY = 0;
         b.started = false;
-        if (socket.connected && opponent) {
+        
+        // Show winner modal
+        setWinner("left");
+        
+        // Send matchEnd event to opponent (only once)
+        if (!matchEndedRef.current && socket.connected && opponent) {
+          matchEndedRef.current = true;
           console.log("[Pong] Sending matchEnd to opponent: left wins");
           socket.emit("matchEnd", { opponent, winner: "left" });
         }
@@ -539,7 +569,12 @@ export default function PongPage() {
                     <p className="text-green-600 font-semibold">✓ XP récolté avec succès !</p>
                     <button
                       className="px-6 py-2 bg-black text-white rounded"
-                      onClick={() => router.push("home")}
+                      onClick={() => {
+                        // Just disconnect socket and navigate
+                        socket.emit("isdisconnecting");
+                        socket.disconnect();
+                        router.push("home");
+                      }}
                     >
                       Retour à l'accueil
                     </button>
