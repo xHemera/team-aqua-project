@@ -287,6 +287,39 @@ export default function PongPage() {
     }
   };
 
+  // Auto-collect XP when match ends
+  useEffect(() => {
+    if (!winner || xpCollected) return;
+
+    const collectXpAutomatically = async () => {
+      if (!userPseudo || xp.current === 0) return;
+
+      try {
+        console.log("[Pong] Auto-collecting XP:", xp.current);
+        const response = await fetch("/api/characters/reward-xp", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name: userPseudo, xpGained: xp.current }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          setError(errorData.error || "Erreur lors de la récolte d'XP");
+          return;
+        }
+
+        console.log("[Pong] XP collected successfully:", xp.current);
+        setXpCollected(true);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Erreur inconnue");
+      }
+    };
+
+    void collectXpAutomatically();
+  }, [winner, userPseudo, xpCollected]);
+
   //context du jeu
   useEffect(() => {
     const board = canvasRef.current;
@@ -556,30 +589,21 @@ export default function PongPage() {
                   <p className="text-red-600 font-semibold">{error}</p>
                 )}
 
-                {!xpCollected ? (
-                  <button
-                    className="px-6 py-2 bg-green-600 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={handleCollectXp}
-                    disabled={isCollectingXp || !userPseudo}
-                  >
-                    {isCollectingXp ? "Récolte en cours..." : "Récolter l'XP"}
-                  </button>
-                ) : (
-                  <>
-                    <p className="text-green-600 font-semibold">✓ XP récolté avec succès !</p>
-                    <button
-                      className="px-6 py-2 bg-black text-white rounded"
-                      onClick={() => {
-                        // Just disconnect socket and navigate
-                        socket.emit("isdisconnecting");
-                        socket.disconnect();
-                        router.push("home");
-                      }}
-                    >
-                      Retour à l'accueil
-                    </button>
-                  </>
+                {xpCollected && (
+                  <p className="text-green-600 font-semibold">✓ XP récolté avec succès !</p>
                 )}
+
+                <button
+                  className="px-6 py-2 bg-black text-white rounded"
+                  onClick={() => {
+                    // Disconnect socket and navigate
+                    socket.emit("isdisconnecting");
+                    socket.disconnect();
+                    router.push("home");
+                  }}
+                >
+                  Retour à l'accueil
+                </button>
               </div>
             </div>
           )}
