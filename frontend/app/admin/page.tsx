@@ -45,12 +45,12 @@ export default function AdminPage() {
     async function fetchUsersAndReports()
     {
       const [uRes, rRes] = await Promise.all([
-            fetch("/api/admin/users", {
-              method: "GET",
-            }),
-            fetch("/api/admin/reports", {
-              method: "GET",
-            }),
+        fetch("/api/admin/users", {
+          method: "GET",
+        }),
+        fetch("/api/admin/reports", {
+          method: "GET",
+        }),
       ])
       const uData = await uRes.json();
       const u: type.User[] = uData.users;

@@ -3,7 +3,6 @@ import Input from "@/components/atoms/Input";
 import UserListItem from "@/components/molecules/admin/UserListItem";
 import type { User } from "@/app/admin/types";
 import { useRouter } from "next/navigation";
-import { socket } from "../../../socket"
 import { useEffect, useState } from "react";
 
 type UsersManagementPanelProps = {
