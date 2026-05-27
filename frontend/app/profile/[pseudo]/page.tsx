@@ -11,8 +11,8 @@ type ProfilePageProps = {
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) {
-    redirect("/");
+  if (!session || !session.user) {
+    redirect("/not-connected");
   }
 
   const { pseudo } = await params;
