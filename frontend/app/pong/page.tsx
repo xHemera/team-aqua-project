@@ -16,7 +16,10 @@ export default function PongPage() {
   const [isCollectingXp, setIsCollectingXp] = useState(false);
   const [xpCollected, setXpCollected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(3);
   const xp = useRef(0);
+  const countdownRef = useRef(3);
+  const isPlayer1 = useRef(false);
   const angle = (Math.random() * Math.PI / 3) - Math.PI / 6;
   const [opponent, setOpponent] = useState("");
 
@@ -43,57 +46,181 @@ export default function PongPage() {
     x: boardWidth / 2,
     y: boardHeight / 2,
     radius: 10,
-    speedX: 2,
-    speedY: 2,
+    speedX: 0,
+    speedY: 0,
     started: false,
   });
 
   // Touches
   const keys = useRef<{ [key: string]: boolean }>({});
+  const matchEndedRef = useRef(false);
 
    useEffect(() => {
     const getUserData = async () => {
       const { data } = await authClient.getSession();
-      if (data && data.user.name)
+      if (data && data.user.name) {
+        console.log("[Pong] Got user pseudo:", data.user.name);
         setUserPseudo(data.user.name);
+      }
       else
       {
         router.push("/not-connected");
         return;
       }
 
-      const res = await fetch(`/api/pong?pseudo=${data.user.name}`, { method: "GET" });
-      const odata = await res.json();
-      setOpponent(odata.name);
+      try {
+        console.log("[Pong] Fetching opponent for:", data.user.name);
+        const res = await fetch(`/api/pong?pseudo=${data.user.name}`, { method: "GET" });
+        if (!res.ok) {
+          console.error("Failed to fetch opponent:", res.status);
+          // Fallback: attendre que l'opponent soit disponible
+          await new Promise(r => setTimeout(r, 1000));
+          const retryRes = await fetch(`/api/pong?pseudo=${data.user.name}`, { method: "GET" });
+          if (!retryRes.ok) {
+            console.error("Opponent still not found");
+            return;
+          }
+          const odata = await retryRes.json();
+          console.log("[Pong] Found opponent on retry:", odata.name);
+          setOpponent(odata.name);
+        } else {
+          const odata = await res.json();
+          console.log("[Pong] Found opponent:", odata.name);
+          setOpponent(odata.name);
+        }
+      } catch (err) {
+        console.error("Error fetching opponent:", err);
+      }
     };
     getUserData();
   }, []);
 
-  //connect the socket
   useEffect(() => {
-    if (socket.connected) return;
-    socket.connect();
-		socket.emit("login", userPseudo);
+    if (!userPseudo) return;
+    
+    console.log("[Pong] Initializing socket for user:", userPseudo, "Socket connected:", socket.connected);
+    
+    const connectHandler = () => {
+      console.log("[Pong] Socket connected event fired, sending login");
+      socket.emit("login", userPseudo);
+    };
+    
+    const onlineUsersHandler = (users: any) => {
+      console.log("[Pong] Online users received from server:", users);
+    };
+    
+    // If already connected, emit immediately. Otherwise wait for connect event
+    if (socket.connected) {
+      console.log("[Pong] Socket already connected, emitting login immediately");
+      socket.emit("login", userPseudo);
+    } else {
+      console.log("[Pong] Socket not connected, connecting...");
+      socket.connect();
+      socket.once("connect", connectHandler);
+    }
+    
+    socket.on("online_users", onlineUsersHandler);
 
-		socket.on("online_users", (users) => {
-			console.log("Users from Redis:", users);
-		});
-
-		return () => {
-			socket.off("online_users");
-		};
+    return () => {
+      socket.off("connect", connectHandler);
+      socket.off("online_users", onlineUsersHandler);
+    };
   }, [userPseudo]);
 
   useEffect(() => {
-    if (!userPseudo) return;
-    socket.on("ban", (banned) => {
+    if (!userPseudo || !opponent) {
+      console.log("[Pong] Waiting for userPseudo and opponent:", { userPseudo, opponent });
+      return;
+    }
+    
+    console.log("[Pong] Setting up socket listeners for", userPseudo, "vs", opponent);
+    
+    // Determine if this player is Player 1 (alphabetically first)
+    isPlayer1.current = userPseudo < opponent;
+    console.log("[Pong] Is Player 1 (ball initiator):", isPlayer1.current);
+    
+    const handleBan = (banned: string) => {
+      console.log("[Pong] Received ban event for:", banned);
       if (banned === userPseudo)
         handleLogout();
-    });
-    socket.on("pong", (data) => {
+    };
+    
+    const handlePongUpdate = (data: { y: number }) => {
+      console.log("[Pong] Received pong update on client:", data);
       player2.current.y = data.y;
-    });
-  }, [userPseudo])
+    };
+    
+    const handleBallLaunch = (data: { speedX: number; speedY: number }) => {
+      console.log("[Pong] Received ball launch data:", data);
+      const b = ball.current;
+      b.started = true;
+      // Mirror effect: invert speedX for Player 2
+      b.speedX = -data.speedX;
+      b.speedY = data.speedY;
+      console.log("[Pong] Applied mirrored ball speed:", { speedX: b.speedX, speedY: b.speedY });
+    };
+    
+    const handleMatchEnd = (data: { winner: string }) => {
+      console.log("[Pong] Match ended, received winner:", data.winner);
+      if (data.winner === "left" || data.winner === "right") {
+        setWinner(data.winner);
+        ball.current.started = false;
+      }
+    };
+
+    const handleForceDisconnect = (data: { reason: string }) => {
+      console.log("[Pong] Received forceDisconnect event:", data);
+      setError("L'adversaire s'est déconnecté. Retour à l'accueil...");
+      setTimeout(() => {
+        socket.disconnect();
+        router.push("home");
+      }, 2000);
+    };
+    
+    socket.on("ban", handleBan);
+    socket.on("pong", handlePongUpdate);
+    socket.on("ballLaunch", handleBallLaunch);
+    socket.on("matchEnd", handleMatchEnd);
+    socket.on("forceDisconnect", handleForceDisconnect);
+    
+    console.log("[Pong] Socket listeners registered, socket connected:", socket.connected);
+    
+    return () => {
+      console.log("[Pong] Cleaning up socket listeners");
+      socket.off("ban", handleBan);
+      socket.off("pong", handlePongUpdate);
+      socket.off("ballLaunch", handleBallLaunch);
+      socket.off("matchEnd", handleMatchEnd);
+      socket.off("forceDisconnect", handleForceDisconnect);
+    };
+  }, [userPseudo, opponent])
+
+  // Reset game and start countdown when opponent is found
+  useEffect(() => {
+    if (!opponent) return;
+    
+    console.log("[Pong] Opponent found, starting countdown");
+    matchEndedRef.current = false; // Reset match ended flag for new match
+    countdownRef.current = 3;
+    setCountdown(3);
+    
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const newCountdown = Math.max(0, 3 - elapsed);
+      countdownRef.current = newCountdown;
+      setCountdown(newCountdown);
+      
+      if (elapsed >= 3) {
+        console.log("[Pong] Countdown finished, clearing interval");
+        clearInterval(interval);
+      }
+    }, 100);
+    
+    return () => {
+      clearInterval(interval);
+    };
+  }, [opponent])
 
   const handleLogout = async () => {
     const response = await fetch("/api/profile", {
@@ -160,6 +287,39 @@ export default function PongPage() {
     }
   };
 
+  // Auto-collect XP when match ends
+  useEffect(() => {
+    if (!winner || xpCollected) return;
+
+    const collectXpAutomatically = async () => {
+      if (!userPseudo || xp.current === 0) return;
+
+      try {
+        console.log("[Pong] Auto-collecting XP:", xp.current);
+        const response = await fetch("/api/characters/reward-xp", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name: userPseudo, xpGained: xp.current }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          setError(errorData.error || "Erreur lors de la récolte d'XP");
+          return;
+        }
+
+        console.log("[Pong] XP collected successfully:", xp.current);
+        setXpCollected(true);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Erreur inconnue");
+      }
+    };
+
+    void collectXpAutomatically();
+  }, [winner, userPseudo, xpCollected]);
+
   //context du jeu
   useEffect(() => {
     const board = canvasRef.current;
@@ -187,41 +347,57 @@ export default function PongPage() {
       const p1 = player1.current;
       const p2 = player2.current;
       const b = ball.current;
-      const ballX = boardWidth / 2;
-      const ballY = boardHeight / 2;
 
-      if (winner)
+      // Stop processing if match has ended
+      if (matchEndedRef.current)
         return;
 
       // Mouvement joueur 1
       if (keys.current["w"] && p1.y > 0) {
         p1.y -= p1.speed;
-        socket.emit("pong_info", {
-          opponent,
-          y: p1.y,
-        });
+        if (socket.connected && opponent) {
+          console.log("[Pong Client] Emitting W move:", { opponent, y: p1.y, socketConnected: socket.connected });
+          socket.emit("pong_info", {
+            opponent,
+            y: p1.y,
+          });
+        }
       }
 
       if (keys.current["s"] && p1.y + p1.height < boardHeight) {
         p1.y += p1.speed;
-        socket.emit("pong_info", {
-          opponent,
-          y: p1.y,
-        });
+        if (socket.connected && opponent) {
+          console.log("[Pong Client] Emitting S move:", { opponent, y: p1.y, socketConnected: socket.connected });
+          socket.emit("pong_info", {
+            opponent,
+            y: p1.y,
+          });
+        }
       }
 
-      // Mouvement joueur 2
-      if (keys.current["arrowup"] && p2.y > 0) {
-        p2.y -= p2.speed;
-      }
-      if (keys.current["arrowdown"] && p2.y + p2.height < boardHeight) {
-        p2.y += p2.speed;
-      }
-
-
-      // Lancer la balle avec espace
-      if (keys.current[" "] && !b.started) {
-        b.started = true;
+      // Auto-launch ball after countdown (Player 1 initiates)
+      if (countdownRef.current === 0 && !b.started && !winner) {
+        if (isPlayer1.current) {
+          // Player 1 generates random direction and sends to opponent
+          const randomAngle = (Math.random() * Math.PI / 3) - Math.PI / 6; // -30° to +30°
+          const randomDirection = Math.random() < 0.5 ? 1 : -1; // Left or right
+          const speed = 5;
+          const speedX = randomDirection * speed * Math.cos(randomAngle);
+          const speedY = speed * Math.sin(randomAngle);
+          
+          console.log("[Pong] Player 1 launching ball with angle:", randomAngle, "direction:", randomDirection);
+          
+          // Apply to local ball
+          b.started = true;
+          b.speedX = speedX;
+          b.speedY = speedY;
+          
+          // Send to Player 2
+          if (socket.connected && opponent) {
+            socket.emit("ballLaunch", { opponent, speedX, speedY });
+          }
+        }
+        // Player 2 waits for ballLaunch event from socket (handled by handleBallLaunch)
       }
 
       // Mouvement balle
@@ -277,14 +453,38 @@ export default function PongPage() {
 
       // Sortie gauche -> joueur droit gagne
       if (b.x < 0) {
-        setWinner("right");
+        // Stop the ball completely on both sides
+        b.speedX = 0;
+        b.speedY = 0;
         b.started = false;
+        
+        // Show winner modal
+        setWinner("right");
+        
+        // Send matchEnd event to opponent (only once)
+        if (!matchEndedRef.current && socket.connected && opponent) {
+          matchEndedRef.current = true;
+          console.log("[Pong] Sending matchEnd to opponent: right wins");
+          socket.emit("matchEnd", { opponent, winner: "right" });
+        }
       }
 
       // Sortie droite -> joueur gauche gagne
       if (b.x > boardWidth) {
-        setWinner("left");
+        // Stop the ball completely on both sides
+        b.speedX = 0;
+        b.speedY = 0;
         b.started = false;
+        
+        // Show winner modal
+        setWinner("left");
+        
+        // Send matchEnd event to opponent (only once)
+        if (!matchEndedRef.current && socket.connected && opponent) {
+          matchEndedRef.current = true;
+          console.log("[Pong] Sending matchEnd to opponent: left wins");
+          socket.emit("matchEnd", { opponent, winner: "left" });
+        }
       }
 
       // Nettoyage
@@ -336,6 +536,15 @@ export default function PongPage() {
       context.fillStyle = "white";
       context.font = "30px Arial";
       context.fillText(`XP: ${xp.current}`, boardWidth - 150, 50);
+      
+      // Display countdown if ball not started
+      if (!b.started && countdown > 0) {
+        context.fillStyle = "rgba(255, 255, 255, 0.8)";
+        context.font = "bold 80px Arial";
+        context.textAlign = "center";
+        context.fillText(countdown.toString(), boardWidth / 2, boardHeight / 2);
+        context.textAlign = "left";
+      }
 
       paddleCollision(b, p1, true);
       paddleCollision(b, p2, false);
@@ -349,52 +558,57 @@ export default function PongPage() {
       window.removeEventListener("keydown", keyDown);
       window.removeEventListener("keyup", keyUp);
     };
-  }, []);
+  }, [opponent]);
 
-return (
-  <div className="min-h-screen bg-black flex items-center justify-center relative">
-    <>{opponent}</>
-    <canvas
-      ref={canvasRef}
-      width={boardWidth}
-      height={boardHeight}
-      className="border-4 border-white"
-    />
-
-    {/* MODAL WIN */}
-    {winner && (
-      <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
-        <div className="bg-white text-black p-8 rounded-xl text-center space-y-4">
-          <h2 className="text-2xl font-bold">
-            Vous avez gagné {xp.current} XP pour chaque personnage !
-          </h2>
-
-          {error && (
-            <p className="text-red-600 font-semibold">{error}</p>
-          )}
-
-          {!xpCollected ? (
-            <button
-              className="px-6 py-2 bg-green-600 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={handleCollectXp}
-              disabled={isCollectingXp || !userPseudo}
-            >
-              {isCollectingXp ? "Récolte en cours..." : "Récolter l'XP"}
-            </button>
-          ) : (
-            <>
-              <p className="text-green-600 font-semibold">✓ XP récolté avec succès !</p>
-              <button
-                className="px-6 py-2 bg-black text-white rounded"
-                onClick={() => router.push("home")}
-              >
-                Retour à l'accueil
-              </button>
-            </>
-          )}
+  return (
+    <div className="min-h-screen bg-black flex items-center justify-center relative">
+      {!opponent ? (
+        <div className="text-center space-y-4">
+          <h2 className="text-2xl font-bold text-white">Recherche de l'adversaire...</h2>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto"></div>
+          <p className="text-white text-sm">Assurez-vous d'avoir lancé le matchmaking</p>
         </div>
-      </div>
-    )}
-  </div>
-);
+      ) : (
+        <>
+          <canvas
+            ref={canvasRef}
+            width={boardWidth}
+            height={boardHeight}
+            className="border-4 border-white"
+          />
+
+          {/* MODAL WIN */}
+          {winner && (
+            <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
+              <div className="bg-white text-black p-8 rounded-xl text-center space-y-4">
+                <h2 className="text-2xl font-bold">
+                  Vous avez gagné {xp.current} XP pour chaque personnage !
+                </h2>
+
+                {error && (
+                  <p className="text-red-600 font-semibold">{error}</p>
+                )}
+
+                {xpCollected && (
+                  <p className="text-green-600 font-semibold">✓ XP récolté avec succès !</p>
+                )}
+
+                <button
+                  className="px-6 py-2 bg-black text-white rounded"
+                  onClick={() => {
+                    // Disconnect socket and navigate
+                    socket.emit("isdisconnecting");
+                    socket.disconnect();
+                    router.push("home");
+                  }}
+                >
+                  Retour à l'accueil
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
 }

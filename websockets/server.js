@@ -68,9 +68,10 @@ io.on("connection", (socket) => {
       return;
     }
 
+    console.log("[Pong Server] User login:", { user, socketId: socket.id });
     await redis.hSet("online_users", user, socket.id);
     const users = await redis.hGetAll("online_users");
-    console.log("Client connected: ", users);
+    console.log("[Pong Server] Online users after login:", users);
     io.emit("online_users", users);
   });
 
@@ -253,19 +254,6 @@ io.on("connection", (socket) => {
     io.emit("unban", banned);
   });
 
-  socket.on("pong_info", async (data) => {
-    const receiverSock = await redis.hGet(
-      "online_users",
-      data.opponent
-    );
-
-    if (receiverSock) {
-      io.to(receiverSock).emit("pong", {
-        y: data.y,
-      });
-    }
-  });
-
   //tells everyone that they are connected
   socket.on("isconnecting", () => {
     io.emit("online");
@@ -391,6 +379,146 @@ io.on("connection", (socket) => {
     console.log("[GameServer] gameAction — no room found for socket", socket.id);
   });
 
+  // Pong info relay - relayer les mouvements des joueurs de pong
+  socket.on("pong_info", async ({ opponent, y }) => {
+    console.log("[Pong Server] Received pong_info event:", { opponent, y, senderSocketId: socket.id });
+    
+    if (!opponent || y === undefined) {
+      console.log("[Pong Server] Invalid pong_info data, ignoring");
+      return;
+    }
+    
+    // Get sender name from socket ID
+    const onlineUsers = await redis.hGetAll("online_users");
+    let senderName = null;
+    for (const [name, socketId] of Object.entries(onlineUsers)) {
+      if (socketId === socket.id) {
+        senderName = name;
+        break;
+      }
+    }
+    
+    if (!senderName) {
+      console.log("[Pong Server] Could not find sender name for pong_info");
+      return;
+    }
+    
+    // Check if this match has already finished
+    const matchKey = [senderName, opponent].sort().join(":");
+    const matchFinishedKey = `pong:finished:${matchKey}`;
+    const matchFinished = await redis.exists(matchFinishedKey);
+    
+    if (matchFinished) {
+      console.log("[Pong Server] Match already finished, ignoring pong_info:", matchKey);
+      return;
+    }
+    
+    const opponentSock = await redis.hGet("online_users", opponent);
+    console.log("[Pong Server] Looking up opponent:", { opponent, foundSocketId: opponentSock });
+    
+    if (opponentSock) {
+      console.log("[Pong Server] Sending pong event to opponent socket:", opponentSock);
+      io.to(opponentSock).emit("pong", { y });
+    } else {
+      console.log("[Pong Server] Opponent socket not found in online_users");
+    }
+  });
+
+  // Ball launch relay - synchronize ball launch between players
+  socket.on("ballLaunch", async ({ opponent, speedX, speedY }) => {
+    console.log("[Pong Server] Received ballLaunch event:", { opponent, speedX, speedY, senderSocketId: socket.id });
+    
+    if (!opponent || speedX === undefined || speedY === undefined) {
+      console.log("[Pong Server] Invalid ballLaunch data, ignoring");
+      return;
+    }
+    
+    // Get sender name from socket ID
+    const onlineUsers = await redis.hGetAll("online_users");
+    let senderName = null;
+    for (const [name, socketId] of Object.entries(onlineUsers)) {
+      if (socketId === socket.id) {
+        senderName = name;
+        break;
+      }
+    }
+    
+    if (!senderName) {
+      console.log("[Pong Server] Could not find sender name for ballLaunch");
+      return;
+    }
+    
+    // Check if this match has already finished
+    const matchKey = [senderName, opponent].sort().join(":");
+    const matchFinishedKey = `pong:finished:${matchKey}`;
+    const matchFinished = await redis.exists(matchFinishedKey);
+    
+    if (matchFinished) {
+      console.log("[Pong Server] Match already finished, ignoring ballLaunch:", matchKey);
+      return;
+    }
+    
+    const opponentSock = await redis.hGet("online_users", opponent);
+    console.log("[Pong Server] Looking up opponent for ballLaunch:", { opponent, foundSocketId: opponentSock });
+    
+    if (opponentSock) {
+      console.log("[Pong Server] Sending ballLaunch event to opponent socket:", opponentSock);
+      io.to(opponentSock).emit("ballLaunch", { speedX, speedY });
+    } else {
+      console.log("[Pong Server] Opponent socket not found for ballLaunch");
+    }
+  });
+
+  // Match end relay - sync game end between players
+  socket.on("matchEnd", async ({ opponent, winner }) => {
+    console.log("[Pong Server] Received matchEnd event:", { opponent, winner, senderSocketId: socket.id });
+    
+    if (!opponent || !winner) {
+      console.log("[Pong Server] Invalid matchEnd data, ignoring");
+      return;
+    }
+    
+    // Get the current player's name from online_users (reverse lookup)
+    const onlineUsers = await redis.hGetAll("online_users");
+    let currentPlayerName = null;
+    for (const [name, socketId] of Object.entries(onlineUsers)) {
+      if (socketId === socket.id) {
+        currentPlayerName = name;
+        break;
+      }
+    }
+    
+    if (!currentPlayerName) {
+      console.log("[Pong Server] Could not find current player name for matchEnd");
+      return;
+    }
+    
+    // Create a match key to avoid processing the same matchEnd twice
+    const matchKey = [currentPlayerName, opponent].sort().join(":"); // e.g., "Hemera:Xoco"
+    const matchFinishedKey = `pong:finished:${matchKey}`;
+    
+    // Check if this match was already processed
+    const alreadyProcessed = await redis.exists(matchFinishedKey);
+    if (alreadyProcessed) {
+      console.log("[Pong Server] matchEnd already processed for this pair, ignoring duplicate:", matchKey);
+      return;
+    }
+    
+    // Mark this match as finished (with 5 second TTL to prevent spam)
+    await redis.setEx(matchFinishedKey, 5, "1");
+    console.log("[Pong Server] Marked match as finished:", matchKey);
+    
+    const opponentSock = await redis.hGet("online_users", opponent);
+    console.log("[Pong Server] Looking up opponent for matchEnd:", { opponent, foundSocketId: opponentSock });
+    
+    if (opponentSock) {
+      console.log("[Pong Server] Sending matchEnd event to opponent socket:", opponentSock);
+      io.to(opponentSock).emit("matchEnd", { winner });
+    } else {
+      console.log("[Pong Server] Opponent socket not found for matchEnd");
+    }
+  });
+
   //delete the user's socket if he's disconnected
   socket.on("disconnect", async () => {
     for (const [roomId, room] of gameRooms) {
@@ -407,6 +535,22 @@ io.on("connection", (socket) => {
     if (fieldToDelete)
     {
       io.emit("cancel", {user: fieldToDelete});
+      
+      // Remove from inGamePlayers if in a Pong game and notify opponent
+      const opponent = await redis.hGet("inGamePlayers", fieldToDelete);
+      if (opponent) {
+        // Get opponent's socket ID
+        const opponentSock = await redis.hGet("online_users", opponent);
+        if (opponentSock) {
+          console.log("[Pong Server] Player disconnected during match, forcing opponent to leave:", { player: fieldToDelete, opponent, opponentSocket: opponentSock });
+          // Force the opponent to disconnect and return to home
+          io.to(opponentSock).emit("forceDisconnect", { reason: "opponent_disconnected" });
+        }
+        
+        // Remove both players from inGamePlayers
+        await redis.hDel("inGamePlayers", fieldToDelete, opponent);
+        console.log("[Pong Server] Removed both players from inGamePlayers on disconnect:", { fieldToDelete, opponent });
+      }
     }
     if (fieldToDelete)
       await redis.hDel("online_users", fieldToDelete);
