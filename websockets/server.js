@@ -34,9 +34,7 @@ function removeSocketFromOtherGameRooms(socket, currentRoomId) {
     if (index !== -1) {
       room.playerConns.splice(index, 1);
       socket.leave(`game:${roomId}`);
-      console.log(`[GameServer] initiate — removed socket ${socket.id} from stale room ${roomId}`);
       if (room.playerConns.length === 0) {
-        console.log(`[GameServer] initiate — deleting empty stale room ${roomId}`);
         gameRooms.delete(roomId);
       }
     }
@@ -396,13 +394,8 @@ io.on("connection", (socket) => {
   //delete the user's socket if he's disconnected
   socket.on("disconnect", async () => {
     for (const [roomId, room] of gameRooms) {
-      const originalLength = room.playerConns.length;
       room.playerConns = room.playerConns.filter((sock) => sock.id !== socket.id && sock.connected);
-      if (room.playerConns.length !== originalLength) {
-        console.log(`[GameServer] disconnect — removed socket ${socket.id} from room ${roomId}`);
-      }
       if (room.playerConns.length === 0) {
-        console.log(`[GameServer] disconnect — deleting empty room ${roomId}`);
         gameRooms.delete(roomId);
       }
     }
