@@ -91,6 +91,17 @@ export default function Game() {
   useEffect(() => {
     if (!isGameOver) return;
     const timer = setTimeout(() => router.push("/home"), 5000);
+    const history = async () => {
+      await fetch("/api/game", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({pseudo: userPseudo, team: team,
+          oppName: opponent, oppTeam: oppTeam, winner: isWinner}),
+      })
+    };
+    history();
     return () => clearTimeout(timer);
   }, [isGameOver, router]);
 
