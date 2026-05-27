@@ -88,6 +88,8 @@ export default function Home() {
       if (data && data.user.name) {
         setUserPseudo(data.user.name);
       }
+      else
+        router.push("/not-connected");
     };
 
     const timeoutId = window.setTimeout(() => {
