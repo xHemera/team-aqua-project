@@ -180,6 +180,7 @@ export default function Sidebar() {
   }, [pseudo]);
 
   useEffect(() => {
+    if (!pseudo) return;
     const onUnreadUpdated = () => {
       void refreshSocialUnread();
     };

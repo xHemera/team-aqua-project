@@ -20,8 +20,26 @@ redis.on('error', (err) => console.log('Redis Client Error', err));
 
 await redis.connect();
 
-// Game engine store: roomId -> { gameState, players: [pseudo1, pseudo2], playerConns: [socket1, socket2] }
+// Game engine store: roomId -> { gameState, players: [pseudo1, pseudo2], playerConns: [socket1, socket2], teamData }
 const gameRooms = new Map();
+
+function cleanDisconnectedRoomSockets(room) {
+  room.playerConns = room.playerConns.filter((socket) => socket.connected);
+}
+
+function removeSocketFromOtherGameRooms(socket, currentRoomId) {
+  for (const [roomId, room] of gameRooms) {
+    if (roomId === currentRoomId) continue;
+    const index = room.playerConns.findIndex((sock) => sock.id === socket.id);
+    if (index !== -1) {
+      room.playerConns.splice(index, 1);
+      socket.leave(`game:${roomId}`);
+      if (room.playerConns.length === 0) {
+        gameRooms.delete(roomId);
+      }
+    }
+  }
+}
 
 //connection parameters and server creation
 const hostname = "0.0.0.0";
@@ -267,6 +285,7 @@ io.on("connection", (socket) => {
       return;
     }
 
+    removeSocketFromOtherGameRooms(socket, roomId);
     socket.join(`game:${roomId}`);
     const currentPlayerCount = gameRooms.has(roomId) ? gameRooms.get(roomId).players.length : 0;
     console.log(`[GameServer] initiate received — player=${team.owner} room=${roomId} team=${JSON.stringify(team.characters)} playersBefore=${currentPlayerCount}`);
@@ -347,7 +366,12 @@ io.on("connection", (socket) => {
 
     // Find which room this socket belongs to
     for (const [roomId, room] of gameRooms) {
-      if (room.playerConns?.some(s => s.id === socket.id)) {
+      room.playerConns = room.playerConns.filter((sock) => sock.connected);
+      if (room.playerConns.length === 0) {
+        gameRooms.delete(roomId);
+        continue;
+      }
+      if (room.playerConns?.some((s) => s.id === socket.id)) {
         if (!room.gameState) {
           console.log(`[GameServer] gameAction skipped — no gameState in room ${roomId}`);
           return;
@@ -369,6 +393,13 @@ io.on("connection", (socket) => {
 
   //delete the user's socket if he's disconnected
   socket.on("disconnect", async () => {
+    for (const [roomId, room] of gameRooms) {
+      room.playerConns = room.playerConns.filter((sock) => sock.id !== socket.id && sock.connected);
+      if (room.playerConns.length === 0) {
+        gameRooms.delete(roomId);
+      }
+    }
+
     const onlineUsers = await redis.hGetAll("online_users");
     const fieldToDelete = Object.keys(onlineUsers).find(
       key => onlineUsers[key] === socket.id

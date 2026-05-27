@@ -55,10 +55,11 @@ services:
     environment:
       NODE_ENV: production
       BETTER_AUTH_URL: http://localhost:3000
-      BETTER_AUTH_SECRET: dev-secret-change-me-please-at-least-32-characters
+      BETTER_AUTH_SECRET: $BETTER_AUTH_SECRET
       BETTER_AUTH_DATABASE_URL: $BETTER_AUTH_DATABASE_URL
       DATABASE_URL: $DATABASE_URL
       API_KEY: $API_KEY
+      SOCKET: $SOCKET
     depends_on:
       db:
         condition: service_healthy

@@ -34,6 +34,8 @@ export default function AdminPage() {
       const { data } = await authClient.getSession();
       if (data && data.user.name)
         setUserPseudo(data.user.name);
+      else
+        router.push("/not-connected");
     };
 
     const timeoutId = window.setTimeout(() => {
@@ -43,12 +45,12 @@ export default function AdminPage() {
     async function fetchUsersAndReports()
     {
       const [uRes, rRes] = await Promise.all([
-            fetch("/api/admin/users", {
-              method: "GET",
-            }),
-            fetch("/api/admin/reports", {
-              method: "GET",
-            }),
+        fetch("/api/admin/users", {
+          method: "GET",
+        }),
+        fetch("/api/admin/reports", {
+          method: "GET",
+        }),
       ])
       const uData = await uRes.json();
       const u: type.User[] = uData.users;

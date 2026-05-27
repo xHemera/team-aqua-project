@@ -34,16 +34,6 @@ export default function NotConnectedPage() {
             <i className="fa-solid fa-right-to-bracket mr-2"></i>
             Sign in
           </Button>
-
-          <Button
-            type="button"
-            onClick={() => router.push("/home")}
-            variant="ghost"
-            className="h-auto w-full py-3 font-semibold text-gray-100"
-          >
-            <i className="fa-solid fa-arrow-left mr-2"></i>
-            Back to home
-          </Button>
         </div>
       </Card>
     </AppPageShell>

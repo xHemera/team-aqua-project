@@ -11,8 +11,8 @@ type ProfilePageProps = {
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) {
-    redirect("/");
+  if (!session || !session.user) {
+    redirect("/not-connected");
   }
 
   const { pseudo } = await params;
@@ -33,7 +33,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       avatarId: true,
       image: true,
       profileBackground: true,
-      matchHistory: true,
+      matchHistory: { orderBy: [
+        {createdAt: 'desc'}
+      ]},
       avatar: true,
     }
   });
@@ -47,14 +49,32 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     url: profileUser.avatar?.url
   }).url;
 
+  let wins = 0;
+  let newBadges;
+  for (const i of profileUser.matchHistory)
+  {
+    if (i.result === "win")
+      wins++;
+  }
+  if (wins >= 3 && !profileUser.badges.includes("BEGINNER"))
+  {
+    newBadges = await prisma.user.update({
+      where: { id: profileUser.id },
+      data: {
+        badges: { push: "BEGINNER" },
+      },
+      select: { badges: true },
+    });
+  }
+
   return (
     <ProfileClientView
       profileName={profileUser.name}
-      profileBadges={profileUser.badges ?? []}
+      profileBadges={newBadges?.badges ?? profileUser.badges ?? []}
       initialAvatar={avatar}
       initialBackground={profileUser.profileBackground ?? undefined}
       isOwnProfile={profileUser.id === session.user.id}
-      matchHistory={profileUser.matchHistory}
+      matchHistory={profileUser.matchHistory.sort()}
     />
   );
 }
