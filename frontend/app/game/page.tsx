@@ -285,8 +285,6 @@ export default function Game() {
         isYourTurn={isYourTurn}
         onClose={() => setIsInfoModalOpen(false)}
       />
-
-
     </div>
   );
 }

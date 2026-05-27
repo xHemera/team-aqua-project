@@ -33,7 +33,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       avatarId: true,
       image: true,
       profileBackground: true,
-      matchHistory: true,
+      matchHistory: { orderBy: [
+        {createdAt: 'desc'}
+      ]},
       avatar: true,
     }
   });
@@ -54,7 +56,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       initialAvatar={avatar}
       initialBackground={profileUser.profileBackground ?? undefined}
       isOwnProfile={profileUser.id === session.user.id}
-      matchHistory={profileUser.matchHistory}
+      matchHistory={profileUser.matchHistory.sort()}
     />
   );
 }
