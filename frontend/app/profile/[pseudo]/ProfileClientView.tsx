@@ -268,6 +268,7 @@ export default function ProfileClientView({
           isOwnProfile={isOwnProfile}
           badges={profileBadges}
           currentAvatar={currentAvatar}
+          totalWins={totalWins}
           onAvatarUploadClick={() => avatarUploadRef.current?.click()}
           onLogout={() => void handleLogout()}
           onDeleteAccount={() => void deleteProfile()}
