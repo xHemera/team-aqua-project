@@ -25,6 +25,8 @@ type ResolvedSpellPreview = {
 type SpellSelectorProps = {
   hero: HeroDefinition;
   character: CharacterData | null;
+  activeMp: number;
+  onCastSpell: (type: "basic" | "skill", skillId?: string) => void;
   className?: string;
 };
 
@@ -181,7 +183,7 @@ const resolveBasicAttackPreview = (hero: HeroDefinition, character: CharacterDat
   };
 };
 
-export default function SpellSelector({ hero, character, className }: SpellSelectorProps) {
+export default function SpellSelector({ hero, character, activeMp, onCastSpell, className }: SpellSelectorProps) {
   const [hoveredSpellId, setHoveredSpellId] = useState<string | null>(null);
 
   const spells = useMemo(() => {
@@ -263,14 +265,20 @@ export default function SpellSelector({ hero, character, className }: SpellSelec
 
         {/* spell buttons grid */}
         <div className="grid grid-cols-2 gap-1.5 md:grid-cols-4 md:gap-4">
-          {spells.slice(0, 4).map((spell) => (
-            <SpellButton
-              key={spell.id}
-              name={spell.name}
-              icon={spell.icon}
-              onMouseEnter={() => setHoveredSpellId(spell.id)}
-            />
-          ))}
+          {spells.slice(0, 4).map((spell) => {
+            const isBasic = spell.id === "basic-attack";
+            const isDisabled = !isBasic && spell.manaCost > activeMp;
+            return (
+              <SpellButton
+                key={spell.id}
+                name={spell.name}
+                icon={spell.icon}
+                disabled={isDisabled}
+                onMouseEnter={() => setHoveredSpellId(spell.id)}
+                onClick={() => onCastSpell(isBasic ? "basic" : "skill", isBasic ? undefined : spell.id)}
+              />
+            );
+          })}
         </div>
       </div>
 
