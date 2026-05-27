@@ -9,7 +9,7 @@ export async function getUsers()
 			name: true,
 			badges: true,
             banned: true,
-            avatarId: true
+            image: true,
 		}
     });
 }

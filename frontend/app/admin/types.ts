@@ -3,7 +3,7 @@ export type User = {
   name:   string;
   badges: string[];
   banned: boolean;
-  avatar?: string | null
+  image:  string;
 };
 
 export type Attachment = {
