@@ -48,12 +48,7 @@ export default function ProfileClientView({
   const [isActionLoading, setIsActionLoading] = useState(false);
   const avatarUploadRef = useRef<HTMLInputElement>(null);
 
-  // Add test match for demo purposes if matchHistory exists
-  const enhancedMatchHistory = matchHistory.length > 0
-    ? [...matchHistory, ...matchHistory.slice(0, 2)]
-    : matchHistory;
-
-  const totalMatches = enhancedMatchHistory.length;
+  const totalMatches = matchHistory.length;
 
   useEffect(() => {
     if (!isOwnProfile) {
@@ -74,8 +69,7 @@ export default function ProfileClientView({
       if (data && data.user.name) {
         setUserPseudo(data.user.name);
       }
-      else
-        router.push("/not-connected");
+      
     };
 
     const timeoutId = window.setTimeout(() => {
@@ -318,7 +312,7 @@ export default function ProfileClientView({
             </div>
           </div>
 
-          <MatchHistoryList matches={enhancedMatchHistory} />
+          <MatchHistoryList matches={matchHistory} />
         </Card>
       </div>
     </AppPageShell>
