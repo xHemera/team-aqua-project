@@ -53,18 +53,30 @@ export async function POST(req: Request) {
       );
     }
 
-    // Ajouter XP à tous les personnages
+    // Ajouter XP à tous les personnages et gérer les level ups
     await Promise.all(
-      user.gameState.characters.map((character) =>
-        prisma.character.update({
+      user.gameState.characters.map(async (character) => {
+        const char = await prisma.character.findUnique({
+          where: { id: character.id },
+          select: { xp: true, level: true }
+        });
+        
+        if (!char) return;
+        
+        const newXpTotal = char.xp + xpGained;
+        const XP_PER_LEVEL = 100;
+        const levelUps = Math.floor(newXpTotal / XP_PER_LEVEL);
+        const newLevel = char.level + levelUps;
+        const xpInCurrentLevel = newXpTotal % XP_PER_LEVEL;
+        
+        return prisma.character.update({
           where: { id: character.id },
           data: {
-            xp: {
-              increment: xpGained,
-            },
+            xp: xpInCurrentLevel,
+            level: newLevel
           },
-        })
-      )
+        });
+      })
     );
 
     const resources: PlayerResources = { ruby: user.gameState.rubis };
