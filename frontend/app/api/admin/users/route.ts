@@ -25,7 +25,7 @@ export async function GET()
                 name: true,
                 badges: true,
                 banned: true,
-                avatarId: true
+                image: true,
             }
         });
         return Response.json({users: users}, {status: 200});
