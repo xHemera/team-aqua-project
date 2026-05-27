@@ -5,6 +5,7 @@ import { applyDamage, resolvePhyDamage } from "./Utils/resolveDamage";
 import { GameAction } from "./Utils/GameAction";
 import { checkLastStand } from "./Utils/lastStand";
 import { findCharacter, resolveTargets } from "./Utils/resolveTargets";
+import { stat } from "fs";
 
 function tickAllMods(character: CharacterInstance): void {
 	const tick = (mods: ModEntry[]) =>
@@ -22,6 +23,7 @@ function tickAllMods(character: CharacterInstance): void {
 	if (character.stunned   > 0) character.stunned   -= 1;
 	if (character.invisible > 0) character.invisible -= 1;
 	if (character.taunted   > 0) character.taunted   -= 1;
+	if (character.invul     > 0) character.invul     -= 1;
 }
 
 function tickPoison(state: GameState): GameState {
@@ -94,53 +96,38 @@ function resolveSkill(skillId: string, user: CharacterInstance, targets: Charact
 }
 
 export function processAction(state: GameState, action: GameAction): GameState {
-	console.log(`[GameEngine] processAction START — actionType=${action.type} userUid=${action.userUid} targetUids=${JSON.stringify(action.targetUids)} turn=${state.turn} phase=${state.gamePhase}`);
+	const character = findCharacter(state, action.userUid);
 
-	const user = findCharacter(state, action.userUid);
-	if (!user) {
-		console.log(`[GameEngine] processAction — user NOT FOUND for uid=${action.userUid}`);
-		return state;
+	if (!character) return state;
+
+	if (character.stunned > 0) {
+		tickAllMods(character);
+		return advanceTurn(state);
 	}
-	console.log(`[GameEngine] processAction — user found: ${user.character.name}(${user.uid}) owner=${user.owner} hp=${user.currentHp} mp=${user.currentMp} stunned=${user.stunned} invul=${user.invul}`);
+	tickAllMods(character);
 
-	if (user.invul     > 0) user.invul     -= 1;
+	let	newState =tickPoison(state);
+		newState = removeDeadCharacters(newState);
+		newState = checkWinner(newState);
 
-	if (user.stunned > 0) {
-		console.log(`[GameEngine] processAction — user stunned, skipping turn`);
-		tickAllMods(user);
-		const newState = advanceTurn(state);
-		console.log(`[GameEngine] processAction END (stunned skip) — turn now ${newState.turn} active=${newState.turnQueue[0]?.characterUid}`);
-		return newState;
-	}
-
-	const targets = resolveTargets(state, user, action);
-	console.log(`[GameEngine] processAction — targets resolved: ${targets.map(t => `${t.character.name}(${t.uid})`).join(", ") || "none"}`);
-	if (targets.length === 0) {
-		console.log(`[GameEngine] processAction — no valid targets, returning state unchanged`);
-		return state;
-	}
+	const targets = resolveTargets(newState, character, action);
+	if (targets.length === 0) return newState;
 
 	if (action.type === "basic") {
-		resolveBasicAttack(user, targets);
+		resolveBasicAttack(character, targets);
 	} else if (action.type === "skill" && action.skillId) {
-		resolveSkill(action.skillId, user, targets);
+		resolveSkill(action.skillId, character, targets);
 	} else if (action.type === "skip") {
-		console.log(`[GameEngine] processAction — skip turn`);
-		user.currentMp = Math.min(
-		user.character.stats.mp,
-		user.currentMp + (user.character.stats.mp / 10)
+		character.currentMp = Math.min(
+		character.character.stats.mp,
+		character.currentMp + (character.character.stats.mp / 10)
 	);
 	}
 
-	console.log(`[GameEngine] processAction — after action: user hp=${user.currentHp} target hp=${targets.map(t => `${t.character.name}=${t.currentHp}`).join(", ")}`);
-
-	state.players
+	newState.players
 		.flatMap(p => p.characters)
 		.forEach(c => checkLastStand(c));
 
-	tickAllMods(user);
-
-	let newState = tickPoison(state);
 		newState = removeDeadCharacters(newState);
 		console.log(`[GameEngine] processAction — after removeDead: players chars=${newState.players.map(p => `P${p.id}:${p.characters.length}`).join(", ")} turnQueue=${newState.turnQueue.length}`);
 		newState = checkWinner(newState);
