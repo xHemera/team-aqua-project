@@ -320,7 +320,7 @@ run_prisma_migrations() {
     done
 
     docker compose -f docker-compose.yml exec frontend bunx prisma migrate dev --name init --url "$DATABASE_URL";
-
+    docker compose -f docker-compose.yml exec frontend bunx prisma generate;
     print_success "Migrations Prisma appliquées"
 }
 
