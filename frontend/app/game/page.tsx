@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { CHARACTERS, HERO_MAP } from "@/public/gameResources/heroes";
 import { useGameData } from "./useGameData";
 import { useGameSocket } from "./useGameSocket";
@@ -87,22 +87,71 @@ export default function Game() {
     return null;
   }, [gameState, activeHeroDef, teamSelected]);
 
-  // Auto-redirect to home after game over
+  // Rewards state
+  const [rewards, setRewards] = useState<{
+    xpGained: number;
+    rubisGained: number;
+    isWinner: boolean;
+    characters: { name: string; level: number; xp: number; leveledUp: boolean; levelsGained: number }[];
+  } | null>(null);
+  const [isRewarding, setIsRewarding] = useState(false);
+  const rewardFetchedRef = useRef(false);
+  const [redirectCountdown, setRedirectCountdown] = useState(10);
+
+  const handleReturnHome = useCallback(() => {
+    router.push("/home");
+  }, [router]);
+
+  // Auto-redirect countdown
   useEffect(() => {
-    if (!isGameOver) return;
-    const timer = setTimeout(() => router.push("/home"), 5000);
-    const history = async () => {
+    if (!rewards) return;
+    setRedirectCountdown(10);
+    const timer = setInterval(() => {
+      setRedirectCountdown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [rewards]);
+
+  // Redirect when countdown hits 0
+  useEffect(() => {
+    if (redirectCountdown <= 0 && rewards) {
+      handleReturnHome();
+    }
+  }, [redirectCountdown, rewards, handleReturnHome]);
+
+  // Save match history + fetch rewards
+  useEffect(() => {
+    if (!isGameOver || rewardFetchedRef.current) return;
+    rewardFetchedRef.current = true;
+    setIsRewarding(true);
+
+    const finish = async () => {
       await fetch("/api/game", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({pseudo: userPseudo, team: team,
-          oppName: opponent, oppTeam: oppTeam, winner: isWinner}),
-      })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pseudo: userPseudo,
+          team,
+          oppName: opponent,
+          oppTeam,
+          winner: isWinner,
+        }),
+      });
+
+      const res = await fetch("/api/game/reward", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: userPseudo, isWinner, team }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setRewards(data);
+      }
+      setIsRewarding(false);
     };
-    history();
-    return () => clearTimeout(timer);
+
+    finish();
   }, [isGameOver, router]);
 
   // Loading states
@@ -252,21 +301,148 @@ export default function Game() {
 
       {/* Game Over overlay */}
       {isGameOver && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-          <div className="rounded-2xl border-2 border-[#c9a84c] bg-gradient-to-b from-[#1f1810] to-[#15100a] p-8 text-center shadow-[0_0_40px_rgba(201,168,76,0.15)]">
-            <h1 className="font-serif text-3xl font-bold tracking-wide text-[#e8dcc8]">
-              {isWinner ? "Victory!" : "Defeat"}
-            </h1>
-            <p className="mt-2 font-serif text-[#c9b896]">
-              {isWinner ? "Your team emerges victorious!" : "Your team has been defeated."}
-            </p>
-            <button
-              type="button"
-              onClick={() => router.push("/home")}
-              className="mt-6 rounded-md border-2 border-[#c9a84c] bg-gradient-to-b from-[#c9a84c] to-[#a8883c] px-6 py-2 font-serif font-semibold text-[#0a0806] transition-all duration-150 hover:shadow-[0_0_14px_rgba(201,168,76,0.3)]"
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div
+            className={`relative w-full max-w-lg overflow-hidden rounded-3xl border-2 p-1 shadow-[0_0_60px_rgba(201,168,76,0.12)] ${
+              isWinner
+                ? "border-[#c9a84c] shadow-[0_0_60px_rgba(201,168,76,0.15)]"
+                : "border-[#8b3a3a] shadow-[0_0_60px_rgba(139,58,58,0.12)]"
+            }`}
+          >
+            {/* Animated background glow */}
+            <div
+              className={`absolute inset-0 opacity-20 ${
+                isWinner
+                  ? "bg-gradient-to-br from-[#c9a84c] via-[#a8883c] to-[#c9a84c]/30"
+                  : "bg-gradient-to-br from-[#8b3a3a] via-[#5a2525] to-[#8b3a3a]/30"
+              }`}
+            />
+
+            <div
+              className={`relative rounded-2xl ${
+                isWinner
+                  ? "bg-gradient-to-b from-[#1f1810] to-[#15100a]"
+                  : "bg-gradient-to-b from-[#1a0f0f] to-[#120a0a]"
+              } p-8`}
             >
-              Return to Home
-            </button>
+              {/* Loading state */}
+              {isRewarding && !rewards && (
+                <div className="flex flex-col items-center gap-4 py-8">
+                  <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#c9a84c] border-t-transparent" />
+                  <p className="font-serif text-lg text-[#c9b896]">Distribution des récompenses...</p>
+                </div>
+              )}
+
+              {/* Rewards display */}
+              {rewards && (
+                <>
+                  {/* Victory / Defeat banner */}
+                  <div className="mb-6 text-center">
+                    <h1
+                      className={`font-serif text-4xl font-bold tracking-wide ${
+                        isWinner ? "text-[#e8dcc8]" : "text-[#c8a0a0]"
+                      }`}
+                    >
+                      {isWinner ? "Victoire !" : "Défaite"}
+                    </h1>
+                  </div>
+
+                  {/* Rewards summary */}
+                  <div className="mb-5 grid grid-cols-2 gap-3">
+                    <div className="rounded-xl border border-[#3c3650]/50 bg-[#0f0e13]/80 px-4 py-3 text-center">
+                      <p className="text-xs uppercase tracking-wider text-[#8b82a6]">XP gagnée</p>
+                      <p className="mt-1 font-bold text-[#a8e6cf] text-xl">
+                        +{rewards.xpGained}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-[#3c3650]/50 bg-[#0f0e13]/80 px-4 py-3 text-center">
+                      <p className="text-xs uppercase tracking-wider text-[#8b82a6]">Rubis</p>
+                      <p className="mt-1 flex items-center justify-center gap-1.5 font-bold text-[#e8a84c] text-xl">
+                        +{rewards.rubisGained}
+                        <img src="/gameResources/items/ruby.webp" alt="rubis" className="h-5 w-5" />
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Characters */}
+                  <div className="mb-6 space-y-2">
+                    <p className="text-xs uppercase tracking-wider text-[#8b82a6]">Personnages</p>
+                    {rewards.characters.map((char) => {
+                      const heroDef = HERO_MAP.byName.get(char.name);
+                      return (
+                        <div
+                          key={char.name}
+                          className="flex items-center justify-between rounded-xl border border-[#3c3650]/30 bg-[#0f0e13]/60 px-4 py-3"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 overflow-hidden rounded-full bg-[#1f1a2e]">
+                              {heroDef && (
+                                <img
+                                  src={heroDef.identity.assets.portrait}
+                                  alt={char.name}
+                                  className="h-full w-full object-cover"
+                                />
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-[#e8dcc8]">{char.name}</p>
+                              <p className="text-xs text-[#8b82a6]">
+                                Niveau {char.level}{" "}
+                                {char.leveledUp && (
+                                  <span className="text-[#a8e6cf]">
+                                    (+{char.levelsGained})
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium text-[#a8e6cf]">+{rewards.xpGained} XP</p>
+                            <div className="mt-1 h-1.5 w-20 overflow-hidden rounded-full bg-[#1f1a2e]">
+                              <div
+                                className="h-full rounded-full bg-[#a8e6cf] transition-all"
+                                style={{ width: `${char.xp}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Return button */}
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={handleReturnHome}
+                      className={`rounded-xl border-2 px-8 py-3 font-serif font-semibold transition-all duration-150 ${
+                        isWinner
+                          ? "border-[#c9a84c] bg-gradient-to-b from-[#c9a84c] to-[#a8883c] text-[#0a0806] hover:shadow-[0_0_20px_rgba(201,168,76,0.3)]"
+                          : "border-[#8b3a3a] bg-gradient-to-b from-[#8b3a3a] to-[#6a2a2a] text-[#e8dcc8] hover:shadow-[0_0_20px_rgba(139,58,58,0.3)]"
+                      }`}
+                    >
+                      Retour à l'accueil ({redirectCountdown}s)
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Error fallback */}
+              {!isRewarding && !rewards && (
+                <div className="flex flex-col items-center gap-4 py-8">
+                  <p className="font-serif text-lg text-[#c9b896]">
+                    {isWinner ? "Victoire !" : "Défaite"}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleReturnHome}
+                    className="rounded-xl border-2 border-[#c9a84c] bg-gradient-to-b from-[#c9a84c] to-[#a8883c] px-8 py-3 font-serif font-semibold text-[#0a0806]"
+                  >
+                    Retour à l'accueil
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
