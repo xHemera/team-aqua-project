@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { AVATAR_CHANGED_EVENT, persistAvatarPreference } from "@/lib/avatar-preference";
 import { applyAccentPalette, resolveProfileIcon } from "@/lib/profile-icons";
+import { authClient } from "@/lib/auth-client";
 
 export default function AccentPreferenceSync() {
   useEffect(() => {
@@ -13,41 +14,9 @@ export default function AccentPreferenceSync() {
       applyAccentPalette(icon);
     };
 
-    const hydrateFromProfile = async () => {
-      try {
-        if (localStorage.getItem("avatar") || localStorage.getItem("avatarId")) {
-          applyFromStorage();
-          return;
-        }
-
-        const response = await fetch("/api/profile", { cache: "no-store" });
-        if (!response.ok) return;
-
-        const payload = (await response.json()) as {
-          avatarId?: string | null;
-          image?: string | null;
-          avatar?: { id?: string | null; url?: string | null };
-        };
-
-        const id = payload.avatar?.id ?? payload.avatarId;
-        const url = payload.avatar?.url ?? payload.image;
-
-        if (url) {
-          persistAvatarPreference(url, id ?? undefined);
-        } else if (id) {
-          localStorage.setItem("avatarId", id);
-        }
-
-        applyFromStorage(id, url);
-      } catch {
-        applyFromStorage();
-      }
-    };
+    
 
     applyFromStorage();
-    const timeoutId = window.setTimeout(() => {
-      void hydrateFromProfile();
-    }, 0);
 
     const handleStorage = (event: StorageEvent) => {
       if (["avatar", "avatarId"].includes(event.key || "")) {
@@ -65,7 +34,6 @@ export default function AccentPreferenceSync() {
     window.addEventListener("storage", handleStorage);
     window.addEventListener(AVATAR_CHANGED_EVENT, handleAvatarChanged as EventListener);
     return () => {
-      window.clearTimeout(timeoutId);
       window.removeEventListener("storage", handleStorage);
       window.removeEventListener(AVATAR_CHANGED_EVENT, handleAvatarChanged as EventListener);
     };
