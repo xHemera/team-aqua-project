@@ -48,19 +48,18 @@ export default function LoginPage() {
       const users = data as User[];
       if (users.length === 0)
       {
-          try {
-            await authClient.signUp.email({
-              name: "Xoco",
-              email: "Xoco@gmail.com",
-              password: "12345678",
-            });
-            await authClient.signUp.email({
-              name: "Hemera",
-              email: "hemera@gmail.com",
-              password: "12345678",
-            });
+        try {
+          await authClient.signUp.email({
+            name: "Xoco",
+            email: "Xoco@gmail.com",
+            password: "12345678",
+          });
+          await authClient.signUp.email({
+            name: "Hemera",
+            email: "hemera@gmail.com",
+            password: "12345678",
+          });
         }
-
         catch {
           setMessage("Registration error");
           return;
@@ -165,6 +164,7 @@ export default function LoginPage() {
       if (error)
       {
         setMessage(error.message ?? "Sign-in error");
+        setLoading(false);
         return ;
       }
 
@@ -246,16 +246,14 @@ export default function LoginPage() {
               }}
               variant="secondary"
             >
-              {/* J'ai enleve le disable sur loading
-              car on ne pouvait pas retenter de connexion en
-              cas d'echec*/}
               {isRegisterMode ? "Sign in" : "Sign up"}
             </Button>
 
             <Button
               type="submit"
+              disabled={loading}
             >
-              {isRegisterMode ? "Create account" : "Sign in"}
+              {loading ? "..." : isRegisterMode ? "Create account" : "Sign in"}
             </Button>
           </div>
           {message && (

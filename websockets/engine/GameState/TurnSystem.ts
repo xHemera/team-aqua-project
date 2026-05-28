@@ -10,7 +10,10 @@ export type TurnEntry = {
 const	TURN_THRESHOLD = 200;
 
 function sortQueue(queue: TurnEntry[]): TurnEntry[] {
-    return [...queue].sort((a, b) => a.charge - b.charge);
+    return [...queue].sort((a, b) => {
+		if (a.charge !== b.charge) return a.charge - b.charge;
+		return Math.random() - 0.5;
+	});
 }
 
 export function initTurnQueue(state: GameState): TurnEntry[] {
