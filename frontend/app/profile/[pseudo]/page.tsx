@@ -83,7 +83,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       newBadges = await prisma.user.update({
         where: { id: profileUser.id },
         data: {
-          badges: { push: "EXPERT" },
+          badges: { set: badges },
         },
         select: { badges: true },
       });
