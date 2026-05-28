@@ -36,7 +36,7 @@ export function resolvePhyDamage(
     idUser.phyMod      = newPhyMod;
     idTarget.phyResMod = newPhyResMod;
 
-    const isCrit   = rollCrit(idUser);
+    const isCrit   = rollCrit(idUser, idTarget);
     const finalDmg = isCrit ? applyCrit(afterTarget, idUser) : afterTarget;
 
     return finalDmg;
@@ -55,7 +55,7 @@ export function resolveMagDamage(
     idUser.magMod      = newMagMod;
     idTarget.magResMod = newMagResMod;
 
-    const isCrit   = rollCrit(idUser);
+    const isCrit   = rollCrit(idUser, idTarget);
     const finalDmg = isCrit ? applyCrit(afterTarget, idUser) : afterTarget;
 
     return finalDmg;

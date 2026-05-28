@@ -32,6 +32,7 @@ export class CharacterInstance {
     lastStandUsable:    boolean = false; 
     lastStandUsed:      boolean = false; 
 	spells:				Map<string, Spell> = new Map();
+	hasBeenCrit:		boolean = false;
 
     constructor(uid: string, character: HeroData, owner: number) {
         this.uid       = uid;

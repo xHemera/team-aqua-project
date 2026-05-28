@@ -6,6 +6,7 @@ import { GameAction } from "./Utils/GameAction";
 import { checkLastStand } from "./Utils/lastStand";
 import { findCharacter, resolveTargets } from "./Utils/resolveTargets";
 import { stat } from "fs";
+import { PlayerInstance } from "./Instances/PlayerInstance";
 
 function tickAllMods(character: CharacterInstance): void {
 	const tick = (mods: ModEntry[]) =>
@@ -85,6 +86,11 @@ function resolveSkill(skillId: string, user: CharacterInstance, targets: Charact
 }
 
 export function processAction(state: GameState, action: GameAction): GameState {
+
+	state.players
+		.flatMap(p => p.characters)
+		.forEach(c => c.hasBeenCrit = false);
+
 	const character = findCharacter(state, action.userUid);
 
 	if (!character) return state;
@@ -95,7 +101,7 @@ export function processAction(state: GameState, action: GameAction): GameState {
 	}
 	tickAllMods(character);
 
-	let	newState =tickPoison(state);
+	let	newState = tickPoison(state);
 		newState = removeDeadCharacters(newState);
 		newState = checkWinner(newState);
 

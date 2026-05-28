@@ -41,4 +41,4 @@ export class GameLoop {
 		this.state = processAction(this.state, action);
 		return this.getLoopState();
 	}
-	}
+}

@@ -110,6 +110,7 @@ async function playTurn() {
   );
   const mustSkip = validTargets.length === 0 && !hasActionableSpell;
 
+  printCrits(loopState);
   printState();
   console.log(`Tour ${loopState.gameState.turn} — Joueur ${user.owner} — ${user.character.name}`);
 
@@ -185,6 +186,13 @@ async function playTurn() {
   }
 
   playTurn();
+}
+
+function printCrits(loopState: ReturnType<typeof loop.getLoopState>) {
+  loopState.gameState.players
+    .flatMap(p => p.characters)
+    .filter(c => c.hasBeenCrit)
+    .forEach(c => console.log(`  💥 CRIT sur ${c.character.name} !`));
 }
 
 playTurn();
