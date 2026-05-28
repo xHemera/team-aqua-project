@@ -4,6 +4,7 @@ import {io} from "../../server.js"
 export function rollCrit(character: CharacterInstance, target:CharacterInstance): boolean {
 	const crit: boolean = Math.random() * 100 < character.critChance;
 	if (crit) {
+		console.log("BOUMDASDASDASDASASD")
 		target.hasBeenCrit = true;
 	}
 	return crit;

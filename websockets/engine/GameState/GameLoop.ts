@@ -29,7 +29,6 @@ export class GameLoop {
 		winner:             this.state.winnerId,
 		};
 	}
-
 	submitAction(action: GameAction): GameLoopState {
 		if (this.state.gamePhase !== "battle") return this.getLoopState();
 

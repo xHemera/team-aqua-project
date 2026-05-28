@@ -110,7 +110,6 @@ async function playTurn() {
   );
   const mustSkip = validTargets.length === 0 && !hasActionableSpell;
 
-  printCrits(loopState);
   printState();
   console.log(`Tour ${loopState.gameState.turn} — Joueur ${user.owner} — ${user.character.name}`);
 
@@ -146,6 +145,7 @@ async function playTurn() {
     if (!target) { console.log("Cible invalide"); return playTurn(); }
     targetUids = [target.uid];
     loop.submitAction({ type: "basic", userUid: user.uid, targetUids });
+	printCrits(loopState);
 
   } else {
     const spell = user.spells.get(actionInput);
@@ -183,6 +183,7 @@ async function playTurn() {
     }
 
     loop.submitAction({ type: "skill", skillId: actionInput, userUid: user.uid, targetUids });
+  	printCrits(loopState);
   }
 
   playTurn();
