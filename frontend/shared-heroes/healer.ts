@@ -111,7 +111,7 @@ export const healer = {
     {
       id: "s3",
       type: "invulnerability",
-      targeting: "teamSingle",
+      targeting: "teamAoe",
       info: {
         name: "Divine Protection",
         icon: spell3Icon,

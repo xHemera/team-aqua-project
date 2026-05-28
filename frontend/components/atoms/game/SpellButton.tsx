@@ -8,6 +8,7 @@ type Props = {
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
   onClick?: () => void;
+  disabled?: boolean;
   className?: string;
 };
 
@@ -17,6 +18,7 @@ export default function SpellButton({
   onMouseEnter,
   onMouseLeave,
   onClick,
+  disabled = false,
   className = "",
 }: Props) {
   return (
@@ -24,8 +26,9 @@ export default function SpellButton({
       type="button"
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      onClick={onClick}
-      className={`group relative overflow-hidden rounded-md border-2 border-[#2a1f14] bg-gradient-to-b from-[#14100a] to-[#0f0a06] px-2 py-1.5 transition-all duration-150 hover:border-[#c9a84c] hover:shadow-[0_0_14px_rgba(201,168,76,0.15)] sm:px-3 sm:py-2 ${className}`}
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      className={`group relative overflow-hidden rounded-md border-2 border-[#2a1f14] bg-gradient-to-b from-[#14100a] to-[#0f0a06] px-2 py-1.5 transition-all duration-150 hover:border-[#c9a84c] hover:shadow-[0_0_14px_rgba(201,168,76,0.15)] sm:px-3 sm:py-2 ${disabled ? "opacity-40 grayscale cursor-not-allowed" : ""} ${className}`}
     >
       {/* hover glow */}
       <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">

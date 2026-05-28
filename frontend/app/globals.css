@@ -209,6 +209,45 @@ body::before {
 
 
 
+/* Game Arena Keyframes */
+@keyframes aurora {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+@keyframes sweep {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@keyframes star {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+@keyframes star-delayed {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 0.7; }
+}
+@keyframes dust {
+  0%, 100% { transform: translateY(0); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: translateY(-40px); opacity: 0; }
+}
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes spin-slower {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+
+.animate-aurora { animation: aurora 8s ease-in-out infinite; }
+.animate-sweep { animation: sweep 12s linear infinite; }
+.animate-star { animation: star 4s ease-in-out infinite; }
+.animate-star-delayed { animation: star-delayed 5s ease-in-out infinite; }
+.animate-dust { animation: dust 6s ease-out infinite; }
+.animate-spin-slow { animation: spin-slow 2s linear infinite; }
+.animate-spin-slower { animation: spin-slower 3s linear infinite; }
+
 /* Focus Styles */
 *:focus-visible {
   outline: 2px solid var(--gold);

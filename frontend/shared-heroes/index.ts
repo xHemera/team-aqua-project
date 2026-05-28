@@ -1,4 +1,10 @@
-import { CHARACTERS } from "../../../shared-heroes/index";
+import { archer } from "./archer";
+import { assassin } from "./assassin";
+import { healer } from "./healer";
+import { knight } from "./knight";
+import { mage } from "./mage";
+
+export const CHARACTERS = [archer, assassin, healer, knight, mage];
 
 function buildHeroMaps() {
   const byId = new Map<string, (typeof CHARACTERS)[number]>();
@@ -11,4 +17,3 @@ function buildHeroMaps() {
 }
 
 export const HERO_MAP = buildHeroMaps();
-export { CHARACTERS };

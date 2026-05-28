@@ -48,19 +48,18 @@ export default function LoginPage() {
       const users = data as User[];
       if (users.length === 0)
       {
-          try {
-            await authClient.signUp.email({
-              name: "Xoco",
-              email: "Xoco@gmail.com",
-              password: "12345678",
-            });
-            await authClient.signUp.email({
-              name: "Hemera",
-              email: "hemera@gmail.com",
-              password: "12345678",
-            });
+        try {
+          await authClient.signUp.email({
+            name: "Xoco",
+            email: "Xoco@gmail.com",
+            password: "12345678",
+          });
+          await authClient.signUp.email({
+            name: "Hemera",
+            email: "hemera@gmail.com",
+            password: "12345678",
+          });
         }
-
         catch {
           setMessage("Registration error");
           return;
@@ -164,6 +163,7 @@ export default function LoginPage() {
       if (error)
       {
         setMessage(error.message ?? "Sign-in error");
+        setLoading(false);
         return ;
       }
 

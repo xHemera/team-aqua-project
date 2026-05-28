@@ -2,18 +2,23 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import AppPageShell from "@/components/AppPageShell";
-import Button from "@/components/atoms/Button";
+import { authClient } from "@/lib/auth-client";
+import { socket } from "@/socket";
 
 export default function PongPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  const boardWidth = 1400;
-  const boardHeight = 820;
+  const [userPseudo, setUserPseudo] = useState("");
+  // board
+  const boardWidth = 1500;
+  const boardHeight = 900;
   const router = useRouter();
   const [winner, setWinner] = useState<null | "left" | "right">(null);
+  const [isCollectingXp, setIsCollectingXp] = useState(false);
+  const [xpCollected, setXpCollected] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const xp = useRef(0);
-  const angle = (Math.random() * Math.PI / 3) - Math.PI / 6; 
+  const angle = (Math.random() * Math.PI / 3) - Math.PI / 6;
+  const [opponent, setOpponent] = useState("");
 
   // Joueurs 1 ref
   const player1 = useRef({
@@ -43,9 +48,117 @@ export default function PongPage() {
     started: false,
   });
 
-
   // Touches
   const keys = useRef<{ [key: string]: boolean }>({});
+
+   useEffect(() => {
+    const getUserData = async () => {
+      const { data } = await authClient.getSession();
+      if (data && data.user.name)
+        setUserPseudo(data.user.name);
+      else
+      {
+        router.push("/not-connected");
+        return;
+      }
+
+      const res = await fetch(`/api/pong?pseudo=${data.user.name}`, { method: "GET" });
+      const odata = await res.json();
+      setOpponent(odata.name);
+    };
+    getUserData();
+  }, []);
+
+  //connect the socket
+  useEffect(() => {
+    if (socket.connected) return;
+    socket.connect();
+		socket.emit("login", userPseudo);
+
+		socket.on("online_users", (users) => {
+			console.log("Users from Redis:", users);
+		});
+
+		return () => {
+			socket.off("online_users");
+		};
+  }, [userPseudo]);
+
+  useEffect(() => {
+    if (!userPseudo) return;
+    socket.on("ban", (banned) => {
+      if (banned === userPseudo)
+        handleLogout();
+    });
+    socket.on("pong", (data) => {
+      player2.current.y = data.y;
+    });
+  }, [userPseudo])
+
+  const handleLogout = async () => {
+    const response = await fetch("/api/profile", {
+        method: "PUT",
+      })
+      const user: unknown = await response.json();
+      if (!response.ok) {
+        const errorMessage =
+        typeof user === "object" && user !== null && "error" in user
+          ? String((user as { error: string }).error ?? "Impossible de charger l'utilisateur")
+          : "Impossible de charger l'utilisateur";
+        throw new Error(errorMessage);
+      }
+    socket.emit("isdisconnecting");
+    socket.disconnect();
+    await authClient.signOut();
+    router.push("/");
+  };
+
+  // Charger le username
+  useEffect(() => {
+    const getUserData = async () => {
+      const { data } = await authClient.getSession();
+      if (data && data.user.name) {
+        setUserPseudo(data.user.name);
+      }
+    };
+
+    const timeoutId = window.setTimeout(() => {
+      void getUserData();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
+
+  // Fonction pour récolter l'XP
+  const handleCollectXp = async () => {
+    if (!userPseudo || xp.current === 0) return;
+
+    setIsCollectingXp(true);
+    try {
+      const response = await fetch("/api/characters/reward-xp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name: userPseudo, xpGained: xp.current }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.error || "Erreur lors de la récolte d'XP");
+        setIsCollectingXp(false);
+        return;
+      }
+
+      setXpCollected(true);
+      setIsCollectingXp(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur inconnue");
+      setIsCollectingXp(false);
+    }
+  };
 
   //context du jeu
   useEffect(() => {
@@ -83,9 +196,18 @@ export default function PongPage() {
       // Mouvement joueur 1
       if (keys.current["w"] && p1.y > 0) {
         p1.y -= p1.speed;
+        socket.emit("pong_info", {
+          opponent,
+          y: p1.y,
+        });
       }
+
       if (keys.current["s"] && p1.y + p1.height < boardHeight) {
         p1.y += p1.speed;
+        socket.emit("pong_info", {
+          opponent,
+          y: p1.y,
+        });
       }
 
       // Mouvement joueur 2
@@ -230,30 +352,49 @@ export default function PongPage() {
   }, []);
 
 return (
-  <AppPageShell>
-    <div className="flex items-center justify-center w-full relative">
-      <canvas
-        ref={canvasRef}
-        width={boardWidth}
-        height={boardHeight}
-        className="border-4 border-white/10 rounded-md"
-      />
+  <div className="min-h-screen bg-black flex items-center justify-center relative">
+    <>{opponent}</>
+    <canvas
+      ref={canvasRef}
+      width={boardWidth}
+      height={boardHeight}
+      className="border-4 border-white"
+    />
 
-      {/* MODAL WIN */}
-      {winner && (
-        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-          <div className="bg-[#0c0a0f] text-white p-8 rounded-xl text-center space-y-4">
-            <h2 className="text-2xl font-bold">
-              Vous avez gagné {xp.current} XP pour chaque personnage !
-            </h2>
+    {/* MODAL WIN */}
+    {winner && (
+      <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
+        <div className="bg-white text-black p-8 rounded-xl text-center space-y-4">
+          <h2 className="text-2xl font-bold">
+            Vous avez gagné {xp.current} XP pour chaque personnage !
+          </h2>
 
-            <Button onClick={() => router.push("home")}>
-              Retour à l’accueil
-            </Button>
-          </div>
+          {error && (
+            <p className="text-red-600 font-semibold">{error}</p>
+          )}
+
+          {!xpCollected ? (
+            <button
+              className="px-6 py-2 bg-green-600 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleCollectXp}
+              disabled={isCollectingXp || !userPseudo}
+            >
+              {isCollectingXp ? "Récolte en cours..." : "Récolter l'XP"}
+            </button>
+          ) : (
+            <>
+              <p className="text-green-600 font-semibold">✓ XP récolté avec succès !</p>
+              <button
+                className="px-6 py-2 bg-black text-white rounded"
+                onClick={() => router.push("home")}
+              >
+                Retour à l'accueil
+              </button>
+            </>
+          )}
         </div>
-      )}
-    </div>
-  </AppPageShell>
+      </div>
+    )}
+  </div>
 );
 }
