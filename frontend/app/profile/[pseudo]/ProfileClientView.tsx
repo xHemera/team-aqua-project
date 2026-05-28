@@ -247,6 +247,8 @@ export default function ProfileClientView({
     }
   };
 
+  const totalWins = matchHistory.filter((match) => match.result.toLowerCase() === "win").length;
+
   return (
     <AppPageShell
       showSidebar
