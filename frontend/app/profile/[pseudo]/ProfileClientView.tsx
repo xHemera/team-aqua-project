@@ -247,10 +247,6 @@ export default function ProfileClientView({
     }
   };
 
-
-  const totalWins = matchHistory.filter((match) => match.result.toLowerCase() === "win").length;
-  const totalLosses = totalMatches - totalWins;
-
   return (
     <AppPageShell
       showSidebar
