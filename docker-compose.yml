@@ -59,7 +59,7 @@ services:
       BETTER_AUTH_DATABASE_URL: $BETTER_AUTH_DATABASE_URL
       DATABASE_URL: $DATABASE_URL
       API_KEY: $API_KEY
-      SOCKET: $SOCKET
+      NEXT_PUBLIC_SOCKET: $NEXT_PUBLIC_SOCKET
     depends_on:
       db:
         condition: service_healthy
