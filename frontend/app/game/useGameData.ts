@@ -49,7 +49,7 @@ export function useGameData() {
       } catch (err) {
         if (cancelled) return;
         const message = err instanceof Error ? err.message : "Une erreur est survenue";
-        console.error("[GameData] ERROR caught:", message, err);
+        console.log("[GameData] ERROR caught:", message, err);
         emitGlobalError(message);
         setLoadingPhase("error");
       }

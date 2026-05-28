@@ -5,14 +5,14 @@ import Image from "next/image";
 type ManaBarProps = {
   currentMana: number;
   className?: string;
+  maxMana: number;
 };
 
-const MANA_MAX = 100;
 const manaIcon = "/gameResources/items/mana.webp";
 
-export default function ManaBar({ currentMana, className = "" }: ManaBarProps) {
-  const manaPercent = Math.max(0, Math.min(100, (currentMana / MANA_MAX) * 100));
-  const clampedMana = Math.round(Math.max(0, Math.min(MANA_MAX, currentMana)));
+export default function ManaBar({ currentMana, className = "", maxMana }: ManaBarProps) {
+  const manaPercent = maxMana > 0 ? Math.max(0, Math.min(100, (currentMana / maxMana) * 100)) : 0;
+  const clampedMana = Math.round(Math.max(0, Math.min(maxMana, currentMana)));
 
   return (
     <div className={`inline-flex flex-col items-center ${className}`}>

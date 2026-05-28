@@ -19,6 +19,7 @@ type BottomBarProps = {
   handleSkipTurn: () => void;
   userPseudo: string;
   userAvatar: string | null;
+  activeMaxMp: number;
 };
 
 export default function BottomBar({
@@ -32,6 +33,7 @@ export default function BottomBar({
   handleSkipTurn,
   userPseudo,
   userAvatar,
+  activeMaxMp,
 }: BottomBarProps) {
   const router = useRouter();
 
@@ -67,7 +69,7 @@ export default function BottomBar({
 
   const manaBar = (
     <div className="flex flex-col items-end gap-3">
-      <ManaBar currentMana={activeMp} />
+      <ManaBar currentMana={activeMp} maxMana={activeMaxMp} />
     </div>
   );
 
