@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="w-full bg-transparent px-4 py-1">
+    <footer className="w-full bg-transparent px-4 py-2">
       <div className="flex items-center justify-center gap-4">
         <Link
           href="/policy"
