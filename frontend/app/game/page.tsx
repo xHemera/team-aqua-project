@@ -43,6 +43,7 @@ export default function Game() {
     activeCharacterUid,
     activeHeroId,
     activeMp,
+    activeMaxMp,
     isInfoModalOpen,
     setIsInfoModalOpen,
     isGameOver,
@@ -227,7 +228,7 @@ export default function Game() {
                     <Fighter
                       variant="enemy"
                       character={character}
-                      currentHp={charState ? charState.currentHp : 0}
+                      currentHp={charState ? Math.round(charState.currentHp) : 0}
                       effects={[]}
                       active={charState ? charState.uid === activeCharacterUid : false}
                       onClick={isTarget(charState?.uid, oppCharacters) && charState ? () => handleTargetSelect(charState.uid) : undefined}
@@ -256,7 +257,7 @@ export default function Game() {
                               ? charState.uid === activeCharacterUid
                               : selectedHero?.identity.id === character.identity.id
                           }
-                          currentHp={charState ? charState.currentHp : 0}
+                          currentHp={charState ? Math.round(charState.currentHp) : 0}
                           onClick={isTarget(charState?.uid, myCharacters) && charState ? () => handleTargetSelect(charState.uid) : undefined}
                           isTargetable={isTarget(charState?.uid, myCharacters)}
                         />
@@ -297,6 +298,7 @@ export default function Game() {
         handleSkipTurn={handleSkipTurn}
         userPseudo={userPseudo}
         userAvatar={userAvatar}
+        activeMaxMp={activeMaxMp}
       />
 
       {/* Game Over overlay */}

@@ -10,6 +10,8 @@ COPY package.json ./
 
 RUN bun install --ignore-scripts
 
+RUN bun prisma generate
+
 COPY prisma ./prisma
 
 COPY . .

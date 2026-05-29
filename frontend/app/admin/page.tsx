@@ -89,8 +89,7 @@ export default function AdminPage() {
         setCurrentRole("ADMIN");
       if (cU && (!cU.badges.includes("ADMIN") && !cU.badges.includes("MODERATOR")))
         router.push("/home");
-    
-  }, [userPseudo])
+  }, [userPseudo, users])
 
   useEffect(() => {
     if (!userPseudo || socket.connected) return;

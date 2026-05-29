@@ -69,7 +69,6 @@ export default function ProfileClientView({
       if (data && data.user.name) {
         setUserPseudo(data.user.name);
       }
-      
     };
 
     const timeoutId = window.setTimeout(() => {
@@ -189,10 +188,13 @@ export default function ProfileClientView({
 
     setIsActionLoading(true);
     try {
+      await fetch("/api/profile", {
+        method: "PUT"
+      })
       socket.emit("isdisconnecting");
       socket.disconnect();
       await authClient.signOut();
-      router.push("/");
+      router.push("/not-connected");
     } finally {
       setIsActionLoading(false);
     }
@@ -245,9 +247,7 @@ export default function ProfileClientView({
     }
   };
 
-
   const totalWins = matchHistory.filter((match) => match.result.toLowerCase() === "win").length;
-  const totalLosses = totalMatches - totalWins;
 
   return (
     <AppPageShell

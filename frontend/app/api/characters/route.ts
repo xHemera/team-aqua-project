@@ -141,6 +141,7 @@ export async function POST(req: Request)
       data: {
         user_id: userId.id,
         rubis: 0,
+        team: ["archer, healer, assassin"],
       }
     });
     if (!gs)

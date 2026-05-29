@@ -14,6 +14,7 @@ type UseTurnInfoReturn = {
   setIsInfoModalOpen: (open: boolean) => void;
   isGameOver: boolean;
   isWinner: boolean;
+  activeMaxMp: number;
 };
 
 function getPlayerChars(players: PlayerState[], playerIdx: number): CharacterState[] {
@@ -53,6 +54,16 @@ export function useTurnInfo(
     return 0;
   }, [gameState, activeCharacterUid]);
 
+  const activeMaxMp = useMemo(() => {
+    if (!gameState || !activeCharacterUid) return 0;
+    for (const player of gameState.players) {
+      for (const char of player.characters) {
+        if (char.uid === activeCharacterUid) return char.maxMp ?? 0;
+      }
+    }
+    return 0;
+  }, [gameState, activeCharacterUid]);
+
   const isGameOver = gameState?.gamePhase === "end";
   const isWinner = gameState?.winnerId === playerId;
 
@@ -84,5 +95,6 @@ export function useTurnInfo(
     setIsInfoModalOpen,
     isGameOver,
     isWinner,
+    activeMaxMp,
   };
 }

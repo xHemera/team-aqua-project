@@ -54,12 +54,12 @@ services:
       - frontend_bun_cache:/home/bun/.bun/install/cache
     environment:
       NODE_ENV: production
-      BETTER_AUTH_URL: http://localhost:3000
+      BETTER_AUTH_URL: $BETTER_AUTH_URL
       BETTER_AUTH_SECRET: $BETTER_AUTH_SECRET
       BETTER_AUTH_DATABASE_URL: $BETTER_AUTH_DATABASE_URL
       DATABASE_URL: $DATABASE_URL
       API_KEY: $API_KEY
-      SOCKET: $SOCKET
+      NEXT_PUBLIC_SOCKET: $NEXT_PUBLIC_SOCKET
     depends_on:
       db:
         condition: service_healthy

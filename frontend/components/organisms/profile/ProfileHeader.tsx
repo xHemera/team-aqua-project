@@ -107,18 +107,17 @@ export function ProfileHeader({
               {/* Victory badges */}
               {victoryBadges.map((victoryBadge) => {
                 const isUnlocked = totalWins >= victoryBadge.threshold;
-                return (
-                  <span
-                    key={victoryBadge.label}
-                    className={`rounded-lg sm:rounded-xl border px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold uppercase tracking-[0.18em] transition-opacity ${
-                      isUnlocked
-                        ? "border-[color:var(--gold)]/40 bg-[color:var(--gold)]/15 text-[#f3e3b9] shadow-[0_8px_16px_rgba(201,162,39,0.1)]"
-                        : "border-gray-500/30 bg-gray-500/10 text-gray-400 shadow-[0_8px_16px_rgba(0,0,0,0.1)]"
-                    }`}
-                  >
-                    {victoryBadge.label}
-                  </span>
-                );
+                if (!isUnlocked)
+                  return (
+                    <span
+                      key={victoryBadge.label}
+                      className={`rounded-lg sm:rounded-xl border px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold uppercase tracking-[0.18em] transition-opacity ${
+                          "border-gray-500/30 bg-gray-500/10 text-gray-400 shadow-[0_8px_16px_rgba(0,0,0,0.1)]"
+                      }`}
+                    >
+                      {victoryBadge.label}
+                    </span>
+                  );
               })}
             </div>
 

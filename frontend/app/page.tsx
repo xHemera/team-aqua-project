@@ -101,6 +101,7 @@ export default function LoginPage() {
     if (!pseudo) return;
 
     socket.connect();
+    socket.emit("isconnecting");
     socket.emit("login", pseudo);
 
     const onOnlineUsers = (users: unknown) => {
@@ -190,7 +191,6 @@ export default function LoginPage() {
         throw new Error(errorMessage);
       }
       else {
-        socket.emit("isconnecting");
         setMessage("Signed in successfully!");
         setPseudo(data.user.name || "user");
         setTimeout(() => router.push(`/profile/${data.user.name}`), 500);
