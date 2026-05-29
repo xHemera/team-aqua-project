@@ -28,6 +28,7 @@ CREATE TABLE "GameState" (
     "id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
     "rubis" INTEGER NOT NULL,
+    "team" TEXT[],
 
     CONSTRAINT "GameState_pkey" PRIMARY KEY ("id")
 );
@@ -129,7 +130,7 @@ CREATE TABLE "user" (
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "emailVerified" BOOLEAN NOT NULL DEFAULT false,
-    "image" TEXT DEFAULT '/profile-icons/default-avatar.svg',
+    "image" TEXT NOT NULL DEFAULT '/profile-icons/default-avatar.svg',
     "badges" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "blockedUsers" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "banned" BOOLEAN NOT NULL DEFAULT false,

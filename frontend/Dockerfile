@@ -10,8 +10,13 @@ COPY package.json ./
 
 RUN bun install --ignore-scripts
 
-RUN bun prisma generate
-
 COPY prisma ./prisma
 
+RUN bunx prisma generate
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 COPY . .
+
+ENTRYPOINT ["/entrypoint.sh"]
