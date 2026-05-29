@@ -88,6 +88,8 @@ export default function Home() {
       if (data && data.user.name) {
         setUserPseudo(data.user.name);
       }
+      else
+        router.push("/not-connected");
     };
 
     const timeoutId = window.setTimeout(() => {
@@ -181,8 +183,6 @@ export default function Home() {
     postTeam();
     localStorage.setItem(STORAGE_KEYS.team, JSON.stringify(teamSlots));
   }, [teamSlots]);
-
-  
 
   useEffect(() => {
   if (!userPseudo) return;
@@ -415,7 +415,7 @@ export default function Home() {
     window.addEventListener("pointerup", handlePointerUp, { once: true });
   };
 
-  
+  if (!userPseudo) return;
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#0c0a0f] font-serif text-white">

@@ -11,8 +11,8 @@ type ProfilePageProps = {
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) {
-    redirect("/");
+  if (!session || !session.user) {
+    redirect("/not-connected");
   }
 
   const { pseudo } = await params;
@@ -33,7 +33,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       avatarId: true,
       image: true,
       profileBackground: true,
-      matchHistory: true,
+      matchHistory: { orderBy: [
+        {createdAt: 'desc'}
+      ]},
       avatar: true,
     }
   });
@@ -47,14 +49,75 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     url: profileUser.avatar?.url
   }).url;
 
+  let wins = 0;
+  let badges: string[] = [];
+  if (profileUser.badges.includes("ADMIN") && profileUser.badges.includes("MODERATOR"))
+  {
+    badges.push("ADMIN");
+    badges.push("MODERATOR");
+  }
+  else if (profileUser.badges.includes("ADMIN"))
+    badges.push("ADMIN");
+  else if (profileUser.badges.includes("MODERATOR"))
+    badges.push("MODERATOR");
+  let newBadges: any;
+  for (const i of profileUser.matchHistory)
+  {
+    if (i.result === "win")
+      wins++;
+  }
+  switch (true)
+  {
+    case wins >= 50 && !profileUser.badges.includes("MASTER"):
+      badges.push("MASTER");
+      newBadges = await prisma.user.update({
+        where: { id: profileUser.id },
+        data: {
+          badges: { set: badges },
+        },
+        select: { badges: true },
+      });
+      break;
+    case wins >= 20 && !profileUser.badges.includes("EXPERT"):
+      badges.push("EXPERT");
+      newBadges = await prisma.user.update({
+        where: { id: profileUser.id },
+        data: {
+          badges: { set: badges },
+        },
+        select: { badges: true },
+      });
+      break;
+    case wins >= 10 && !profileUser.badges.includes("AMATEUR"):
+      badges.push("AMATEUR");
+      newBadges = await prisma.user.update({
+        where: { id: profileUser.id },
+        data: {
+          badges: { set: badges },
+        },
+        select: { badges: true },
+      });
+      break;
+    case wins >= 5 && !profileUser.badges.includes("BEGINNER"):
+      badges.push("BEGINNER");
+      newBadges = await prisma.user.update({
+        where: { id: profileUser.id },
+        data: {
+          badges: { set: badges },
+        },
+        select: { badges: true },
+      });
+      break;
+  }
+
   return (
     <ProfileClientView
       profileName={profileUser.name}
-      profileBadges={profileUser.badges ?? []}
+      profileBadges={newBadges?.badges ?? profileUser.badges ?? []}
       initialAvatar={avatar}
       initialBackground={profileUser.profileBackground ?? undefined}
       isOwnProfile={profileUser.id === session.user.id}
-      matchHistory={profileUser.matchHistory}
+      matchHistory={profileUser.matchHistory.sort()}
     />
   );
 }

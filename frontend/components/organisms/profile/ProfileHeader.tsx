@@ -9,6 +9,7 @@ type ProfileHeaderProps = {
   isOwnProfile: boolean;
   badges: string[];
   currentAvatar: string;
+  totalWins?: number;
   onAvatarUploadClick: () => void;
   onLogout: () => void;
   onDeleteAccount: () => void;
@@ -20,11 +21,18 @@ export function ProfileHeader({
   isOwnProfile,
   badges,
   currentAvatar,
+  totalWins = 0,
   onAvatarUploadClick,
   onLogout,
   onDeleteAccount,
   isActionLoading = false,
 }: ProfileHeaderProps) {
+  const victoryBadges = [
+    { threshold: 5, label: "5 Wins" },
+    { threshold: 10, label: "10 Wins" },
+    { threshold: 20, label: "20 Wins" },
+    { threshold: 50, label: "50 Wins" },
+  ];
   return (
     <Card className="overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#15131d]/92 p-0 shadow-[0_30px_100px_rgba(0,0,0,0.42)] backdrop-blur-xl">
       <div className="relative overflow-hidden border-b border-white/10">
@@ -85,18 +93,33 @@ export function ProfileHeader({
               <div className="h-1 w-16 sm:w-20 bg-gradient-to-r from-[#c9a227] to-[#f4e4a6] rounded-full" />
             </div>
 
-            {badges.length > 0 && (
-              <div className="flex flex-wrap gap-2 sm:gap-3">
-                {badges.map((badge) => (
-                  <span
-                    key={badge}
-                    className="rounded-lg sm:rounded-xl border border-[color:var(--gold)]/40 bg-[color:var(--gold)]/15 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold uppercase tracking-[0.18em] text-[#f3e3b9] shadow-[0_8px_16px_rgba(201,162,39,0.1)]"
-                  >
-                    {badge}
-                  </span>
-                ))}
-              </div>
-            )}
+            <div className="flex flex-wrap gap-2 sm:gap-3">
+              {/* User badges */}
+              {badges.map((badge) => (
+                <span
+                  key={badge}
+                  className="rounded-lg sm:rounded-xl border border-[color:var(--gold)]/40 bg-[color:var(--gold)]/15 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold uppercase tracking-[0.18em] text-[#f3e3b9] shadow-[0_8px_16px_rgba(201,162,39,0.1)]"
+                >
+                  {badge}
+                </span>
+              ))}
+              
+              {/* Victory badges */}
+              {victoryBadges.map((victoryBadge) => {
+                const isUnlocked = totalWins >= victoryBadge.threshold;
+                if (!isUnlocked)
+                  return (
+                    <span
+                      key={victoryBadge.label}
+                      className={`rounded-lg sm:rounded-xl border px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold uppercase tracking-[0.18em] transition-opacity ${
+                          "border-gray-500/30 bg-gray-500/10 text-gray-400 shadow-[0_8px_16px_rgba(0,0,0,0.1)]"
+                      }`}
+                    >
+                      {victoryBadge.label}
+                    </span>
+                  );
+              })}
+            </div>
 
             {isOwnProfile && (
               <div className="mt-5 flex flex-col gap-3 sm:mt-6 sm:flex-row sm:flex-wrap">

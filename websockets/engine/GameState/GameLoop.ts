@@ -22,11 +22,11 @@ export class GameLoop {
 		const activeCharacter = getCurrentTurnCharacter(this.state);
 
 		return {
-		gameState:          this.state,
-		activePlayerOwner:  activeCharacter?.owner ?? 0,
-		activeCharacterUid: activeCharacter?.uid   ?? "",
-		waitingForAction:   this.state.gamePhase === "battle",
-		winner:             this.state.winnerId,
+			gameState:          this.state,
+			activePlayerOwner:  activeCharacter?.owner ?? 0,
+			activeCharacterUid: activeCharacter?.uid   ?? "",
+			waitingForAction:   this.state.gamePhase === "battle",
+			winner:             this.state.winnerId,
 		};
 	}
 	submitAction(action: GameAction): GameLoopState {

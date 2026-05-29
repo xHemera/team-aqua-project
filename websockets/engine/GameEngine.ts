@@ -127,7 +127,7 @@ export function processAction(state: GameState, action: GameAction): GameState {
 		character.currentMp = Math.min(
 		character.character.stats.mp,
 		character.currentMp + (character.character.stats.mp / 10)
-	);
+		);
 	}
 
 	newState.players

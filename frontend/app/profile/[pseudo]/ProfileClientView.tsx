@@ -48,12 +48,7 @@ export default function ProfileClientView({
   const [isActionLoading, setIsActionLoading] = useState(false);
   const avatarUploadRef = useRef<HTMLInputElement>(null);
 
-  // Add test match for demo purposes if matchHistory exists
-  const enhancedMatchHistory = matchHistory.length > 0
-    ? [...matchHistory, ...matchHistory.slice(0, 2)]
-    : matchHistory;
-
-  const totalMatches = enhancedMatchHistory.length;
+  const totalMatches = matchHistory.length;
 
   useEffect(() => {
     if (!isOwnProfile) {
@@ -193,10 +188,13 @@ export default function ProfileClientView({
 
     setIsActionLoading(true);
     try {
+      await fetch("/api/profile", {
+        method: "PUT"
+      })
       socket.emit("isdisconnecting");
       socket.disconnect();
       await authClient.signOut();
-      router.push("/");
+      router.push("/not-connected");
     } finally {
       setIsActionLoading(false);
     }
@@ -249,9 +247,7 @@ export default function ProfileClientView({
     }
   };
 
-
   const totalWins = matchHistory.filter((match) => match.result.toLowerCase() === "win").length;
-  const totalLosses = totalMatches - totalWins;
 
   return (
     <AppPageShell
@@ -272,6 +268,7 @@ export default function ProfileClientView({
           isOwnProfile={isOwnProfile}
           badges={profileBadges}
           currentAvatar={currentAvatar}
+          totalWins={totalWins}
           onAvatarUploadClick={() => avatarUploadRef.current?.click()}
           onLogout={() => void handleLogout()}
           onDeleteAccount={() => void deleteProfile()}
@@ -316,7 +313,7 @@ export default function ProfileClientView({
             </div>
           </div>
 
-          <MatchHistoryList matches={enhancedMatchHistory} />
+          <MatchHistoryList matches={matchHistory} />
         </Card>
       </div>
     </AppPageShell>

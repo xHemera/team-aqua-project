@@ -77,12 +77,14 @@ export async function GET(req: Request)
         skills.push(skill);
       }
 
+      // Calculate stats based on current level
       const result = {} as CharacterStats;
       for (const key in c.baseStats) {
         result[key as keyof CharacterStats] =
           c.baseStats[key as keyof typeof c.baseStats] +
           c.growth[key as keyof typeof c.growth] * (char.level - 1);
       }
+      
       const character: CharacterData = {
         id: char.id,
         name: c.identity.name,
@@ -139,6 +141,7 @@ export async function POST(req: Request)
       data: {
         user_id: userId.id,
         rubis: 0,
+        team: ["archer, healer, assassin"],
       }
     });
     if (!gs)

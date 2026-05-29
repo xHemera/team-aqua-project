@@ -195,6 +195,8 @@ export default function CharactersPage() {
     return true;
   }
 
+  if (!userPseudo) return;
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#0c0a0f] font-serif">
       {showNotification && notification && notifSender && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}

@@ -3,7 +3,6 @@ import Card from "@/components/atoms/Card";
 import type { User } from "@/app/admin/types";
 import { useEffect, useState } from "react";
 import { socket } from "../../../socket"
-import { manage }  from "../../../app/admin/index";
 
 type UserListItemProps = {
   user: User;
@@ -82,9 +81,9 @@ export default function UserListItem({ user, onViewProfile, currentRole }: UserL
     <Card className="flex items-center justify-between gap-3 rounded-xl bg-[#1c1827] p-3">
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-[#3c3650] bg-[#242033]">
-          {user.avatar ? (
+          {user.image ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+            <img src={user.image} alt={user.name} className="h-full w-full object-cover" />
           ) : (
             <i className="fa-regular fa-user text-lg text-gray-400" />
           )}

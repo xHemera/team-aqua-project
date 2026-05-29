@@ -143,6 +143,7 @@ export async function POST()
         data: {
           user_id: admin.id,
           rubis: 0,
+          team: ["archer, healer, assassin"],
         }
       });
       if (!gs)

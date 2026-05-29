@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { headers } from "next/headers";
 import { rateLimit } from "@/lib/rateLimit";
 import { redis } from "@/lib/redis";
+import { randomInt } from "crypto";
 
 export async function GET(req: Request)
 {
@@ -68,8 +69,9 @@ export async function POST(req: Request)
     try {
         const data = await req.json();
         const { currentUser, opponent } = data;
-        await redis.hSet("inGamePlayers", currentUser, opponent);
-        await redis.hSet("inGamePlayers", opponent, currentUser);
+        const roomId = randomInt(0, 1000);
+        await redis.hSet("inGamePlayers", currentUser, JSON.stringify({opp: opponent, roomId: roomId}));
+        await redis.hSet("inGamePlayers", opponent, JSON.stringify({opp: currentUser, roomId: roomId}));
         return Response.json({msg: "Created"}, {status: 201});
     }
     catch (e) {

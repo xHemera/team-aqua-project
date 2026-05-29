@@ -16,7 +16,7 @@ export default function AuthPageLayout({ children }: AuthPageLayoutProps) {
       {/* Usage atomique: Card sert de conteneur visuel standard pour les pages d'auth. */}
       <Card className="w-full max-w-md rounded-3xl p-6 sm:p-8">
         <div className="mb-5 w-full py-2">
-          <Image src="/logo.png" alt="Logo" width={500} height={250} className="mx-auto" />
+          <Image src="/logo.png" alt="Logo" loading="eager" width={500} height={250} className="mx-auto" />
         </div>
         {children}
       </Card>
