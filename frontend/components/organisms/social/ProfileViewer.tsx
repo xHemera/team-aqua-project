@@ -408,12 +408,12 @@ export default function ProfileViewerModal({
             {!isBlocked && !hasBlocked && <IconButton
               type="button"
               size="lg"
-              title={friend ? "Already friends" : "Add friend"}
-              aria-label={friend ? "Already friends" : "Add friend"}
-              className={friend ? "border-emerald-500/70 bg-emerald-900/20 text-emerald-200" : undefined}
+              title={friend ? "Remove friends" : "Add friend"}
+              aria-label={friend ? "Remove friends" : "Add friend"}
+              className={friend ? "border-red-500/70 bg-red-900/20 text-red-200" : undefined}
               onClick={() => !friend ? sendFriendRequest() : setOpenRemove(true)}
             >
-              <i className="fa-solid fa-user-plus text-lg" />
+              <i className="fa-solid fa-user-minus text-lg" />
             </IconButton>}
 
             <Validate

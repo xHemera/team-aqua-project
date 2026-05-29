@@ -14,6 +14,7 @@ import SidebarShell from "@/components/SidebarShell";
 import {socket} from "../../socket"
 import { handleLogout } from "@/lib/logout";
 import NotificationToast from "@/components/organisms/home/NotificationToast";
+import Footer from "@/components/Footer";
 
 const PvpMatchmakingModal = dynamic(() => import("@/components/organisms/home/PvpMatchmakingModal"), { ssr: false });
 const PongMatchmakingModal = dynamic(() => import("@/components/organisms/home/PongMatchmakingModal"), { ssr: false });

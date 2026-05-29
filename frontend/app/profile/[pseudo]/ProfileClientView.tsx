@@ -11,6 +11,7 @@ import { authClient } from "@/lib/auth-client";
 import { persistAvatarPreference } from "@/lib/avatar-preference";
 import { applyAccentPalette, DEFAULT_PROFILE_ICON, resolveProfileIcon } from "@/lib/profile-icons";
 import { socket } from "../../../socket";
+import Footer from "@/components/Footer";
 
 type MatchHistoryEntry = {
   id: string;
@@ -262,7 +263,8 @@ export default function ProfileClientView({
         />
       )}
 
-      <div className="mx-auto flex h-full w-full max-w-7xl flex-col gap-8 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
+      <div className="flex-1 w-full flex flex-col overflow-hidden">
+        <div className="mx-auto flex flex-1 w-full max-w-7xl flex-col gap-8 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
         <ProfileHeader
           profileName={profileName}
           isOwnProfile={isOwnProfile}
@@ -315,7 +317,9 @@ export default function ProfileClientView({
 
           <MatchHistoryList matches={matchHistory} />
         </Card>
+        </div>
       </div>
+      <Footer />
     </AppPageShell>
   );
 }
