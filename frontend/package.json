@@ -8,8 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "auth:migrate": "better-auth migrate --yes",
-    "postinstall": "prisma generate"
+    "auth:migrate": "better-auth migrate --yes"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.4.1",
