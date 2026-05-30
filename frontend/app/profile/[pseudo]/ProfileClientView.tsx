@@ -306,10 +306,18 @@ export default function ProfileClientView({
                   Match History
                 </h2>
               </div>
-              <div className="shrink-0 rounded-2xl border border-[#c9a227]/30 bg-[#c9a227]/10 px-4 py-2 sm:px-5 sm:py-3 shadow-[0_8px_16px_rgba(201,162,39,0.1)]">
-                <div className="text-xs uppercase tracking-[0.18em] text-[#c9a227]/80 mb-1">Combats</div>
-                <div className="text-xl sm:text-2xl font-black text-white" style={{ fontFamily: "var(--font-display), serif" }}>
-                  {totalMatches}
+              <div className="shrink-0 flex gap-3 sm:gap-4">
+                <div className="rounded-2xl border border-[#c9a227]/30 bg-[#c9a227]/10 px-4 py-2 sm:px-5 sm:py-3 shadow-[0_8px_16px_rgba(201,162,39,0.1)]">
+                  <div className="text-xs uppercase tracking-[0.18em] text-[#c9a227]/80 mb-1">Wins</div>
+                  <div className="text-xl sm:text-2xl font-black text-white" style={{ fontFamily: "var(--font-display), serif" }}>
+                    {totalWins}
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-[#c9a227]/30 bg-[#c9a227]/10 px-4 py-2 sm:px-5 sm:py-3 shadow-[0_8px_16px_rgba(201,162,39,0.1)]">
+                  <div className="text-xs uppercase tracking-[0.18em] text-[#c9a227]/80 mb-1">Combats</div>
+                  <div className="text-xl sm:text-2xl font-black text-white" style={{ fontFamily: "var(--font-display), serif" }}>
+                    {totalMatches}
+                  </div>
                 </div>
               </div>
             </div>
