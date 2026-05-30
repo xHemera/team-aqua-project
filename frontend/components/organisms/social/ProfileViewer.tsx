@@ -399,129 +399,103 @@ export default function ProfileViewerModal({
                 X
               </Button>
             </div>
+          {/* Actions: message, ajouter en ami, bloquer */}
+          <div className="flex items-center justify-center gap-4">
+            {!isBlocked && !hasBlocked && <IconButton
+              type="button"
+              variant="secondary"
+              size="lg"
+              title="Send message"
+              aria-label="Send message"
+              onClick={onClose}
+            >
+              <i className="fa-regular fa-paper-plane text-lg" />
+            </IconButton>}
 
-            {/* Actions: message, ajouter en ami, bloquer */}
-            <div className="flex items-center justify-center gap-4">
-              {!isBlocked && !hasBlocked && (
-                <IconButton
-                  type="button"
-                  variant="secondary"
-                  size="lg"
-                  title="Send message"
-                  aria-label="Send message"
-                  onClick={onClose}
-                >
-                  <i className="fa-regular fa-paper-plane text-lg" />
-                </IconButton>
-              )}
+            {!isBlocked && !hasBlocked && <IconButton
+              type="button"
+              size="lg"
+              title={friend ? "Remove friends" : "Add friend"}
+              aria-label={friend ? "Remove friends" : "Add friend"}
+              className={friend ? "border-red-500/70 bg-red-900/20 text-red-200" : undefined}
+              onClick={() => !friend ? sendFriendRequest() : setOpenRemove(true)}
+            >
+              <i className="fa-solid fa-user-minus text-lg" />
+            </IconButton>}
 
-              {!isBlocked && !hasBlocked && (
-                <IconButton
-                  type="button"
-                  size="lg"
-                  title={friend ? "Already friends" : "Add friend"}
-                  aria-label={friend ? "Already friends" : "Add friend"}
-                  className={
-                    friend
-                      ? "border-emerald-500/70 bg-emerald-900/20 text-emerald-200"
-                      : undefined
-                  }
-                  onClick={() =>
-                    !friend ? sendFriendRequest() : setOpenRemove(true)
-                  }
-                >
-                  <i className="fa-solid fa-user-plus text-lg" />
-                </IconButton>
-              )}
-
-              <Validate
-                open={openRemove}
-                title={
-                  "Do you want to remove this user from your friend list ?"
+            <Validate
+              open={openRemove}
+              title={"Do you want to remove this user from your friend list ?"}
+              onYes={() => {
+                if (friend) {
+                  refuseFriendship();
                 }
-                onYes={() => {
-                  if (friend) {
-                    refuseFriendship();
-                  }
-                }}
-                onNo={() => {
-                  setOpenRemove(false);
-                  onClose;
-                }}
-              />
+              }}
+              onNo={() => {setOpenRemove(false); onClose;}}
+            />
 
-              <IconButton
-                type="button"
-                size="lg"
-                title={hasBlocked ? "Unblock user" : "Block user"}
-                aria-label={hasBlocked ? "Unblock user" : "Block user"}
-                className={
-                  hasBlocked
-                    ? "border-emerald-500/70 bg-emerald-900/20 text-emerald-200 hover:bg-emerald-900/35"
-                    : "border-red-500/70 bg-red-900/20 text-red-200 hover:bg-red-900/35"
-                }
-                onClick={() => blockUser()}
-              >
-                <i
-                  className={`fa-solid ${hasBlocked ? "fa-circle-check" : "fa-ban"} text-lg`}
-                />
-              </IconButton>
+            <IconButton
+              type="button"
+              size="lg"
+              title={hasBlocked ? "Unblock user" : "Block user"}
+              aria-label={hasBlocked ? "Unblock user" : "Block user"}
+              className={hasBlocked ? "border-emerald-500/70 bg-emerald-900/20 text-emerald-200 hover:bg-emerald-900/35" : "border-red-500/70 bg-red-900/20 text-red-200 hover:bg-red-900/35"}
+              onClick={() => blockUser()}
+            >
+              <i className={`fa-solid ${hasBlocked ? "fa-circle-check" : "fa-ban"} text-lg`} />
+            </IconButton>
 
-              <IconButton
-                type="button"
-                size="lg"
-                title="Report user"
-                aria-label="Report user"
-                className="border-orange-500/70 bg-orange-900/20 text-orange-200 hover:bg-orange-900/35"
-                onClick={async () => {
-                  if (!currentUser || !inputUser) return;
-                  const res = await fetch("/api/social/report", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                      user: currentUser.name,
-                      reportedUser: inputUser.name,
-                    }),
+            <IconButton
+              type="button"
+              size="lg"
+              title="Report user"
+              aria-label="Report user"
+              className="border-orange-500/70 bg-orange-900/20 text-orange-200 hover:bg-orange-900/35"
+              onClick={async () => {
+                if (!currentUser || !inputUser) return;
+                const res = await fetch("/api/social/report", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({user: currentUser.name, reportedUser: inputUser.name})
+                });
+                if (res.status === 201)
+                {
+                  setReportNotification({
+                    type: "success",
+                    message: "User reported successfully.",
                   });
-                  if (res.status === 201) {
-                    setReportNotification({
-                      type: "success",
-                      message: "User reported successfully.",
-                    });
-                    socket.emit("reported");
-                  } else if (res.status === 409) {
-                    setReportNotification({
-                      type: "error",
-                      message:
-                        "You can't report this user before he gets reviewed.",
-                    });
-                  } else {
-                    setReportNotification({
-                      type: "error",
-                      message: "Could not report.",
-                    });
-                  }
-                }}
-              >
-                <i className="fa-solid fa-flag text-lg" />
-              </IconButton>
+                  socket.emit("reported");
+                }
+                else if (res.status === 409) {
+                  setReportNotification({
+                    type: "error",
+                    message: "You can't report this user before he gets reviewed.",
+                  });
+                }
+                else {
+                  setReportNotification({
+                    type: "error",
+                    message: "Could not report.",
+                  });
+                }
+              }}
+            >
+              <i className="fa-solid fa-flag text-lg" />
+            </IconButton>
 
-              {friend && (
-                <IconButton
-                  onClick={sendChallenge}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)]"
-                  aria-label="Send challenge"
-                  title="Send challenge"
-                >
-                  <i className="fa-solid fa-bolt" />
-                </IconButton>
-              )}
-            </div>
+            {friend && <IconButton
+              onClick={sendChallenge}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--accent-border)] bg-[var(--accent-color)] text-white transition-colors hover:bg-[var(--accent-hover)]"
+              aria-label="Défier l'ami"
+            >
+              <i className="fa-solid fa-bolt" />
+            </IconButton>}
           </div>
-        </Card>
-      </div>
+        </div>
+      </Card>
+    </div>
     </>
   );
 }

@@ -201,7 +201,7 @@ export default function LoginPage() {
 
   return (
     <AuthPageLayout>
-      <div className="w-full">
+        <div className="w-full">
         <form onSubmit={onSubmit} className="space-y-4">
           {isRegisterMode && (
             <>
@@ -267,6 +267,6 @@ export default function LoginPage() {
           )}
         </form>
       </div>
-    </AuthPageLayout>
-  );
-}
+      </AuthPageLayout>
+    );
+  }

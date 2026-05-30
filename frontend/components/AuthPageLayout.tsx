@@ -2,6 +2,7 @@ import Image from "next/image";
 import { ReactNode } from "react";
 import AppPageShell from "@/components/AppPageShell";
 import Card from "@/components/atoms/Card";
+import Footer from "@/components/Footer";
 
 type AuthPageLayoutProps = {
   children: ReactNode;
@@ -19,6 +20,9 @@ export default function AuthPageLayout({ children }: AuthPageLayoutProps) {
           <Image src="/logo.png" alt="Logo" loading="eager" width={500} height={250} className="mx-auto" />
         </div>
         {children}
+        <div className="-mx-6 -mb-8 mt-8 border-t border-gray-700">
+          <Footer />
+        </div>
       </Card>
     </AppPageShell>
   );

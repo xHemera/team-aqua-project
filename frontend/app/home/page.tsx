@@ -14,6 +14,7 @@ import SidebarShell from "@/components/SidebarShell";
 import {socket} from "../../socket"
 import { handleLogout } from "@/lib/logout";
 import NotificationToast from "@/components/organisms/home/NotificationToast";
+import Footer from "@/components/Footer";
 
 const PvpMatchmakingModal = dynamic(() => import("@/components/organisms/home/PvpMatchmakingModal"), { ssr: false });
 const PongMatchmakingModal = dynamic(() => import("@/components/organisms/home/PongMatchmakingModal"), { ssr: false });
@@ -423,6 +424,7 @@ export default function Home() {
       <SidebarShell />
       {showNotification && notification && notifSender && (<NotificationToast onClose={() => setShowNotification(false)} msg={notification} sender={notifSender} />)}
 
+      <div className="flex flex-1 flex-col overflow-hidden">
       <main className="relative flex-1 overflow-hidden p-3 pl-0">
         <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[#0c0a0f] via-[#12101a] to-[#0a0810]" />
         <div
@@ -508,8 +510,6 @@ export default function Home() {
           </div>
         </div>
 
-      </main>
-
       {minePopups.map((popup) => (
         <span
           key={popup.id}
@@ -557,6 +557,9 @@ export default function Home() {
         open={pongOpen}
         onClose={handleClosePong}
       />
+      </main>
+      <Footer />
+      </div>
     </div>
   );
 }
