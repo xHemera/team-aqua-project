@@ -27,6 +27,14 @@ export type TurnQueueEntry = {
   charge: number;
 };
 
+export type DamageEvent = {
+  targetUid: string;
+  attackerUid: string;
+  damage: number;
+  isCrit: boolean;
+  lethal: boolean;
+};
+
 export type GameStatePayload = {
   turn: number;
   gamePhase: string;
@@ -35,4 +43,5 @@ export type GameStatePayload = {
   playerId: number;
   turnQueue: TurnQueueEntry[];
   players: PlayerState[];
+  damageEvents: DamageEvent[];
 };

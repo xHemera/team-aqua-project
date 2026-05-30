@@ -1,6 +1,24 @@
 import { CharacterInstance, ModEntry } from "../Instances/CharacterInstance";
 import { applyCrit, rollCrit } from "./crit";
 
+export type DamageEvent = {
+	targetUid: string;
+	attackerUid: string;
+	damage: number;
+	isCrit: boolean;
+	lethal: boolean;
+};
+
+const damageEvents: DamageEvent[] = [];
+
+export function clearDamageEvents(): void {
+	damageEvents.length = 0;
+}
+
+export function getDamageEvents(): DamageEvent[] {
+	return [...damageEvents];
+}
+
 function applyAndTick(mods: ModEntry[], raw: number): { result: number; mods: ModEntry[] } {
 	const totalMod = mods.reduce((acc, { value }) => acc + value, 0);
 	const result   = raw * (1 + totalMod / 100); // selon ta convention
@@ -38,8 +56,17 @@ export function resolvePhyDamage(
 
     const isCrit   = rollCrit(idUser, idTarget);
     const finalDmg = isCrit ? applyCrit(afterTarget, idUser) : afterTarget;
+    const rounded  = Math.round(finalDmg);
 
-    return finalDmg;
+    damageEvents.push({
+        targetUid: idTarget.uid,
+        attackerUid: idUser.uid,
+        damage: rounded,
+        isCrit,
+        lethal: idTarget.currentHp - rounded <= 0,
+    });
+
+    return rounded;
 }
 
 export function resolveMagDamage(
@@ -57,8 +84,17 @@ export function resolveMagDamage(
 
     const isCrit   = rollCrit(idUser, idTarget);
     const finalDmg = isCrit ? applyCrit(afterTarget, idUser) : afterTarget;
+    const rounded  = Math.round(finalDmg);
 
-    return finalDmg;
+    damageEvents.push({
+        targetUid: idTarget.uid,
+        attackerUid: idUser.uid,
+        damage: rounded,
+        isCrit,
+        lethal: idTarget.currentHp - rounded <= 0,
+    });
+
+    return rounded;
 }
 
 export function applyDamage(target: CharacterInstance, damage: number): void {

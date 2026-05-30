@@ -20,6 +20,7 @@ type BottomBarProps = {
   userPseudo: string;
   userAvatar: string | null;
   activeMaxMp: number;
+  animating?: boolean;
 };
 
 export default function BottomBar({
@@ -34,6 +35,7 @@ export default function BottomBar({
   userPseudo,
   userAvatar,
   activeMaxMp,
+  animating = false,
 }: BottomBarProps) {
   const router = useRouter();
 
@@ -82,7 +84,7 @@ export default function BottomBar({
 
   return isYourTurn ? (
     <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(11rem,15rem)] gap-3 sm:gap-4 md:grid-cols-[minmax(0,7fr)_minmax(240px,280px)] md:items-stretch">
-      <div className="min-w-0 flex flex-col gap-2">
+      <div className={`min-w-0 flex flex-col gap-2 transition-opacity duration-200 ${animating ? "opacity-0 pointer-events-none" : ""}`}>
         <SpellSelector
           hero={selectedHeroCard}
           character={selectedCharacter}

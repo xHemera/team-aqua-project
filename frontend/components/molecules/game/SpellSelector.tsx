@@ -119,26 +119,16 @@ const resolveToken = (
   stats: CharacterData["stats"],
   skillLevel: number,
 ) => {
-  const normalizedToken = token.trim().toLowerCase();
-  const context = buildContext(stats, skillLevel, scalingRow);
-
-  if (normalizedToken in context) {
-    return context[normalizedToken];
+  // Tokens map to scaling array values by position — prefer the scaling value
+  // This ensures {critChance} returns the spell's scaling value, not the hero's base critChance stat
+  if (typeof scalingRow[tokenIndex] === "number") {
+    return scalingRow[tokenIndex];
   }
 
-  if (typeof scalingRow[tokenIndex] === "number") {
-    const rawValue = scalingRow[tokenIndex];
-
-    if (normalizedToken === "multiplier" || normalizedToken === "flat") {
-      return rawValue;
-    }
-
-    const directExpression = evaluateExpression(token, context);
-    if (directExpression !== null) {
-      return directExpression;
-    }
-
-    return rawValue;
+  const normalizedToken = token.trim().toLowerCase();
+  const context = buildContext(stats, skillLevel, scalingRow);
+  if (normalizedToken in context) {
+    return context[normalizedToken];
   }
 
   return null;

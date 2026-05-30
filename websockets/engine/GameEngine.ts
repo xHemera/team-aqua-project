@@ -1,7 +1,7 @@
 import { GameState } from "./GameState/GameState";
 import { advanceTurn, getActiveCharacter, initTurnQueue } from "./GameState/TurnSystem";
 import { CharacterInstance, ModEntry } from "./Instances/CharacterInstance";
-import { applyDamage, resolvePhyDamage } from "./Utils/resolveDamage";
+import { applyDamage, resolvePhyDamage, clearDamageEvents, getDamageEvents } from "./Utils/resolveDamage";
 import { GameAction } from "./Utils/GameAction";
 import { checkLastStand } from "./Utils/lastStand";
 import { findCharacter, resolveTargets } from "./Utils/resolveTargets";
@@ -97,6 +97,7 @@ function resolveSkill(skillId: string, user: CharacterInstance, targets: Charact
 }
 
 export function processAction(state: GameState, action: GameAction): GameState {
+	clearDamageEvents();
 
 	state.players
 		.flatMap(p => p.characters)
@@ -104,11 +105,12 @@ export function processAction(state: GameState, action: GameAction): GameState {
 
 	const character = findCharacter(state, action.userUid);
 
-	if (!character) return state;
+	if (!character) return { ...state, damageEvents: getDamageEvents() };
 
 	if (character.stunned > 0) {
 		tickAllMods(character);
-		return advanceTurn(state);
+		const advanced = advanceTurn(state);
+		return { ...advanced, damageEvents: getDamageEvents() };
 	}
 	tickAllMods(character);
 
@@ -116,18 +118,20 @@ export function processAction(state: GameState, action: GameAction): GameState {
 		newState = removeDeadCharacters(newState);
 		newState = checkWinner(newState);
 
-	const targets = resolveTargets(newState, character, action);
-	if (targets.length === 0) return newState;
-
-	if (action.type === "basic") {
-		resolveBasicAttack(character, targets);
-	} else if (action.type === "skill" && action.skillId) {
-		resolveSkill(action.skillId, character, targets);
-	} else if (action.type === "skip") {
+	if (action.type === "skip") {
 		character.currentMp = Math.min(
 		character.character.stats.mp,
 		character.currentMp + (character.character.stats.mp / 10)
 		);
+	} else {
+		const targets = resolveTargets(newState, character, action);
+		if (targets.length > 0) {
+			if (action.type === "basic") {
+				resolveBasicAttack(character, targets);
+			} else if (action.type === "skill" && action.skillId) {
+				resolveSkill(action.skillId, character, targets);
+			}
+		}
 	}
 
 	newState.players
@@ -141,12 +145,12 @@ export function processAction(state: GameState, action: GameAction): GameState {
 
 	if (newState.gamePhase === "end") {
 		console.log(`[GameEngine] processAction END (game over) — turn=${newState.turn} winnerId=${newState.winnerId}`);
-		return newState;
+		return { ...newState, damageEvents: getDamageEvents() };
 	}
 
 	newState = advanceTurn(newState);
 	console.log(`[GameEngine] processAction END — turn now ${newState.turn} active=${newState.turnQueue[0]?.characterUid} queue=${newState.turnQueue.map(e => `${e.characterUid}@${Math.round(e.charge)}`).join(" > ")}`);
-	return newState;
+	return { ...newState, damageEvents: getDamageEvents() };
 }
 
 export function getCurrentTurnCharacter(state: GameState): CharacterInstance | undefined {

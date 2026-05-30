@@ -148,14 +148,18 @@ export const resolveSkillDescription = (
 ): ResolvedSkillEffect => {
   const scalingRow = getScalingRow(skill);
   const segments = resolveSpellDescriptionSegments(description, ({ token, tokenIndex }) => {
-    const result = evaluateFormula(token, stats, skill);
+    // Prefer scaling array value by position
+    // This ensures {critChance} returns the spell's scaling value, not the hero's base stat
+    if (typeof scalingRow[tokenIndex] === "number") {
+      return formatNumber(scalingRow[tokenIndex]);
+    }
 
+    const result = evaluateFormula(token, stats, skill);
     if (result !== null) {
       return formatNumber(result);
     }
 
-    const fallbackValue = scalingRow[tokenIndex];
-    return typeof fallbackValue === "number" ? formatNumber(fallbackValue) : null;
+    return null;
   });
 
   return {

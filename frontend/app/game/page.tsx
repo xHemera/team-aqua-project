@@ -14,10 +14,45 @@ import InfoModal from "@/components/atoms/game/InfoModal";
 import GameLoadingScreen from "@/components/atoms/game/GameLoadingScreen";
 import GameArenaBackground from "@/components/backgrounds/GameArenaBackground";
 import BottomBar from "@/components/backgrounds/BottomBar";
-import type { CharacterState } from "./types";
+import FloatingDamage from "@/components/atoms/game/FloatingDamage";
+import type { CharacterState, DamageEvent } from "./types";
+
+type DamageAnim = {
+  id: number;
+  targetUid: string;
+  targetHeroId: string;
+  damage: number;
+  isCrit: boolean;
+  lethal: boolean;
+};
 
 function findCharByHeroId(chars: CharacterState[] | undefined, heroId: string) {
   return chars?.find(c => c.uid.split("_").at(-2) === heroId) ?? null;
+}
+
+function eventsToAnims(events: DamageEvent[], startId: number): DamageAnim[] {
+  return events.map((e, i) => ({
+    id: startId + i,
+    targetUid: e.targetUid,
+    targetHeroId: e.targetUid.split("_").at(-2) ?? "",
+    damage: e.damage,
+    isCrit: e.isCrit,
+    lethal: e.lethal,
+  }));
+}
+
+function findAnimForFighter(
+  anims: DamageAnim[],
+  heroId: string,
+  ownerPrefix: string,
+  charState?: CharacterState | null,
+): DamageAnim | undefined {
+  if (charState) {
+    return anims.find(a => a.targetUid === charState.uid);
+  }
+  return anims.find(
+    a => a.targetHeroId === heroId && a.targetUid.startsWith(ownerPrefix + "_"),
+  );
 }
 
 export default function Game() {
@@ -48,6 +83,7 @@ export default function Game() {
     setIsInfoModalOpen,
     isGameOver,
     isWinner,
+    turnTransitioning,
   } = useTurnInfo(gameState, playerId);
 
   // Active hero definition
@@ -65,6 +101,27 @@ export default function Game() {
     handleTargetSelect,
     handleSkipTurn,
   } = useTargeting(activeCharacterUid, myCharacters, oppCharacters, activeHeroDef);
+
+  // Damage animations
+  const [damageAnims, setDamageAnims] = useState<DamageAnim[]>([]);
+  const animIdRef = useRef(0);
+  const lastEventsTurnRef = useRef(-1);
+
+  useEffect(() => {
+    if (!gameState || gameState.turn === lastEventsTurnRef.current) return;
+    lastEventsTurnRef.current = gameState.turn;
+    if (gameState.damageEvents?.length) {
+      const newAnims = eventsToAnims(gameState.damageEvents, animIdRef.current);
+      animIdRef.current += gameState.damageEvents.length;
+      setDamageAnims(prev => [...prev, ...newAnims]);
+    }
+  }, [gameState]);
+
+  const removeAnim = useCallback((id: number) => {
+    setDamageAnims(prev => prev.filter(a => a.id !== id));
+  }, []);
+
+  const isAnimating = damageAnims.length > 0 || turnTransitioning;
 
   // Team selection mapping — string[] → hero definitions
   const [teamSelected, setTeamSelected] = useState<Array<(typeof CHARACTERS)[number] | null> | null>(null);
@@ -221,10 +278,12 @@ export default function Game() {
             {/* Enemy team */}
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
               {enemyTeam.map((character) => {
-                const charState = findCharByHeroId(oppCharacters, character.identity.id);
+                const heroId = character.identity.id;
+                const charState = findCharByHeroId(oppCharacters, heroId);
                 const dead = !charState;
+                const anim = findAnimForFighter(damageAnims, heroId, opponent, charState);
                 return (
-                  <div key={character.identity.id} className={`w-full transition-opacity duration-300 ${dead ? "opacity-30 pointer-events-none" : "opacity-90"}`}>
+                  <div key={heroId} className={`relative w-full transition-opacity duration-300 ${dead ? "opacity-30 pointer-events-none" : "opacity-90"}`}>
                     <Fighter
                       variant="enemy"
                       character={character}
@@ -234,6 +293,14 @@ export default function Game() {
                       onClick={isTarget(charState?.uid, oppCharacters) && charState ? () => handleTargetSelect(charState.uid) : undefined}
                       isTargetable={isTarget(charState?.uid, oppCharacters)}
                     />
+                    {anim && (
+                      <FloatingDamage
+                        damage={anim.damage}
+                        isCrit={anim.isCrit}
+                        lethal={anim.lethal}
+                        onComplete={() => removeAnim(anim.id)}
+                      />
+                    )}
                   </div>
                 );
               })}
@@ -242,14 +309,16 @@ export default function Game() {
             {/* Player team */}
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
               {teamSelected.map((character, index) => {
+                const heroId = character?.identity.id;
                 const charState = character
-                  ? findCharByHeroId(myCharacters, character.identity.id)
+                  ? findCharByHeroId(myCharacters, heroId)
                   : undefined;
                 const dead = !charState;
+                const anim = heroId ? findAnimForFighter(damageAnims, heroId, userPseudo, charState) : undefined;
                 return (
-                  <div key={character?.identity.id ?? `own-slot-${index}`}>
+                  <div key={heroId ?? `own-slot-${index}`}>
                     {character ? (
-                      <div className={`transition-opacity duration-300 ${dead ? "opacity-30 pointer-events-none" : ""}`}>
+                      <div className={`relative transition-opacity duration-300 ${dead ? "opacity-30 pointer-events-none" : ""}`}>
                         <Fighter
                           character={character}
                           active={
@@ -261,6 +330,14 @@ export default function Game() {
                           onClick={isTarget(charState?.uid, myCharacters) && charState ? () => handleTargetSelect(charState.uid) : undefined}
                           isTargetable={isTarget(charState?.uid, myCharacters)}
                         />
+                        {anim && (
+                          <FloatingDamage
+                            damage={anim.damage}
+                            isCrit={anim.isCrit}
+                            lethal={anim.lethal}
+                            onComplete={() => removeAnim(anim.id)}
+                          />
+                        )}
                       </div>
                     ) : (
                       <div className="flex aspect-square items-center justify-center rounded-2xl border border-dashed border-gray-700 bg-[#0f0e13] text-sm text-gray-500">
@@ -299,6 +376,7 @@ export default function Game() {
         userPseudo={userPseudo}
         userAvatar={userAvatar}
         activeMaxMp={activeMaxMp}
+        animating={isAnimating}
       />
 
       {/* Game Over overlay */}
