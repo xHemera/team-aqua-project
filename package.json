@@ -8,6 +8,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "next": "^16.2.6",
     "redis": "^5.12.1",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3"
